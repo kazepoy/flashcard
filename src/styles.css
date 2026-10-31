@@ -954,6 +954,19 @@ summary {
 .index-card.font-hand {
   font-family: var(--font-hand);
 }
+/* polices de lecture choisies pour un jeu ou une carte ; celle des réglages du lecteur l'emporte */
+.index-card.font-opendyslexic {
+  font-family: var(--reading-font, 'OpenDyslexic', system-ui, sans-serif);
+}
+.index-card.font-atkinson {
+  font-family: var(--reading-font, 'Atkinson Hyperlegible', system-ui, sans-serif);
+}
+.index-card.font-lexend {
+  font-family: var(--reading-font, 'Lexend', system-ui, sans-serif);
+}
+.index-card.font-andika {
+  font-family: var(--reading-font, 'Andika', system-ui, sans-serif);
+}
 .index-card.size-sm {
   --fs: 1.05rem;
   min-height: 11rem;

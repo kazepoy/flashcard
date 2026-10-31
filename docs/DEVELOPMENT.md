@@ -180,7 +180,9 @@ reste en noir sur blanc.
 La police de lecture des réglages (`READING_FONTS` dans `ui/themes.js` : OpenDyslexic, Atkinson
 Hyperlegible, Lexend, Andika) remplace les variables `--font-ui`, `--font-card`, `--font-hand` et
 `--card-font` par un style en ligne sur `<html>`, qui l'emporte sur le thème ; `--font-mono` ne change
-pas. Les fichiers WOFF2 et leurs licences OFL sont dans `public/fonts/` (provenance dans son
+pas. Ces polices sont aussi proposées dans l'apparence d'un jeu ou d'une carte (`FONTS` de
+`core/style.js`, classes `.index-card.font-<id>`) ; la police des réglages l'emporte alors encore, par
+`--reading-font`. Les fichiers WOFF2 et leurs licences OFL sont dans `public/fonts/` (provenance dans son
 `README.md`), les `@font-face` en tête de `styles.css` ; ils font partie du préchargement hors ligne.
 
 ## Tests

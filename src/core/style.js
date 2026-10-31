@@ -1,7 +1,8 @@
 // Personnalisation visuelle des cartes (couleurs, police, papier…). Toutes les valeurs sont validées :
 // aucune chaîne libre n'atteint le CSS (pas d'injection).
 
-export const FONTS = ['serif', 'sans', 'mono', 'hand'];
+// les quatre dernières sont les polices de lecture des réglages (ui/themes.js : READING_FONTS)
+export const FONTS = ['serif', 'sans', 'mono', 'hand', 'opendyslexic', 'atkinson', 'lexend', 'andika'];
 export const SIZES = ['sm', 'md', 'lg', 'xl'];
 export const ALIGNS = ['left', 'center'];
 export const PAPERS = ['ruled', 'plain', 'grid', 'dots'];

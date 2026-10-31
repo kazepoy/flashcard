@@ -171,6 +171,7 @@ try {
     await page.getByText('Apparence par défaut des cartes de ce jeu').click();
     await page.locator('details.set-style .swatch[aria-label="#FFF3A3"]').first().click();
     await page.locator('details.set-style select').nth(3).selectOption('grid');
+    await page.locator('details.set-style select').first().selectOption('lexend');
     await page
       .locator('.ed-card')
       .first()
@@ -191,6 +192,16 @@ try {
     const front = page.locator('.face-front').first();
     const cls = await front.getAttribute('class');
     if (!/paper-grid/.test(cls) || !/is-dark/.test(cls)) throw new Error('style non appliqué à la fiche : ' + cls);
+    // police de lecture choisie pour le jeu, l'interface gardant la sienne
+    assert.match(await front.evaluate((el) => getComputedStyle(el).fontFamily), /^"?Lexend/);
+    assert.doesNotMatch(
+      await page
+        .locator('h1, .brand')
+        .first()
+        .evaluate((el) => getComputedStyle(el).fontFamily),
+      /Lexend/,
+    );
+    await page.waitForFunction(() => [...document.fonts].some((f) => f.family === 'Lexend' && f.status === 'loaded'));
     await shot('15-style-fiche');
     await page
       .getByRole('button', { name: /^Retourner/ })
@@ -551,6 +562,8 @@ try {
       await shot('17c-police-opendyslexic');
       await page.goto(setUrl + '/study/flashcards');
       await page.locator('.flip').waitFor();
+      // le jeu a choisi Lexend (étape « personnalisation ») : la police des réglages l'emporte
+      assert.match(await page.locator('.face-front').first().getAttribute('class'), /font-lexend/);
       assert.match(await font('.face-front'), /^'?"?OpenDyslexic/);
       await page.goto(base + '#/settings');
       await page.locator('.font-opt', { hasText: 'Par défaut' }).click();

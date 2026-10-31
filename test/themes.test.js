@@ -1,6 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { existsSync, readFileSync } from 'node:fs';
+import { FONTS } from '../src/core/style.js';
 import { READING_FONTS, THEMES, applyReadingFont } from '../src/ui/themes.js';
 
 const lum = (hex) => {
@@ -74,13 +75,25 @@ test('polices de lecture : @font-face et fichiers présents, application et reto
       const file = b.match(/url\('fonts\/([^']+)'\)/)[1];
       assert.ok(existsSync(new URL(`../public/fonts/${file}`, import.meta.url)), file);
     }
+    // aussi au choix dans l'apparence des cartes, sous la police des réglages
+    assert.ok(FONTS.includes(f.id), `${f.id} absent de FONTS`);
+    assert.ok(
+      css.includes(`.index-card.font-${f.id} {\n  font-family: var(--reading-font, '${f.name}',`),
+      `.index-card.font-${f.id}`,
+    );
   }
   const props = new Map();
   const doc = {
     documentElement: { style: { setProperty: (k, v) => props.set(k, v), removeProperty: (k) => props.delete(k) } },
   };
   applyReadingFont('lexend', doc);
-  assert.deepEqual([...props.keys()].sort(), ['--card-font', '--font-card', '--font-hand', '--font-ui']);
+  assert.deepEqual([...props.keys()].sort(), [
+    '--card-font',
+    '--font-card',
+    '--font-hand',
+    '--font-ui',
+    '--reading-font',
+  ]);
   assert.match(props.get('--font-ui'), /^'Lexend', system-ui/);
   applyReadingFont('comic', doc); // identifiant inconnu (réglage d'une version plus récente)
   assert.equal(props.size, 0);

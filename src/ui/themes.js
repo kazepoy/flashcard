@@ -325,7 +325,10 @@ export function applyTheme(id, doc = document) {
 
 const readingStack = (family) => `'${family}', ${SYSTEM_FONT}`;
 
-/** Polices de lecture des réglages : fichiers dans public/fonts, @font-face dans styles.css. */
+/**
+ * Polices de lecture des réglages, aussi proposées dans l'apparence des cartes (core/style.js : FONTS) :
+ * fichiers dans public/fonts, @font-face dans styles.css.
+ */
 export const READING_FONTS = [
   { id: 'opendyslexic', name: 'OpenDyslexic', stack: readingStack('OpenDyslexic'), desc: 'font.opendyslexic' },
   {
@@ -340,13 +343,13 @@ export const READING_FONTS = [
 
 /**
  * Applique une police de lecture à l'interface et aux cartes, par-dessus celles du thème (style en
- * ligne, prioritaire) ; le texte à chasse fixe (--font-mono) n'en change pas. « default » ou un
- * identifiant inconnu rend les polices du thème.
+ * ligne, prioritaire) et celles choisies pour un jeu ou une carte (--reading-font) ; le texte à chasse
+ * fixe (--font-mono) n'en change pas. « default » ou un identifiant inconnu rend les polices du thème.
  */
 export function applyReadingFont(id, doc = document) {
   const f = READING_FONTS.find((x) => x.id === id);
   const st = doc.documentElement.style;
-  for (const v of ['--font-ui', '--font-card', '--font-hand', '--card-font']) {
+  for (const v of ['--font-ui', '--font-card', '--font-hand', '--card-font', '--reading-font']) {
     if (f) st.setProperty(v, f.stack);
     else st.removeProperty(v);
   }
