@@ -14,6 +14,7 @@ import { newCard, newSet } from '../core/format.js';
 import { Dialog, Icon } from './components.jsx';
 import { go, href, useApp } from './ctx.js';
 import { errorText, t, tn } from './i18n.js';
+import { LANGS } from './languages.js';
 
 export function AiDialog({ onClose, onDone }) {
   const { lib, toast, settings } = useApp();
@@ -25,6 +26,10 @@ export function AiDialog({ onClose, onDone }) {
   const [count, setCount] = useState(20);
   const [kind, setKind] = useState('mixed');
   const [title, setTitle] = useState('');
+  const [notes, setNotes] = useState('');
+  const [languages, setLanguages] = useState(() => ({ ...settings.language }));
+  // sans clé : fichiers joints directement dans l'assistant (il les lit lui-même : PDF scannés, images, Word…)
+  const [attached, setAttached] = useState(false);
   const [reply, setReply] = useState('');
   const [copied, setCopied] = useState(false);
   const [busy, setBusy] = useState('');
@@ -32,7 +37,9 @@ export function AiDialog({ onClose, onDone }) {
   const [cards, setCards] = useState(null);
   const [picked, setPicked] = useState({});
   const fileInput = useRef();
-  const request = { text, count, kind, language: settings.lang === 'en' ? 'English' : '' };
+  const attach = mode === 'chat' && attached;
+  const request = { text, count, kind, languages, notes, attached: attach };
+  const hasSource = attach || !!text.trim();
 
   const readFile = async (f) => {
     setErr('');
@@ -75,7 +82,8 @@ export function AiDialog({ onClose, onDone }) {
       () => setCopied(true),
       () => setErr(t('library.copyFailedSelectPrompt')),
     );
-    if (bot) window.open(chatbotUrl(bot, prompt), '_blank', 'noopener');
+    // fichiers à joindre : pas de consigne dans l'adresse (certains assistants l'envoient aussitôt)
+    if (bot) window.open(attach ? bot.url : chatbotUrl(bot, prompt), '_blank', 'noopener');
   };
 
   const readReply = () => {
@@ -91,7 +99,7 @@ export function AiDialog({ onClose, onDone }) {
     const chosen = cards.filter((_, i) => picked[i]).map((c) => newCard(c));
     const s = newSet({
       title: title || t('library.generatedCards'),
-      language: { ...settings.language },
+      language: { term: languages.term || null, definition: languages.definition || null },
       cards: chosen,
     });
     await lib.saveSet(s);
@@ -153,28 +161,39 @@ export function AiDialog({ onClose, onDone }) {
             <span>{t('library.setTitle')}</span>
             <input value={title} onInput={(e) => setTitle(e.currentTarget.value)} />
           </label>
+          {mode === 'chat' && (
+            <label class="check attach-check">
+              <input type="checkbox" checked={attached} onChange={(e) => setAttached(e.currentTarget.checked)} />
+              <span>
+                {t('library.aiAttachInAssistant')}
+                <span class="muted small check-help">{t('library.aiAttachHelp')}</span>
+              </span>
+            </label>
+          )}
           <label class="field">
-            <span>{t('library.topicNotesTextLearn')}</span>
+            <span>{attach ? t('library.aiAttachComplement') : t('library.topicNotesTextLearn')}</span>
             <textarea
               class="bulk"
-              rows="7"
+              rows={attach ? 3 : 7}
               value={text}
               onInput={(e) => setText(e.currentTarget.value)}
               placeholder={t('library.aiTopicPlaceholder')}
             />
           </label>
-          <div class="actions">
-            <input
-              ref={fileInput}
-              type="file"
-              hidden
-              accept=".txt,.md,.markdown,.pdf,text/plain"
-              onChange={(e) => (readFile(e.currentTarget.files[0]), (e.currentTarget.value = ''))}
-            />
-            <button class="btn" onClick={() => fileInput.current.click()}>
-              <Icon name="upload" /> {t('library.addFilePdfText')}
-            </button>
-          </div>
+          {!attach && (
+            <div class="actions">
+              <input
+                ref={fileInput}
+                type="file"
+                hidden
+                accept=".txt,.md,.markdown,.pdf,text/plain"
+                onChange={(e) => (readFile(e.currentTarget.files[0]), (e.currentTarget.value = ''))}
+              />
+              <button class="btn" onClick={() => fileInput.current.click()}>
+                <Icon name="upload" /> {t('library.addFilePdfText')}
+              </button>
+            </div>
+          )}
           <div class="grid-2">
             <label class="field">
               <span>{t('library.numberCards', { n: count })}</span>
@@ -196,6 +215,34 @@ export function AiDialog({ onClose, onDone }) {
               </select>
             </label>
           </div>
+          <div class="grid-2">
+            {[
+              ['term', 'editor.termLanguage'],
+              ['definition', 'editor.definitionLanguage'],
+            ].map(([k, label]) => (
+              <label key={k} class="field">
+                <span>{t(label)}</span>
+                <select
+                  value={languages[k] || ''}
+                  onChange={(e) => setLanguages({ ...languages, [k]: e.currentTarget.value || null })}
+                >
+                  {LANGS.map(([c, n]) => (
+                    <option key={c} value={c}>
+                      {t(n)}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            ))}
+          </div>
+          <label class="field">
+            <span>{t('library.aiNotes')}</span>
+            <input
+              value={notes}
+              onInput={(e) => setNotes(e.currentTarget.value)}
+              placeholder={t('library.aiNotesPlaceholder')}
+            />
+          </label>
           {mode === 'api' ? (
             <>
               {!ok && (
@@ -213,17 +260,17 @@ export function AiDialog({ onClose, onDone }) {
               <h3>{t('library.aiStep1')}</h3>
               <div class="actions">
                 {CHATBOTS.map((b) => (
-                  <button key={b.id} class="btn" disabled={!text.trim()} onClick={() => copyPrompt(b)}>
+                  <button key={b.id} class="btn" disabled={!hasSource} onClick={() => copyPrompt(b)}>
                     {b.name} <Icon name="external" />
                   </button>
                 ))}
-                <button class="btn" disabled={!text.trim()} onClick={() => copyPrompt(null)}>
+                <button class="btn" disabled={!hasSource} onClick={() => copyPrompt(null)}>
                   {t('library.copyOnly')}
                 </button>
               </div>
               {copied && (
                 <p class="muted small" role="status">
-                  {t('library.promptCopiedPasteAssistant')}
+                  {attach ? t('library.promptCopiedAttach') : t('library.promptCopiedPasteAssistant')}
                 </p>
               )}
               <details>
@@ -232,7 +279,7 @@ export function AiDialog({ onClose, onDone }) {
                   class="bulk"
                   rows="6"
                   readOnly
-                  value={text.trim() ? chatPrompt(request) : ''}
+                  value={hasSource ? chatPrompt(request) : ''}
                   onFocus={(e) => e.currentTarget.select()}
                 />
               </details>

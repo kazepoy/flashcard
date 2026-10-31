@@ -111,7 +111,7 @@ export function StylePanel({ style, onChange, preview, inherit = false }) {
           />
         </div>
         <div class="row grid-sel">
-          {choice('font', FONTS, 'serif')}
+          {choice('font', FONTS, 'hand')}
           {choice('size', SIZES, 'md')}
           {choice('align', ALIGNS, 'left')}
           {choice('paper', PAPERS, 'ruled')}

@@ -285,8 +285,14 @@ export default {
   'lang.zh': 'Chinois',
 
   'library.addFilePdfText': 'Ajouter un fichier (PDF, texte, Markdown)',
+  'library.aiAttachComplement': 'Sujet ou texte en complément (facultatif)',
+  'library.aiAttachHelp':
+    "PDF (même scannés), images, Word, présentations… : l'assistant les lit lui-même, souvent mieux que l'extraction de texte de Flashcard, et rien n'est lu ici.",
+  'library.aiAttachInAssistant': "Je joins mes fichiers directement dans l'assistant",
   'library.aiModeApi': "Avec une clé d'API",
   'library.aiModeChat': 'Avec mon compte (ChatGPT, Claude…)',
+  'library.aiNotes': 'Précisions (facultatif)',
+  'library.aiNotesPlaceholder': 'ex. niveau lycée, insister sur les dates, une carte par mot de vocabulaire…',
   'library.aiStep1': '1. Copiez la consigne et ouvrez votre assistant',
   'library.aiStep2': "2. Collez ici toute la réponse de l'assistant",
   'library.aiTopicPlaceholder': 'ex. « Les planètes du système solaire », ou collez un cours, un chapitre…',
@@ -341,6 +347,7 @@ export default {
   'library.openSettings': 'Ouvrir les réglages',
   'library.pastedImport': 'Import collé',
   'library.pastedText': 'Texte collé',
+  'library.promptCopiedAttach': "Consigne copiée. Dans l'assistant : collez-la, joignez vos fichiers, puis envoyez.",
   'library.promptCopiedPasteAssistant':
     "Consigne copiée. Collez-la dans l'assistant si elle n'y est pas déjà, puis envoyez-la.",
   'library.publicQuizletSetsCant':

@@ -471,7 +471,7 @@ try {
     ]);
     await popup.waitForLoadState();
     const q = new URL(popup.url()).searchParams.get('q');
-    assert.match(q, /sur le sujet suivant : Les planètes du système solaire/);
+    assert.match(q, /Sujet : <source>Les planètes du système solaire<\/source>/);
     await popup.close();
     await page
       .getByLabel("Réponse de l'assistant")

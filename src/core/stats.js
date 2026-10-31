@@ -3,7 +3,11 @@ import { localDay, SrsState } from './srs.js';
 
 const DAY = 86400000;
 
-export function computeStats(items, progress, scheduler, now = new Date()) {
+/**
+ * `logs` : lignes du journal du jeu. Réponses d'un jour = maximum des compteurs `daily` et des lignes du
+ * journal (avec la synchronisation, les compteurs se fusionnent par maximum, le journal par union).
+ */
+export function computeStats(items, progress, scheduler, now = new Date(), logs = []) {
   const ids = new Set(items.map((i) => i.id));
   let seen = 0;
   let mastered = 0;
@@ -32,11 +36,15 @@ export function computeStats(items, progress, scheduler, now = new Date()) {
     }
   }
 
+  const logged = {};
+  for (const l of logs) if (l.t) logged[localDay(new Date(l.t))] = (logged[localDay(new Date(l.t))] || 0) + 1;
+  const answers = (k) => Math.max(progress.daily[k]?.answers || 0, logged[k] || 0);
+
   // Série (jours consécutifs d'étude), la journée en cours ne casse pas la série.
   let streak = 0;
   const d = new Date(now);
-  if (!(progress.daily[localDay(d)]?.answers > 0)) d.setDate(d.getDate() - 1);
-  while (progress.daily[localDay(d)]?.answers > 0) {
+  if (!(answers(localDay(d)) > 0)) d.setDate(d.getDate() - 1);
+  while (answers(localDay(d)) > 0) {
     streak++;
     d.setDate(d.getDate() - 1);
   }
@@ -47,7 +55,7 @@ export function computeStats(items, progress, scheduler, now = new Date()) {
   h.setDate(h.getDate() - 7 * 18 + 1);
   for (let i = 0; i < 7 * 18; i++) {
     const k = localDay(h);
-    heat.push({ day: k, n: progress.daily[k]?.answers || 0 });
+    heat.push({ day: k, n: answers(k) });
     h.setDate(h.getDate() + 1);
   }
 

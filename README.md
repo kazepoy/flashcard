@@ -49,6 +49,8 @@ dossier). Un workflow GitHub Pages est fourni.
 
 - [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md) : architecture, commandes, tests, conventions, pistes.
 - [docs/SYNC.md](docs/SYNC.md) : synchronisation, sauvegarde et partage sans serveur (services comparés).
+- [docs/STATS.md](docs/STATS.md) : comment sont calculées les statistiques, et ce que la synchronisation en garde.
+- [docs/IA.md](docs/IA.md) : création de cartes par IA (avec ou sans clé), consignes envoyées, confidentialité.
 - [docs/SPEC.md](docs/SPEC.md) : format des fichiers (pour lire ou écrire une bibliothèque depuis un autre outil).
 
 ## Licence

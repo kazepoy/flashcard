@@ -30,6 +30,18 @@ export function SetPage({ setId }) {
   const [shareOpen, setShareOpen] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const scheduler = useMemo(() => new Scheduler({ retention: settings.retention }), [settings.retention]);
+  // journal du jeu, relu quand la progression change (réponses d'un autre appareil après synchronisation)
+  const [logs, setLogs] = useState([]);
+  useEffect(() => {
+    let live = true;
+    lib
+      .readLog(setId)
+      .then((l) => live && setLogs(l))
+      .catch(() => {});
+    return () => {
+      live = false;
+    };
+  }, [lib, setId, progress]);
 
   if (loading) return <p class="muted pad">{t('common.loading')}</p>;
   if (error || !set) {
@@ -44,7 +56,7 @@ export function SetPage({ setId }) {
   }
 
   const items = activeItems(expandSet(set, 'term'), progress);
-  const stats = computeStats(items, progress, scheduler);
+  const stats = computeStats(items, progress, scheduler, new Date(), logs);
   const plan = examPlan(items, progress, progress.exam?.date); // panneau « Examen »
   const queue = todayQueue(items, progress, settings);
   const due = queue.counts.learning + queue.counts.review + queue.counts.new;

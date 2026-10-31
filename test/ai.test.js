@@ -71,9 +71,35 @@ test('generateCards (Anthropic) : en-têtes, filtrage des cartes invalides', asy
   assert.equal(seen.init.headers['x-api-key'], 'KEY');
   assert.equal(seen.init.headers['anthropic-version'], '2023-06-01');
   assert.equal(seen.body.model, 'm');
+  assert.equal(seen.body.tool_choice.name, 'cartes', 'schéma imposé');
+  assert.match(seen.body.messages[0].content, /Sujet : <source>Paris est la capitale\.<\/source>/);
   assert.equal(cards.length, 3);
   assert.equal(cards[1].type, 'cloze');
   assert.equal(cards[2].type, 'basic');
+});
+
+test('generateCards (Anthropic) : réponse par outil, morceaux suivants sans doublon', async () => {
+  const bodies = [];
+  const fetchImpl = async (url, init) => {
+    bodies.push(JSON.parse(init.body));
+    const n = bodies.length;
+    return okJson({
+      content: [
+        { type: 'tool_use', name: 'cartes', input: { cards: [{ type: 'basic', term: `Q${n}`, definition: 'R' }] } },
+      ],
+    });
+  };
+  const text = 'a'.repeat(9000) + '\n\n' + 'b'.repeat(9000);
+  const cards = await generateCards(
+    { text, count: 10 },
+    { provider: 'anthropic', model: 'm', apiKey: 'K' },
+    { fetchImpl },
+  );
+  assert.deepEqual(
+    cards.map((c) => c.term),
+    ['Q1', 'Q2'],
+  );
+  assert.match(bodies[1].messages[0].content, /déjà créées, à ne pas refaire : Q1/);
 });
 
 test('generateCards (compatible OpenAI / Ollama) et explainAnswer', async () => {
@@ -140,11 +166,22 @@ test("IA sans clé : consigne, sujet ou texte, lecture de la réponse collée, a
   assert.equal(isTopic('Ligne 1\nLigne 2'), false);
   const p = chatPrompt({ text: 'Les planètes', count: 10, kind: 'cloze' });
   assert.match(p, /UNIQUEMENT par un tableau JSON/);
-  assert.match(p, /environ 10 cartes \(uniquement des cartes "cloze"\) sur le sujet suivant : Les planètes$/);
+  assert.match(p, /environ 10 cartes : uniquement des cartes "cloze"\./);
+  assert.match(p, /Sujet : <source>Les planètes<\/source>$/);
   assert.match(
     chatPrompt({ text: 'Un cours.\nAvec deux lignes.' }),
-    /à partir du texte suivant :\n\nUn cours\.\nAvec deux lignes\.$/,
+    /Document :\n<source>\nUn cours\.\nAvec deux lignes\.\n<\/source>$/,
   );
+  // langues des deux faces, précisions, fichiers joints dans l'assistant
+  const v = chatPrompt({
+    text: '',
+    languages: { term: 'en', definition: 'fr' },
+    notes: 'niveau B1',
+    attached: true,
+  });
+  assert.match(v, /Recto \("term"\) en anglais, verso \("definition"\) en français\./);
+  assert.match(v, /Précisions de l'utilisateur : niveau B1/);
+  assert.match(v, /documents joints à ce message\.$/);
   // réponse typique d'un assistant : texte autour, bloc ```json, carte incomplète ignorée
   const reply =
     'Voici vos cartes :\n```json\n[{"type":"basic","term":"Mars","definition":"planète rouge"},{"type":"cloze","term":"{{c1::Jupiter}} est la plus grande"},{"term":"sans réponse"}]\n```\nBonne révision !';

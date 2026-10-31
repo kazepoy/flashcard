@@ -281,8 +281,14 @@ export default {
   'lang.zh': 'Chinese',
 
   'library.addFilePdfText': 'Add a file (PDF, text, Markdown)',
+  'library.aiAttachComplement': 'Topic or extra text (optional)',
+  'library.aiAttachHelp':
+    "PDFs (even scanned), images, Word, slides…: the assistant reads them itself, often better than Flashcard's text extraction, and nothing is read here.",
+  'library.aiAttachInAssistant': "I'll attach my files directly in the assistant",
   'library.aiModeApi': 'With an API key',
   'library.aiModeChat': 'With my account (ChatGPT, Claude…)',
+  'library.aiNotes': 'Instructions (optional)',
+  'library.aiNotesPlaceholder': 'e.g. high-school level, focus on dates, one card per vocabulary word…',
   'library.aiStep1': '1. Copy the prompt and open your assistant',
   'library.aiStep2': "2. Paste the assistant's whole answer here",
   'library.aiTopicPlaceholder': 'e.g. “The planets of the solar system”, or paste a lesson, a chapter…',
@@ -337,6 +343,7 @@ export default {
   'library.openSettings': 'Open settings',
   'library.pastedImport': 'Pasted import',
   'library.pastedText': 'Pasted text',
+  'library.promptCopiedAttach': 'Prompt copied. In the assistant: paste it, attach your files, then send.',
   'library.promptCopiedPasteAssistant':
     "Prompt copied. Paste it into the assistant if it isn't there already, then send it.",
   'library.publicQuizletSetsCant':

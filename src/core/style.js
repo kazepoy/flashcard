@@ -85,7 +85,7 @@ export function cardAppearance(style = {}, side = 'prompt') {
     vars['--card-cloze'] = contrast(bg, wanted) >= 4.5 ? wanted : fg;
   } else if (style.cloze) vars['--card-cloze'] = style.cloze;
   const cls = [
-    'font-' + (style.font || 'serif'),
+    'font-' + (style.font || 'default'), // défaut : manuscrite (ou celle du thème, voir styles.css)
     'size-' + (style.size || 'md'),
     'align-' + (style.align || 'left'),
     'paper-' + (style.paper || 'ruled'),

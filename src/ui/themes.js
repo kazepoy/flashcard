@@ -297,7 +297,7 @@ export const THEMES = [
       rule: '#1d3a1d',
       margin: '#ff7b6b',
     },
-    fonts: { 'font-ui': MONO, 'font-card': MONO },
+    fonts: { 'font-ui': MONO, 'font-card': MONO, 'card-font': MONO },
   },
 ];
 

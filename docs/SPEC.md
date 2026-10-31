@@ -108,7 +108,7 @@ Objet `style` (toutes les clés sont facultatives) :
 | `backBg`  | couleur de fond du verso, si différente                                                                                                   |
 | `fg`      | couleur du texte `#RRGGBB` ; le lecteur DOIT la remplacer par une couleur lisible (contraste WCAG ≥ 4,5) si elle ne l'est pas sur le fond |
 | `cloze`   | couleur `#RRGGBB` des mots révélés d'un texte à trous ; remplacée par une couleur lisible si besoin, comme `fg`                           |
-| `font`    | `serif` \| `sans` \| `mono` \| `hand`                                                                                                     |
+| `font`    | `serif` \| `sans` \| `mono` \| `hand` ; absent : au choix du lecteur (Flashcard : manuscrite)                                             |
 | `size`    | `sm` \| `md` \| `lg` \| `xl`                                                                                                              |
 | `align`   | `left` \| `center`                                                                                                                        |
 | `paper`   | `ruled` (lignes) \| `plain` (uni) \| `grid` (quadrillé) \| `dots` (pointillé)                                                             |

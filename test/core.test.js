@@ -293,6 +293,10 @@ test("stats : série, prévisions, score mémoire, plan d'examen", () => {
   assert.ok(st.memoryScore > 0.9);
   assert.equal(st.streak, 2);
   assert.equal(st.heat.length, 126);
+  // un jour révisé seulement sur un autre appareil (journal fusionné) prolonge la série
+  const other = computeStats(items, progress, sch, now, [{ t: '2026-10-26T09:00:00', item: 'x', mode: 'srs' }]);
+  assert.equal(other.streak, 3);
+  assert.equal(other.heat.at(-3).n, 1);
   assert.ok(st.forecast.reduce((a, b) => a + b, 0) >= 4);
   const plan = examPlan(items, newProgress(set.id), '2026-11-07', now);
   assert.equal(plan.daysLeft, 10);
