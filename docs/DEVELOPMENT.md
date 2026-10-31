@@ -53,7 +53,7 @@ src/
 │               éléments d'étude), srs (FSRS, séance de révision), daily (file du jour), progress, learn,
 │               test, games, stats, analytics, search, occlusion, style, merge (conflits), errors
 ├─ storage/     stores (mémoire, IndexedDB, dossier réel), library (jeux, progressions, journaux, médias),
-│               sync (synchronisation fichier par fichier), gdrive, onedrive (dossiers distants)
+│               sync (synchronisation fichier par fichier), gdrive, onedrive, dropbox (dossiers distants)
 ├─ io/          Anki .apkg (import / export), CSV / TSV / Quizlet, Markdown, archive .flashcard.zip
 ├─ ai/          génération de cartes (API Anthropic ou compatible OpenAI, consigne copier-coller), PDF
 └─ ui/
@@ -70,7 +70,7 @@ src/
    ├─ browse.jsx      navigateur de cartes ; stats.jsx, charts.jsx : statistiques
    ├─ settings.jsx    réglages ; themes.js : thèmes ; help.jsx : aide et crédits
    ├─ sync-page.jsx   Réglages › Synchronisation ; use-sync.js : services et déclencheurs ;
-   │                  google-auth.js, microsoft-auth.js : connexions
+   │                  google-auth.js, microsoft-auth.js, dropbox-auth.js : connexions (pkce.js commun)
    ├─ i18n.js         t(), tn() ; locales/ : un dictionnaire par langue
    └─ study/          un fichier par mode d'étude ; face.jsx affiche une face de carte
 public/        index.html, manifeste, service worker, icônes
@@ -142,6 +142,21 @@ La connexion (`ui/microsoft-auth.js`) suit le flux « code d'autorisation + PKCE
 revient sur le site (`handleAuthRedirect`, au démarrage) ; le jeton de rafraîchissement renouvelle
 l'accès sans clic pendant environ 24 h. Fichiers dans `Applications/Flashcard` (`storage/onedrive.js`).
 
+**Clé d'application Dropbox** (une fois, gratuite) :
+
+1. [dropbox.com/developers/apps](https://www.dropbox.com/developers/apps) › Create app : « Scoped access »,
+   accès **App folder**, nom « Flashcard ».
+2. Onglet Permissions : cocher `files.metadata.read`, `files.content.read`, `files.content.write`, puis Submit.
+3. Onglet Settings : Redirect URIs `http://localhost:8080/` et `https://kazepoy.github.io/flashcard/` ;
+   « Allow public clients (Implicit Grant & PKCE) » : Allow.
+4. Copier l'**App key** (le secret ne sert pas) et la fournir au build : variable `DROPBOX_APP_KEY`, ou clé
+   `flashcard.dropboxAppKey` dans le stockage local pour un essai. En « développement », une application
+   Dropbox accepte un nombre limité d'utilisateurs ; demander le passage en production depuis la console.
+
+Connexion PKCE avec accès hors ligne (`ui/dropbox-auth.js`, sur `ui/pkce.js`, commun avec OneDrive) : le
+jeton de rafraîchissement ne périme pas, la synchronisation reste connectée. Fichiers dans
+`Applications/Flashcard` (`storage/dropbox.js`).
+
 ## Traduction
 
 Clés « espace.nom » et un dictionnaire par langue : `ui/locales/fr.js` (référence) et `en.js`.
@@ -166,7 +181,7 @@ reste en noir sur blanc.
   IA (client simulé), thèmes, traductions.
 - `test/e2e.mjs` (lancé plusieurs fois de suite pour vérifier sa stabilité) : création, chaque mode d'étude, apparence, image masquée, navigateur, statistiques,
   exports et PDF, IA par copier-coller, thèmes, première ouverture, remise à zéro, anglais, mobile,
-  synchronisation Google Drive et OneDrive (simulées) entre deux appareils, cartes suspendues, import en copie.
+  synchronisation Google Drive, OneDrive et Dropbox (simulées) entre deux appareils, cartes suspendues, import en copie.
   Toute erreur de console ou clé de traduction inconnue fait échouer le parcours.
 - L'import / export `.apkg` a été vérifié avec le vrai Anki (paquet Python `anki` 26.09).
 
@@ -190,8 +205,8 @@ construit et publie sur GitHub Pages à chaque push sur `main` (à activer une f
 
 ## Limites connues et pistes
 
-- Synchronisation : Google Drive et OneDrive (Dropbox, pour une connexion durable : candidat suivant) ;
-  pas de synchronisation quand l'application est fermée.
+- Synchronisation : pas de synchronisation quand l'application est fermée ; connexion limitée à 1 h
+  (Google) ou ~24 h (Microsoft), durable avec Dropbox.
 - Planification Anki ni importée ni exportée ; style des cartes non exporté vers `.apkg`.
 - Import par lien d'un jeu Quizlet public impossible (CORS) : passer par l'export texte de Quizlet.
 - Contraste du texte garanti par rapport à la couleur de fond d'une carte, pas à son image de fond.

@@ -251,7 +251,7 @@ export default {
   'help.pTrackTitle': 'No tracking',
   'help.privacyBackup': 'Remember to export a backup regularly:',
   'help.privacyExceptions':
-    'Nothing leaves without your action: only syncing with your Google Drive or OneDrive, AI generation and importing from a link contact a service, the one you choose.',
+    'Nothing leaves without your action: only syncing with your cloud storage (Google Drive, OneDrive, Dropbox), AI generation and importing from a link contact a service, the one you choose.',
   'help.privacyTitle': 'Your data stays with you',
   'help.startTitle': 'Getting started',
   'help.step1': '“New set”, “Import” (Anki, Quizlet, spreadsheet) or “Create with AI” from a topic or your notes.',
@@ -714,6 +714,8 @@ export default {
   'sync.choose':
     'Choose the service that will hold your data, then connect the same account on each of your devices: their libraries will be merged and then kept up to date.',
   'sync.connectTo': 'Connect {service}',
+  'sync.desc.dropbox':
+    'In the “Apps/Flashcard” folder of your Dropbox. Sign in once: the connection stays active without doing anything.',
   'sync.desc.gdrive':
     'In a “Flashcard” folder of your Google Drive. The connection lasts one hour, then renews with one click.',
   'sync.desc.onedrive':
@@ -730,7 +732,7 @@ export default {
   'sync.how.privacy':
     'Flashcard only sees the files it creates in your storage, nothing else. Your data goes through no other server.',
   'sync.how.session':
-    'Without a server, the connection is time-limited (one hour with Google, about 24 hours with Microsoft): after that, one click on “Resume” renews it.',
+    'Without a server, the connection is time-limited with Google (one hour) and Microsoft (about 24 hours): after that, one click on “Resume” renews it. With Dropbox, it stays active.',
   'sync.howTitle': 'How it works',
   'sync.intro':
     'Keep your sets and progress up to date on all your devices (computer, phone, tablet), and backed up automatically to your own cloud storage. No Flashcard account, no server.',
@@ -738,7 +740,8 @@ export default {
   'sync.now': 'Sync now',
   'sync.pausedBanner': '{service} sync is paused: the connection needs to be renewed.',
   'sync.resume': 'Resume sync',
-  'sync.settingsSummary': 'Automatic backup and sync between your devices, through your Google Drive or OneDrive.',
+  'sync.settingsSummary':
+    'Automatic backup and sync between your devices, through your Google Drive, OneDrive or Dropbox.',
   'sync.setup': 'Set up sync',
   'sync.status.connected': 'Connected',
   'sync.status.done': 'Synced {ago}',
@@ -748,6 +751,7 @@ export default {
   'sync.status.syncing': 'Syncing…',
   'sync.title': 'Sync',
   'sync.unavailable': '{service} is not set up on this site (no app ID at build time).',
+  'sync.where.dropbox': 'Your data is copied to the “Apps/Flashcard” folder of your Dropbox.',
   'sync.where.gdrive': 'Your data is copied to the “Flashcard” folder of your Google Drive.',
   'sync.where.onedrive': 'Your data is copied to the “Apps/Flashcard” folder of your OneDrive.',
 

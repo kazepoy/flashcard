@@ -1,7 +1,7 @@
 import { start } from './ui/app.jsx';
-import { handleAuthRedirect } from './ui/microsoft-auth.js';
+import { handleAuthRedirect } from './ui/pkce.js';
 
-// fenêtre de connexion Microsoft revenue sur le site : elle transmet la réponse et se ferme
+// fenêtre de connexion (Microsoft, Dropbox) revenue sur le site : elle transmet la réponse et se ferme
 if (!handleAuthRedirect()) start();
 
 // Hors-ligne : le service worker met l'application en cache (HTTPS ou localhost uniquement).

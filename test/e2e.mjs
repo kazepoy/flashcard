@@ -801,6 +801,80 @@ try {
     await c.close();
   });
 
+  await step('synchronisation Dropbox (connexion PKCE et API simulées) entre deux appareils', async () => {
+    const files = new Map(); // /chemin → { bytes, rev }
+    let n = 0;
+    const api = async (route) => {
+      const req = route.request();
+      const u = new URL(req.url());
+      const args = req.headers()['dropbox-api-arg'] && JSON.parse(req.headers()['dropbox-api-arg']);
+      const json = (body) => route.fulfill({ contentType: 'application/json', body: JSON.stringify(body) });
+      if (u.pathname === '/2/files/list_folder')
+        return json({
+          entries: [...files].map(([p, f]) => ({ '.tag': 'file', path_display: p, rev: f.rev })),
+          has_more: false,
+        });
+      if (u.pathname === '/2/files/upload') {
+        files.set(args.path, { bytes: req.postDataBuffer(), rev: `r${++n}` });
+        return json({ rev: files.get(args.path).rev });
+      }
+      if (u.pathname === '/2/files/download') return route.fulfill({ body: files.get(args.path).bytes });
+      if (u.pathname === '/2/files/delete_v2') {
+        files.delete(JSON.parse(req.postData()).path);
+        return json({});
+      }
+      return route.fulfill({ status: 400, body: 'requête inattendue' });
+    };
+    const device = async () => {
+      const c = await browser.newContext({ locale: 'fr-FR' });
+      await c.addInitScript(() => localStorage.setItem('flashcard.dropboxAppKey', 'cle-test'));
+      await c.route('https://www.dropbox.com/oauth2/authorize?*', (r) => {
+        const q = new URL(r.request().url()).searchParams;
+        assert.equal(q.get('token_access_type'), 'offline');
+        assert.equal(q.get('code_challenge_method'), 'S256');
+        const back = `${q.get('redirect_uri')}?code=code-ok&state=${encodeURIComponent(q.get('state'))}`;
+        return r.fulfill({
+          contentType: 'text/html',
+          body: `<script>location.replace(${JSON.stringify(back)})</script>`,
+        });
+      });
+      await c.route('https://api.dropboxapi.com/oauth2/token', (r) => {
+        assert.ok(new URLSearchParams(r.request().postData()).get('code_verifier'));
+        return r.fulfill({
+          contentType: 'application/json',
+          body: JSON.stringify({ access_token: 'jeton', expires_in: 14400, refresh_token: 'durable' }),
+        });
+      });
+      await c.route('https://api.dropboxapi.com/2/**', api);
+      await c.route('https://content.dropboxapi.com/2/**', api);
+      const p = await c.newPage();
+      const errs = [];
+      p.on('pageerror', (e) => errs.push(e.message));
+      await p.goto(base);
+      await p.locator('.set-row').first().waitFor();
+      return { c, p, errs };
+    };
+    const connect = async (p) => {
+      await p.goto(base + '#/settings/sync');
+      await p.getByRole('button', { name: 'Connecter Dropbox' }).click();
+      await p.locator('.sync-status.idle').waitFor();
+    };
+    const a = await device();
+    await a.p.getByRole('button', { name: /Nouveau jeu/ }).click();
+    await a.p.getByLabel('Titre', { exact: true }).fill('Jeu Dropbox de A');
+    await a.p.getByText('Enregistré').waitFor();
+    await connect(a.p);
+    assert.ok([...files.keys()].some((k) => k.startsWith('/sets/')));
+    const b = await device();
+    await connect(b.p);
+    await b.p.goto(base);
+    await b.p.getByText('Jeu Dropbox de A', { exact: true }).waitFor();
+    assert.equal(await b.p.locator('.set-row').count(), 2);
+    assert.deepEqual([...a.errs, ...b.errs], []);
+    await a.c.close();
+    await b.c.close();
+  });
+
   await step('carte suspendue : exclue du jour, réactivable', async () => {
     await page.goto(setUrl);
     const today = page.locator('.today .big');

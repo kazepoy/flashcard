@@ -252,7 +252,7 @@ export default {
   'help.pTrackTitle': 'Aucun pistage',
   'help.privacyBackup': 'Pensez à exporter régulièrement une sauvegarde :',
   'help.privacyExceptions':
-    "Rien ne sort sans votre action : seules la synchronisation avec votre Google Drive ou OneDrive, la génération par IA et l'import par lien contactent un service, celui que vous choisissez.",
+    "Rien ne sort sans votre action : seules la synchronisation avec votre stockage en ligne (Google Drive, OneDrive, Dropbox), la génération par IA et l'import par lien contactent un service, celui que vous choisissez.",
   'help.privacyTitle': 'Vos données restent chez vous',
   'help.startTitle': 'Prise en main',
   'help.step1':
@@ -728,6 +728,8 @@ export default {
   'sync.choose':
     'Choisissez le service où ranger vos données, puis connectez le même compte sur chacun de vos appareils : leurs bibliothèques seront fusionnées puis tenues à jour.',
   'sync.connectTo': 'Connecter {service}',
+  'sync.desc.dropbox':
+    'Dans le dossier « Applications/Flashcard » de votre Dropbox. On se connecte une fois : la connexion reste active sans rien faire.',
   'sync.desc.gdrive':
     "Dans un dossier « Flashcard » de votre Google Drive. La connexion dure une heure, puis se renouvelle d'un clic.",
   'sync.desc.onedrive':
@@ -744,7 +746,7 @@ export default {
   'sync.how.privacy':
     "Flashcard ne voit que les fichiers qu'il crée dans votre stockage, rien d'autre. Vos données ne passent par aucun autre serveur.",
   'sync.how.session':
-    'Sans serveur, la connexion a une durée limitée (une heure chez Google, environ 24 heures chez Microsoft) : ensuite, un clic sur « Reprendre » la renouvelle.',
+    'Sans serveur, la connexion a une durée limitée chez Google (une heure) et Microsoft (environ 24 heures) : ensuite, un clic sur « Reprendre » la renouvelle. Avec Dropbox, elle reste active.',
   'sync.howTitle': 'Comment ça marche',
   'sync.intro':
     'Gardez vos jeux et votre progression à jour sur tous vos appareils (ordinateur, téléphone, tablette), et sauvegardés automatiquement dans votre propre stockage en ligne. Sans compte Flashcard, sans serveur.',
@@ -753,7 +755,7 @@ export default {
   'sync.pausedBanner': 'La synchronisation {service} est en pause : la connexion doit être renouvelée.',
   'sync.resume': 'Reprendre la synchronisation',
   'sync.settingsSummary':
-    'Sauvegarde automatique et synchronisation entre vos appareils, via votre Google Drive ou votre OneDrive.',
+    'Sauvegarde automatique et synchronisation entre vos appareils, via votre Google Drive, OneDrive ou Dropbox.',
   'sync.setup': 'Configurer la synchronisation',
   'sync.status.connected': 'Connectée',
   'sync.status.done': 'Synchronisée {ago}',
@@ -764,6 +766,7 @@ export default {
   'sync.title': 'Synchronisation',
   'sync.unavailable':
     "{service} n'est pas configuré sur ce site (identifiant d'application absent au moment de la construction).",
+  'sync.where.dropbox': 'Vos données sont copiées dans le dossier « Applications/Flashcard » de votre Dropbox.',
   'sync.where.gdrive': 'Vos données sont copiées dans le dossier « Flashcard » de votre Google Drive.',
   'sync.where.onedrive': 'Vos données sont copiées dans le dossier « Applications/Flashcard » de votre OneDrive.',
 

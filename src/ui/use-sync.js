@@ -1,11 +1,13 @@
-// Synchronisation automatique de la bibliothèque avec un stockage en ligne (Google Drive, OneDrive) :
+// Synchronisation automatique de la bibliothèque avec un stockage en ligne (Google Drive, OneDrive, Dropbox) :
 // à l'ouverture, au retour au premier plan, quelques secondes après chaque modification, toutes les 5 minutes.
 import { useCallback, useEffect, useMemo, useRef, useState } from 'preact/hooks';
 import { AppError } from '../core/errors.js';
 import { GDriveRemote } from '../storage/gdrive.js';
+import { DropboxRemote } from '../storage/dropbox.js';
 import { OneDriveRemote } from '../storage/onedrive.js';
 import { syncLibrary } from '../storage/sync.js';
 import { cachedToken, forgetToken, googleClientId, requestToken } from './google-auth.js';
+import { dropboxAppKey, dropboxToken, forgetDropbox } from './dropbox-auth.js';
 import { forgetMs, msClientId, msToken } from './microsoft-auth.js';
 
 const KEY = 'flashcard.sync';
@@ -34,6 +36,14 @@ export const PROVIDERS = {
     signIn: () => msToken({ interactive: true, force: true }),
     remote: (getToken) => new OneDriveRemote(getToken),
     forget: forgetMs,
+  },
+  dropbox: {
+    name: 'Dropbox',
+    available: () => !!dropboxAppKey(),
+    token: ({ interactive }) => dropboxToken({ interactive }),
+    signIn: () => dropboxToken({ interactive: true, force: true }),
+    remote: (getToken) => new DropboxRemote(getToken),
+    forget: forgetDropbox,
   },
 };
 

@@ -35,6 +35,7 @@ export default [
         __BUILD_ID__: 'readonly',
         __GOOGLE_CLIENT_ID__: 'readonly',
         __MS_CLIENT_ID__: 'readonly',
+        __DROPBOX_APP_KEY__: 'readonly',
       },
     },
   },

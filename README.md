@@ -25,15 +25,15 @@ dans un format de fichiers ouvert.
 - **Échanges** : import / export Anki `.apkg` (image masquée comprise), CSV / TSV, texte Quizlet,
   Markdown, archive `.flashcard.zip` (import en copie renommée ou en mise à jour) ; partage d'un jeu ; impression et PDF de fiches à découper.
 - **Synchronisation** (en développement) : sauvegarde automatique et synchronisation entre ordinateur, téléphone et tablette
-  via votre propre Google Drive ou OneDrive, sans compte ni serveur.
+  via votre propre Google Drive, OneDrive ou Dropbox, sans compte ni serveur.
 - **Confort** : 11 thèmes clairs et sombres, français et anglais, mobile, installable (PWA).
 - **Prise en main** : à la première ouverture, un jeu « Visite guidée » montre chaque type de carte.
 
 ## Vos données
 
 Tout reste dans le navigateur (ou, sur Chrome / Edge de bureau, dans un dossier de votre choix). Aucun
-pisteur, aucune mesure d'audience. Rien ne sort sauf à votre demande : synchronisation avec votre Google
-Drive ou OneDrive, génération par IA, import d'un fichier par lien.
+pisteur, aucune mesure d'audience. Rien ne sort sauf à votre demande : synchronisation avec votre stockage
+en ligne, génération par IA, import d'un fichier par lien.
 
 ## Lancer
 

@@ -1,6 +1,6 @@
 {
   "name": "flashcard",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Flashcard — application libre de fiches et de révision espacée, local-first, format de fichiers ouvert",
   "scripts": {
     "test": "node --test test/*.test.js",

@@ -34,6 +34,8 @@ const options = {
     __GOOGLE_CLIENT_ID__: JSON.stringify(process.env.GOOGLE_CLIENT_ID || ''),
     // identifiant d'application Microsoft (synchronisation OneDrive) ; vide : option indisponible
     __MS_CLIENT_ID__: JSON.stringify(process.env.MS_CLIENT_ID || ''),
+    // clé d'application Dropbox (synchronisation Dropbox) ; vide : option indisponible
+    __DROPBOX_APP_KEY__: JSON.stringify(process.env.DROPBOX_APP_KEY || ''),
   },
   chunkNames: 'chunks/[name]-[hash]',
   logLevel: 'info',

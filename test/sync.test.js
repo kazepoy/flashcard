@@ -318,7 +318,7 @@ test('OneDrive : sous-dossiers créés, synchronisation entre deux appareils, gr
 });
 
 test("PKCE : défi S256 conforme à l'exemple de la RFC 7636", async () => {
-  const { pkceChallenge } = await import('../src/ui/microsoft-auth.js');
+  const { pkceChallenge } = await import('../src/ui/pkce.js');
   assert.equal(
     await pkceChallenge('dBjftJeZ4CVP-mB92K27uhbUJU1p1r_wW1gFWFOEjXk'),
     'E9Melhoa2OwvFrEMTJguCHaoeK1t8URWbuGJSstw-cM',
@@ -376,4 +376,67 @@ test('fiabilité : supprimer une carte puis « Annuler » la garde, même après
     updated: '2000-01-01T00:00:00.000Z',
   };
   assert.ok(mergeSets(await lib.loadSet(s.id), other).cards.some((c) => c.id === a.id));
+});
+
+/** Faux Dropbox (dossier d'application) : requêtes utilisées par DropboxRemote. */
+function fakeDropbox() {
+  const files = new Map(); // chemin (/sets/…) → { bytes, rev }
+  let n = 0;
+  const ok = (body) => ({
+    ok: true,
+    status: 200,
+    json: async () => body,
+    arrayBuffer: async () => body.buffer,
+    text: async () => '',
+  });
+  const fetchImpl = async (url, init) => {
+    assert.match(init.headers.Authorization, /^Bearer jeton$/);
+    const u = new URL(url);
+    const args = init.headers['Dropbox-API-Arg'] && JSON.parse(init.headers['Dropbox-API-Arg']);
+    if (u.pathname === '/2/files/list_folder') {
+      // deux pages, pour la pagination
+      const all = [...files].map(([p, f]) => ({ '.tag': 'file', path_display: p, rev: f.rev }));
+      return ok({ entries: all.slice(0, 1), has_more: all.length > 1, cursor: 'suite' });
+    }
+    if (u.pathname === '/2/files/list_folder/continue') {
+      const all = [...files].map(([p, f]) => ({ '.tag': 'file', path_display: p, rev: f.rev }));
+      return ok({ entries: all.slice(1), has_more: false });
+    }
+    if (u.pathname === '/2/files/upload') {
+      assert.equal(args.mode, 'overwrite');
+      files.set(args.path, { bytes: new Uint8Array(init.body), rev: `r${++n}` });
+      return ok({ rev: files.get(args.path).rev });
+    }
+    if (u.pathname === '/2/files/download') return ok(files.get(args.path).bytes);
+    if (u.pathname === '/2/files/delete_v2') {
+      files.delete(JSON.parse(init.body).path);
+      return ok({});
+    }
+    throw new Error(`requête inattendue ${url}`);
+  };
+  return { files, fetchImpl };
+}
+
+test('Dropbox : synchronisation entre deux appareils, liste paginée, suppression', async () => {
+  const { DropboxRemote } = await import('../src/storage/dropbox.js');
+  const dbx = fakeDropbox();
+  const remote = () => new DropboxRemote(async () => 'jeton', { fetchImpl: dbx.fetchImpl });
+  const libs = [await mkLib(), await mkLib()];
+  const states = [{}, {}];
+  const sync = async (i) => {
+    const r = await syncLibrary(libs[i], remote(), states[i]);
+    states[i] = r.state;
+    return r;
+  };
+  const media = await libs[0].putMedia(new Uint8Array([9, 8, 7]), 'png');
+  const s = newSet({ title: 'Dropbox', cards: [{ ...card('a'), image: media }] });
+  await libs[0].saveSet(s);
+  assert.equal((await sync(0)).pushed, 2);
+  assert.ok(dbx.files.has(`/sets/${s.id}.json`));
+  assert.equal((await sync(1)).pulled, 2, 'les deux pages de la liste sont lues');
+  assert.equal((await libs[1].loadSet(s.id)).title, 'Dropbox');
+  await libs[1].deleteSet(s.id);
+  await sync(1);
+  await sync(0);
+  assert.equal(await libs[0].loadSet(s.id), null);
 });

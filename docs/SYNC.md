@@ -94,5 +94,5 @@ questions de droits : à traiter plus tard.
 
 1. Google Drive : fait (portée `drive.file`, connexion d'une heure).
 2. OneDrive : fait (connexion d'environ 24 h, PKCE sans bibliothèque).
-3. Dropbox : candidat suivant pour une connexion durable.
+3. Dropbox : fait (connexion durable, PKCE avec accès hors ligne).
 4. WebDAV : possible plus tard pour les serveurs personnels, avec une notice de configuration CORS.
