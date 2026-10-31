@@ -61,5 +61,5 @@ dossier). Un workflow GitHub Pages est fourni.
 ## Licence
 
 [GNU AGPL-3.0](LICENSE) ou ultérieure : vous pouvez utiliser, modifier et redistribuer Flashcard,
-y compris commercialement, à condition de publier sous la même licence le code de toute version
+à condition de publier sous la même licence le code de toute version
 modifiée, même proposée seulement en ligne.

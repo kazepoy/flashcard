@@ -63,6 +63,6 @@ The technical documentation is in French.
 
 ## Licence
 
-[GNU AGPL-3.0](LICENSE) or later: you may use, modify and redistribute Flashcard, including
-commercially, provided that you publish the code of any modified version under the same licence, even
+[GNU AGPL-3.0](LICENSE) or later: you may use, modify and redistribute Flashcard,
+provided that you publish the code of any modified version under the same licence, even
 if it is only offered online.
