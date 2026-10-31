@@ -1,0 +1,18 @@
+# Dépendances et construction
+node_modules/
+dist/
+
+# Captures du test de bout en bout (node test/e2e.mjs captures)
+captures/
+
+# Journaux, secrets locaux
+*.log
+.env
+.env.*
+
+# Systèmes et éditeurs
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
