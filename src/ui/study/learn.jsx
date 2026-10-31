@@ -5,7 +5,7 @@ import { applyMastery, recordAnswer } from '../../core/progress.js';
 import { checkAnswer } from '../../core/text.js';
 import { useApp } from '../ctx.js';
 import { IndexCard, Md, MediaImage, useKeys } from '../components.jsx';
-import { errorText, getLang, t, tn } from '../i18n.js';
+import { errorText, t, tn } from '../i18n.js';
 import { useItems } from '../useSet.js';
 import { CardFace } from './face.jsx';
 import { DirectionPicker, Finish, StudyEmpty, StudyShell } from './shell.jsx';
@@ -154,7 +154,6 @@ function LearnRun({ set, progress, update, log, items, options, mc, wr, restart 
           prompt: q.item.prompt,
           expected: q.item.answer,
           given: feedback.given,
-          language: getLang() === 'en' ? 'English' : 'français',
         },
         loadAiConfig(),
       );

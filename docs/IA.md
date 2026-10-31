@@ -45,10 +45,12 @@ est toujours valide. Avec les autres fournisseurs, le tableau JSON est extrait d
 
 ## Ce qui est demandé à l'IA
 
-Code : [src/ai/client.js](../src/ai/client.js). La consigne a deux parties.
+Code : [src/ai/client.js](../src/ai/client.js). Les textes des consignes sont dans les fichiers de langue
+([src/ui/locales/](../src/ui/locales/), clés `ai.*`) : la consigne est dans la langue de l'interface, la langue des
+cartes étant donnée à part. Elle a deux parties.
 
 **Instructions générales** (message « système » avec une clé ; en tête de la consigne copiée sinon), identiques pour
-toutes les demandes. Elles sont en français quelle que soit la langue des cartes, qui est donnée explicitement :
+toutes les demandes :
 
 - le contexte : des cartes révisées seul, des semaines plus tard, qui doivent se comprendre sans le document ;
 - les règles de rédaction : une idée par carte et une réponse courte ; une question qui se suffit à elle-même ; pas
@@ -60,7 +62,7 @@ toutes les demandes. Elles sont en français quelle que soit la langue des carte
 - des exemples de bonnes et de mauvaises cartes, avec la raison ;
 - le format de réponse : un tableau JSON `{"type":"basic"|"cloze","term","definition","hint","example"}`.
 
-Le texte exact est dans `SYSTEM_CARDS`. La **demande** dépend des choix du dialogue, par exemple :
+Le texte exact est la clé `ai.system`. La **demande** dépend des choix du dialogue, par exemple :
 
 ```text
 Crée environ 20 cartes : un mélange de "basic" et de "cloze", selon ce qui convient le mieux à chaque notion.
@@ -93,8 +95,8 @@ En mode Apprendre, avec une clé configurée, le bouton « Expliquer » après u
 bonne réponse et la réponse donnée, avec cette consigne :
 
 ```text
-Tu es un tuteur bienveillant et concis. Explique en <langue de l'interface>, en 3 phrases maximum, pourquoi la bonne
-réponse est correcte et ce qui distingue la réponse donnée. Ajoute un moyen mnémotechnique si utile.
+Tu es un tuteur bienveillant et concis. Explique en 3 phrases maximum pourquoi la bonne réponse est correcte et ce
+qui distingue la réponse donnée. Ajoute un moyen mnémotechnique si utile.
 ```
 
 ## Confidentialité

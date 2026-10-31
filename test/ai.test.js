@@ -182,6 +182,17 @@ test("IA sans clé : consigne, sujet ou texte, lecture de la réponse collée, a
   assert.match(v, /Recto \("term"\) en anglais, verso \("definition"\) en français\./);
   assert.match(v, /Précisions de l'utilisateur : niveau B1/);
   assert.match(v, /documents joints à ce message\.$/);
+  // interface en anglais : consigne en anglais (fichiers de langue), noms de langues en anglais
+  const { setLang } = await import('../src/ui/i18n.js');
+  setLang('en');
+  try {
+    const e = chatPrompt({ text: 'The planets', languages: { term: 'fr', definition: 'en' } });
+    assert.match(e, /^You create review cards/);
+    assert.match(e, /Front \("term"\) in French, back \("definition"\) in English\./);
+    assert.match(e, /Topic: <source>The planets<\/source>$/);
+  } finally {
+    setLang('fr');
+  }
   // réponse typique d'un assistant : texte autour, bloc ```json, carte incomplète ignorée
   const reply =
     'Voici vos cartes :\n```json\n[{"type":"basic","term":"Mars","definition":"planète rouge"},{"type":"cloze","term":"{{c1::Jupiter}} est la plus grande"},{"term":"sans réponse"}]\n```\nBonne révision !';

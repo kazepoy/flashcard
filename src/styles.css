@@ -3098,6 +3098,11 @@ details.search-help table {
   color: var(--ink);
   border-color: var(--hi);
 }
+.badge.ok {
+  background: var(--ok-bg);
+  color: var(--ok);
+  border-color: var(--ok);
+}
 h1 .badge,
 h2 .badge {
   font-size: 0.75rem;

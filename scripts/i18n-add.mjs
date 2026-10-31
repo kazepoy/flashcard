@@ -8,7 +8,7 @@ const HEAD = {
   fr: '// Français (langue de référence). Clés « espace.nom » ; pluriels { one, other } selon Intl.PluralRules.',
   en: '// English. Mêmes clés que fr.js (vérifié par test/i18n.test.js).',
 };
-const q = (s) => `'${s.replace(/\\/g, '\\\\').replace(/'/g, "\\'")}'`;
+const q = (s) => `'${s.replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/\n/g, '\\n')}'`;
 const fmt = (v) => (typeof v === 'string' ? q(v) : `{ one: ${q(v.one)}, other: ${q(v.other)} }`);
 
 const add = JSON.parse(await readFile(process.argv[2], 'utf8'));

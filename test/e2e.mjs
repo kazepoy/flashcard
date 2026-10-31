@@ -647,6 +647,8 @@ try {
     const connect = async (p) => {
       await p.goto(base + '#/settings');
       await p.getByRole('link', { name: /Configurer la synchronisation/ }).click();
+      await p.getByText('Recommandé').waitFor();
+      if (shots) await p.screenshot({ path: `${shots}/21a-synchronisation-choix.png`, fullPage: true });
       await p.getByRole('button', { name: 'Connecter Google Drive' }).click();
       await p.locator('.sync-status.idle').waitFor();
     };

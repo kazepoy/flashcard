@@ -1,5 +1,7 @@
 # Flashcard
 
+**Français** · [English](README.en.md)
+
 **Essayer : [kazepoy.github.io/flashcard](https://kazepoy.github.io/flashcard/)**
 
 Application libre de fiches et de révision espacée, alternative à Quizlet et Anki. Elle fonctionne
@@ -19,13 +21,15 @@ dans un format de fichiers ouvert.
 - **Étude** : révision espacée FSRS (limites du jour contournables, plan d'examen, cartes suspendues), fiches,
   apprendre, écrire, épeler, test, association, gravité.
 - **Création assistée** : collage de listes (Quizlet, tableur), génération par IA à partir d'un sujet,
-  de notes ou d'un PDF, avec une clé d'API ou par simple copier-coller avec ChatGPT, Claude, Gemini…
+  de notes ou d'un PDF, avec une clé d'API ou par simple copier-coller avec ChatGPT, Claude, Gemini… (fichiers joints
+  directement dans l'assistant si besoin).
 - **Organisation** : dossiers, étiquettes, navigateur de cartes avec langage de recherche
   (`tag:verbe is:due -set:anglais`), drapeaux, doublons, statistiques détaillées.
 - **Échanges** : import / export Anki `.apkg` (image masquée comprise), CSV / TSV, texte Quizlet,
   Markdown, archive `.flashcard.zip` (import en copie renommée ou en mise à jour) ; partage d'un jeu ; impression et PDF de fiches à découper.
 - **Synchronisation** (en développement) : sauvegarde automatique et synchronisation entre ordinateur, téléphone et tablette
-  via votre propre Google Drive, OneDrive ou Dropbox, sans compte ni serveur.
+  via votre propre Dropbox (recommandé pour l'instant ; un compte gratuit de 2 Go suffit largement), Google Drive
+  ou OneDrive, sans compte ni serveur.
 - **Confort** : 11 thèmes clairs et sombres, français et anglais, mobile, installable (PWA).
 - **Prise en main** : à la première ouverture, un jeu « Visite guidée » montre chaque type de carte.
 

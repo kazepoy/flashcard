@@ -6,6 +6,9 @@ import { errorText, locale, t } from './i18n.js';
 import { PROVIDERS } from './use-sync.js';
 
 /** « il y a 3 minutes » dans la langue de l'interface. */
+/** Seul service sans limite de connexion pour l'instant (Google : 1 h, Microsoft : ~24 h). */
+const RECOMMENDED = 'dropbox';
+
 export function ago(iso, now = Date.now()) {
   const s = Math.round((new Date(iso).getTime() - now) / 1000);
   const rtf = new Intl.RelativeTimeFormat(locale(), { numeric: 'auto' });
@@ -87,11 +90,13 @@ export function SyncPage() {
                 <div class="sync-head">
                   <Icon name="cloud" size={22} />
                   <strong>{p.name}</strong>
+                  {id === RECOMMENDED && <span class="badge ok">{t('sync.recommended')}</span>}
                 </div>
                 <p>{t(`sync.desc.${id}`)}</p>
+                {id !== RECOMMENDED && <p class="notice small">{t(`sync.limit.${id}`)}</p>}
                 {!p.available() && <p class="notice small">{t('sync.unavailable', { service: p.name })}</p>}
                 <button
-                  class="btn primary"
+                  class={'btn' + (id === RECOMMENDED ? ' primary' : '')}
                   disabled={busy || !p.available()}
                   onClick={() => act(() => sync.connect(id))}
                 >
