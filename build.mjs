@@ -52,6 +52,8 @@ for (const f of ['icon-192.png', 'icon-512.png', 'icon-maskable-512.png']) {
     /* générées par scripts/icons.mjs ; absentes = PWA installable via l'icône SVG seulement */
   }
 }
+// Polices de lecture des réglages et leurs licences (public/fonts/README.md : provenance)
+await cp('public/fonts', join(out, 'fonts'), { recursive: true, filter: (f) => !f.endsWith('.md') });
 await cp('node_modules/sql.js/dist/sql-wasm-browser.wasm', join(out, 'sql-wasm-browser.wasm'));
 await cp('node_modules/pdfjs-dist/build/pdf.worker.min.mjs', join(out, 'pdf.worker.min.mjs'));
 // Jeux d'exemple importés à la première ouverture (examples/<langue>/index.json + archives)

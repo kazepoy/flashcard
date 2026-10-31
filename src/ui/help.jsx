@@ -25,6 +25,10 @@ const LIBS = [
   ['JSZip', 'https://stuk.github.io/jszip/', 'MIT', 'help.lib.jszip'],
   ['fzstd', 'https://github.com/101arrowz/fzstd', 'MIT', 'help.lib.fzstd'],
   ['PDF.js', 'https://mozilla.github.io/pdf.js/', 'Apache-2.0', 'help.lib.pdfjs'],
+  ['OpenDyslexic', 'https://opendyslexic.org', 'OFL-1.1', 'help.lib.readingFont'],
+  ['Atkinson Hyperlegible', 'https://www.brailleinstitute.org/freefont/', 'OFL-1.1', 'help.lib.readingFont'],
+  ['Lexend', 'https://www.lexend.com', 'OFL-1.1', 'help.lib.readingFont'],
+  ['Andika', 'https://software.sil.org/andika/', 'OFL-1.1', 'help.lib.readingFont'],
 ];
 
 /** Logo GitHub (marque officielle, tracé plein). */

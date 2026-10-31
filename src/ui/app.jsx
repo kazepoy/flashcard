@@ -8,7 +8,7 @@ import { AppCtx, href, routeOf, useRoute } from './ctx.js';
 import { errorText, getLang, onLang, t } from './i18n.js';
 import { Routes } from './routes.jsx';
 import { StorageNotice } from './storage-notice.jsx';
-import { applyTheme } from './themes.js';
+import { applyReadingFont, applyTheme } from './themes.js';
 import { useLibrary } from './use-library.js';
 import { useSync } from './use-sync.js';
 
@@ -63,6 +63,7 @@ function Root() {
     return () => removeEventListener('flashcard-update', ready);
   }, [toast]);
   useEffect(() => applyTheme(settings?.theme || 'auto'), [settings?.theme]);
+  useEffect(() => applyReadingFont(settings?.readingFont || 'default'), [settings?.readingFont]);
 
   const ctx = useMemo(
     () => ({ lib, settings, saveSettings, toast, lang, version, ...meta, refresh, switchLibrary: open, sync }),

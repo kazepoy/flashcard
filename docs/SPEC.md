@@ -247,6 +247,7 @@ directement exploitable par l'optimiseur FSRS.
   "version": 1,
   "lang": "fr",
   "theme": "auto",
+  "readingFont": "default",
   "language": { "term": "fr", "definition": "fr" },
   "initialized": true,
   "newPerDay": 20,
@@ -262,6 +263,9 @@ directement exploitable par l'optimiseur FSRS.
 importés si la bibliothèque était vide).
 `theme` : `"auto"` (clair ou sombre selon le système) ou l'identifiant d'un thème de l'interface
 (`light`, `dark`, `sepia`, `neon`…). Un lecteur applique `"auto"` à un identifiant qu'il ne connaît pas.
+`readingFont` : `"default"` (polices du thème) ou une police de lecture qui remplace celles de
+l'interface et des cartes : `opendyslexic`, `atkinson` (Atkinson Hyperlegible), `lexend`, `andika`.
+Un lecteur applique `"default"` à un identifiant qu'il ne connaît pas.
 
 La clé d'API du fournisseur d'IA n'est **jamais** écrite dans la bibliothèque
 (elle reste dans le stockage local du navigateur) : un dossier peut donc être

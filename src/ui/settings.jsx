@@ -6,7 +6,7 @@ import { href, useApp } from './ctx.js';
 import { errorText, t } from './i18n.js';
 import { LANGS } from './languages.js';
 import { syncStatusText } from './sync-page.jsx';
-import { THEMES } from './themes.js';
+import { READING_FONTS, SYSTEM_FONT, THEMES } from './themes.js';
 
 export function SettingsPage() {
   const app = useApp();
@@ -94,6 +94,7 @@ export function SettingsPage() {
           </label>
         </div>
         <ThemePicker value={settings.theme} onChange={(theme) => set({ theme })} />
+        <FontPicker value={settings.readingFont} onChange={(readingFont) => set({ readingFont })} />
       </section>
 
       <section class="panel">
@@ -459,6 +460,32 @@ function ThemePicker({ value, onChange }) {
       </div>
       {group('light', t('settings.lightThemes'))}
       {group('dark', t('settings.darkThemes'))}
+    </fieldset>
+  );
+}
+
+// ------------------------------------------------------------------ police de lecture
+
+/** Chaque option affiche son nom dans sa propre police. */
+function FontPicker({ value, onChange }) {
+  const current = READING_FONTS.some((x) => x.id === value) ? value : 'default';
+  const opt = (id, name, stack, desc) => (
+    <label class={'theme-opt font-opt' + (current === id ? ' on' : '')} key={id}>
+      <input type="radio" name="reading-font" value={id} checked={current === id} onChange={() => onChange(id)} />
+      <span class="font-name" style={{ fontFamily: stack }}>
+        {name}
+      </span>
+      <small class="muted">{desc}</small>
+    </label>
+  );
+  return (
+    <fieldset class="theme-picker">
+      <legend>{t('settings.readingFont')}</legend>
+      <div class="font-grid">
+        {opt('default', t('font.default'), SYSTEM_FONT, t('font.defaultDesc'))}
+        {READING_FONTS.map((f) => opt(f.id, f.name, f.stack, t(f.desc)))}
+      </div>
+      <p class="muted small">{t('settings.readingFontHint')}</p>
     </fieldset>
   );
 }

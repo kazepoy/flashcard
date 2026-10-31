@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
-import { THEMES } from '../src/ui/themes.js';
+import { existsSync, readFileSync } from 'node:fs';
+import { READING_FONTS, THEMES, applyReadingFont } from '../src/ui/themes.js';
 
 const lum = (hex) => {
   const [r, g, b] = [1, 3, 5]
@@ -54,4 +54,34 @@ test('thèmes : jetons complets, identifiants uniques, contrastes WCAG AA', () =
       assert.ok(contrast(c[fg], c[bg]) >= 4.5, `${id} : --${fg} sur --${bg} = ${contrast(c[fg], c[bg]).toFixed(2)}`);
     assert.ok(contrast(c.star, c.surface) >= 3, `${id} : --star`);
   }
+});
+
+test('polices de lecture : @font-face et fichiers présents, application et retour aux polices du thème', () => {
+  const css = readFileSync(new URL('../src/styles.css', import.meta.url), 'utf8');
+  const faces = [...css.matchAll(/@font-face \{([^}]*)\}/g)].map((m) => m[1]);
+  assert.equal(new Set(READING_FONTS.map((f) => f.id)).size, READING_FONTS.length);
+  for (const f of READING_FONTS) {
+    const own = faces.filter((b) => b.includes(`font-family: '${f.name}';`));
+    assert.ok(
+      own.some((b) => /font-weight: (400|100 900);/.test(b)),
+      `${f.name} : graisse normale`,
+    );
+    assert.ok(
+      own.some((b) => /font-weight: (700|100 900);/.test(b)),
+      `${f.name} : gras`,
+    );
+    for (const b of own) {
+      const file = b.match(/url\('fonts\/([^']+)'\)/)[1];
+      assert.ok(existsSync(new URL(`../public/fonts/${file}`, import.meta.url)), file);
+    }
+  }
+  const props = new Map();
+  const doc = {
+    documentElement: { style: { setProperty: (k, v) => props.set(k, v), removeProperty: (k) => props.delete(k) } },
+  };
+  applyReadingFont('lexend', doc);
+  assert.deepEqual([...props.keys()].sort(), ['--card-font', '--font-card', '--font-hand', '--font-ui']);
+  assert.match(props.get('--font-ui'), /^'Lexend', system-ui/);
+  applyReadingFont('comic', doc); // identifiant inconnu (réglage d'une version plus récente)
+  assert.equal(props.size, 0);
 });

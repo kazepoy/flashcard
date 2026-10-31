@@ -251,6 +251,13 @@ export default {
   'flag.red': 'Rouge',
   'flag.teal': 'Turquoise',
 
+  'font.andika': 'Pensée pour apprendre à lire',
+  'font.atkinson': 'Lettres faciles à distinguer',
+  'font.default': 'Par défaut',
+  'font.defaultDesc': 'Polices du thème',
+  'font.lexend': 'Espacée, pour une lecture fluide',
+  'font.opendyslexic': 'Conçue pour la dyslexie',
+
   'help.builtWith': 'Construit avec',
   'help.creditsInspiration': "Inspiré d'Anki pour la révision espacée et de Quizlet pour les modes d'étude.",
   'help.github': 'Code source sur GitHub',
@@ -260,6 +267,7 @@ export default {
   'help.lib.jszip': 'les archives .zip et .apkg',
   'help.lib.pdfjs': "la lecture des PDF pour l'IA",
   'help.lib.preact': "l'interface",
+  'help.lib.readingFont': 'une police de lecture des réglages',
   'help.lib.sqljs': "la lecture et l'écriture des paquets Anki",
   'help.license': 'Logiciel libre, sous licence',
   'help.pLocal': 'Vos cartes restent dans votre navigateur ou votre dossier. Pas de compte, pas de serveur.',
@@ -557,6 +565,9 @@ export default {
   'settings.otherOpenaiCompatible': 'Autre (compatible OpenAI)',
   'settings.provider': 'Fournisseur',
   'settings.readAloudButtonsBrowser': 'Boutons de lecture à voix haute (synthèse vocale du navigateur)',
+  'settings.readingFont': 'Police de lecture',
+  'settings.readingFontHint':
+    "Remplace les polices de l'interface et des cartes sur cet appareil, quel que soit le thème. Le texte à chasse fixe (code) ne change pas.",
   'settings.ready': 'Configuration prête.',
   'settings.resolveSyncConflicts': 'Résoudre les conflits de synchronisation',
   'settings.restoreArchive': 'Restaurer une archive',

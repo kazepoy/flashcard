@@ -84,6 +84,7 @@ export const DEFAULT_SETTINGS = {
   version: FORMAT_VERSION,
   lang: 'fr',
   theme: 'auto',
+  readingFont: 'default', // police de l'interface et des cartes (voir ui/themes.js)
   language: { term: null, definition: null }, // langues proposées aux nouveaux jeux
   initialized: false, // première ouverture traitée (voir ui/first-run.js)
   newPerDay: 20,

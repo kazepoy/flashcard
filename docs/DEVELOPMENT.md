@@ -177,12 +177,18 @@ chargement du script ; `test/themes.test.js` vérifie qu'ils concordent et que t
 respectent les contrastes WCAG AA. Les autres thèmes ne s'appliquent qu'à l'écran : l'impression
 reste en noir sur blanc.
 
+La police de lecture des réglages (`READING_FONTS` dans `ui/themes.js` : OpenDyslexic, Atkinson
+Hyperlegible, Lexend, Andika) remplace les variables `--font-ui`, `--font-card`, `--font-hand` et
+`--card-font` par un style en ligne sur `<html>`, qui l'emporte sur le thème ; `--font-mono` ne change
+pas. Les fichiers WOFF2 et leurs licences OFL sont dans `public/fonts/` (provenance dans son
+`README.md`), les `@font-face` en tête de `styles.css` ; ils font partie du préchargement hors ligne.
+
 ## Tests
 
 - `npm test` : cœur, imports / exports (dont un paquet produit par Anki, `test/fixtures/`), stockage,
   IA (client simulé), thèmes, traductions.
 - `test/e2e.mjs` (lancé plusieurs fois de suite pour vérifier sa stabilité) : création, chaque mode d'étude, apparence, image masquée, navigateur, statistiques,
-  exports et PDF, IA par copier-coller, thèmes, première ouverture, remise à zéro, anglais, mobile,
+  exports et PDF, IA par copier-coller, thèmes, police de lecture, première ouverture, remise à zéro, anglais, mobile,
   synchronisation Google Drive, OneDrive et Dropbox (simulées) entre deux appareils, cartes suspendues, import en copie.
   Toute erreur de console ou clé de traduction inconnue fait échouer le parcours.
 - L'import / export `.apkg` a été vérifié avec le vrai Anki (paquet Python `anki` 26.09).

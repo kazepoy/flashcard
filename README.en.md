@@ -31,7 +31,8 @@ file format.
 - **Sync** (in development): automatic backup and sync between computer, phone and tablet through your
   own Dropbox (recommended for now; a free 2 GB account is more than enough), Google Drive or OneDrive,
   with no account and no server.
-- **Comfort**: 11 light and dark themes, French and English, mobile, installable (PWA).
+- **Comfort**: 11 light and dark themes, dyslexia-friendly reading fonts (OpenDyslexic, Atkinson
+  Hyperlegible, Lexend, Andika), French and English, mobile, installable (PWA).
 - **Getting started**: on first launch, a “Guided tour” set shows every card type.
 
 ## Your data

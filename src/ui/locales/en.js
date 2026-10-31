@@ -250,6 +250,13 @@ export default {
   'flag.red': 'Red',
   'flag.teal': 'Teal',
 
+  'font.andika': 'Made for beginning readers',
+  'font.atkinson': 'Letters that are easy to tell apart',
+  'font.default': 'Default',
+  'font.defaultDesc': 'Theme fonts',
+  'font.lexend': 'Spacious, for fluent reading',
+  'font.opendyslexic': 'Designed for dyslexia',
+
   'help.builtWith': 'Built with',
   'help.creditsInspiration': 'Inspired by Anki for spaced repetition and by Quizlet for the study modes.',
   'help.github': 'Source code on GitHub',
@@ -259,6 +266,7 @@ export default {
   'help.lib.jszip': 'the .zip and .apkg archives',
   'help.lib.pdfjs': 'reading PDFs for AI',
   'help.lib.preact': 'the interface',
+  'help.lib.readingFont': 'a reading font in the settings',
   'help.lib.sqljs': 'reading and writing Anki packages',
   'help.license': 'Free software, licensed under the',
   'help.pLocal': 'Your cards stay in your browser or your folder. No account, no server.',
@@ -544,6 +552,9 @@ export default {
   'settings.otherOpenaiCompatible': 'Other (OpenAI-compatible)',
   'settings.provider': 'Provider',
   'settings.readAloudButtonsBrowser': 'Read-aloud buttons (browser speech synthesis)',
+  'settings.readingFont': 'Reading font',
+  'settings.readingFontHint':
+    'Replaces the interface and card fonts on this device, whatever the theme. Monospaced text (code) stays the same.',
   'settings.ready': 'Ready.',
   'settings.resolveSyncConflicts': 'Resolve sync conflicts',
   'settings.restoreArchive': 'Restore an archive',

@@ -511,6 +511,56 @@ try {
     assert.equal((await state())[1], '#0e1723'); // système sombre émulé
   });
 
+  await step(
+    'police de lecture : OpenDyslexic sur l’interface et les cartes, même avec le thème Terminal',
+    async () => {
+      const font = (sel) =>
+        page
+          .locator(sel)
+          .first()
+          .evaluate((el) => getComputedStyle(el).fontFamily);
+      await page.goto(base + '#/settings');
+      await page.locator('.font-opt', { hasText: 'OpenDyslexic' }).click();
+      await page.locator('.font-opt.on', { hasText: 'OpenDyslexic' }).waitFor();
+      // l'écriture de settings.json suit celle de l'étape précédente : on l'attend avant de recharger
+      await page.waitForFunction(
+        () =>
+          new Promise((resolve) => {
+            const open = indexedDB.open('flashcard-library');
+            open.onsuccess = () => {
+              const get = open.result.transaction('files').objectStore('files').get('settings.json');
+              get.onsuccess = () => {
+                resolve(!!get.result && new TextDecoder().decode(get.result).includes('"opendyslexic"'));
+                open.result.close();
+              };
+            };
+          }),
+      );
+      await page.reload();
+      await page.locator('.font-opt.on', { hasText: 'OpenDyslexic' }).waitFor();
+      assert.match(await font('h1'), /^'?"?OpenDyslexic/);
+      // fichier réellement chargé (servi par le préchargement hors ligne)
+      await page.waitForFunction(() =>
+        [...document.fonts].some((f) => f.family.replace(/"/g, '') === 'OpenDyslexic' && f.status === 'loaded'),
+      );
+      // le thème Terminal impose sa chasse fixe : la police de lecture l'emporte
+      await page.locator('.theme-opt', { hasText: /^Terminal$/ }).click();
+      await page.waitForFunction(() => document.getElementById('theme-vars'));
+      assert.match(await font('h1'), /^'?"?OpenDyslexic/);
+      await page.locator('.font-opt.on').scrollIntoViewIfNeeded();
+      await shot('17c-police-opendyslexic');
+      await page.goto(setUrl + '/study/flashcards');
+      await page.locator('.flip').waitFor();
+      assert.match(await font('.face-front'), /^'?"?OpenDyslexic/);
+      await page.goto(base + '#/settings');
+      await page.locator('.font-opt', { hasText: 'Par défaut' }).click();
+      await page.waitForFunction(() => !document.documentElement.style.getPropertyValue('--font-ui'));
+      assert.match(await font('h1'), /monospace|Menlo/); // de nouveau la police du thème Terminal
+      await page.locator('.theme-opt', { hasText: /^Automatique$/ }).click();
+      await page.waitForFunction(() => !document.documentElement.dataset.theme);
+    },
+  );
+
   await step("première ouverture : jeux d'exemple et langues des nouveaux jeux", async () => {
     const fresh = await browser.newContext({ locale: 'fr-FR' });
     const p = await fresh.newPage();

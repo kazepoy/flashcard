@@ -49,6 +49,7 @@ const DARK = {
 
 const MONO = "ui-monospace, 'SF Mono', Menlo, Consolas, monospace";
 const HAND = "'Segoe Print', 'Bradley Hand', 'Marker Felt', 'Comic Sans MS', 'Chalkboard SE', cursive";
+export const SYSTEM_FONT = "system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif";
 
 /** @type {{id:string, name:string, base:'light'|'dark', colors:Record<string,string>, fonts?:Record<string,string>}[]} */
 export const THEMES = [
@@ -318,4 +319,35 @@ export function applyTheme(id, doc = document) {
     .join(' ');
   // même spécificité que :root[data-theme='dark'] de styles.css, déclarée après : l'emporte
   el.textContent = `@media screen { html:root[data-theme] { ${decls} } }`;
+}
+
+// ------------------------------------------------------------------ police de lecture
+
+const readingStack = (family) => `'${family}', ${SYSTEM_FONT}`;
+
+/** Polices de lecture des réglages : fichiers dans public/fonts, @font-face dans styles.css. */
+export const READING_FONTS = [
+  { id: 'opendyslexic', name: 'OpenDyslexic', stack: readingStack('OpenDyslexic'), desc: 'font.opendyslexic' },
+  {
+    id: 'atkinson',
+    name: 'Atkinson Hyperlegible',
+    stack: readingStack('Atkinson Hyperlegible'),
+    desc: 'font.atkinson',
+  },
+  { id: 'lexend', name: 'Lexend', stack: readingStack('Lexend'), desc: 'font.lexend' },
+  { id: 'andika', name: 'Andika', stack: readingStack('Andika'), desc: 'font.andika' },
+];
+
+/**
+ * Applique une police de lecture à l'interface et aux cartes, par-dessus celles du thème (style en
+ * ligne, prioritaire) ; le texte à chasse fixe (--font-mono) n'en change pas. « default » ou un
+ * identifiant inconnu rend les polices du thème.
+ */
+export function applyReadingFont(id, doc = document) {
+  const f = READING_FONTS.find((x) => x.id === id);
+  const st = doc.documentElement.style;
+  for (const v of ['--font-ui', '--font-card', '--font-hand', '--card-font']) {
+    if (f) st.setProperty(v, f.stack);
+    else st.removeProperty(v);
+  }
 }

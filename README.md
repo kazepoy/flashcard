@@ -30,7 +30,8 @@ dans un format de fichiers ouvert.
 - **Synchronisation** (en développement) : sauvegarde automatique et synchronisation entre ordinateur, téléphone et tablette
   via votre propre Dropbox (recommandé pour l'instant ; un compte gratuit de 2 Go suffit largement), Google Drive
   ou OneDrive, sans compte ni serveur.
-- **Confort** : 11 thèmes clairs et sombres, français et anglais, mobile, installable (PWA).
+- **Confort** : 11 thèmes clairs et sombres, polices de lecture adaptées à la dyslexie (OpenDyslexic,
+  Atkinson Hyperlegible, Lexend, Andika), français et anglais, mobile, installable (PWA).
 - **Prise en main** : à la première ouverture, un jeu « Visite guidée » montre chaque type de carte.
 
 ## Vos données
