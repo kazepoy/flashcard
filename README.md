@@ -1,5 +1,7 @@
 # Flashcard
 
+**Essayer : [kazepoy.github.io/flashcard](https://kazepoy.github.io/flashcard/)**
+
 Application libre de fiches et de révision espacée, alternative à Quizlet et Anki. Elle fonctionne
 entièrement dans le navigateur, hors ligne, sans compte ni serveur : vos cartes restent chez vous,
 dans un format de fichiers ouvert.
