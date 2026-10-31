@@ -149,3 +149,16 @@ test('par heure et boutons', () => {
   assert.equal(b.mature[2], 1);
   assert.equal(b.relearn.n, 1);
 });
+
+test('dailyActivity : deux appareils le même jour, le journal donne le vrai total', async () => {
+  const now = new Date('2026-10-31T18:00:00');
+  // compteurs fusionnés par maximum (30 d'un côté, 20 de l'autre) ; journal fusionné par union : 50 lignes
+  const progress = { daily: { '2026-10-31': { answers: 30, ms: 1000 } } };
+  const logs = Array.from({ length: 50 }, (_, i) => ({
+    t: new Date(`2026-10-31T10:${String(i).padStart(2, '0')}:00`).toISOString(),
+    mode: 'srs',
+    rating: 3,
+  }));
+  assert.equal(dailyActivity([progress], 1, now, logs)[0].n, 50);
+  assert.equal(dailyActivity([progress], 1, now)[0].n, 30, 'sans journal : compteurs');
+});

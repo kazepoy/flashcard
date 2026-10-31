@@ -16,6 +16,14 @@ const EVERY_MS = 5 * 60 * 1000;
 
 /** Services proposés : jeton (silencieux si possible, sinon depuis un clic), dossier distant, oubli. */
 export const PROVIDERS = {
+  dropbox: {
+    name: 'Dropbox',
+    available: () => !!dropboxAppKey(),
+    token: ({ interactive }) => dropboxToken({ interactive }),
+    signIn: () => dropboxToken({ interactive: true, force: true }),
+    remote: (getToken) => new DropboxRemote(getToken),
+    forget: forgetDropbox,
+  },
   gdrive: {
     name: 'Google Drive',
     available: () => !!googleClientId(),
@@ -36,14 +44,6 @@ export const PROVIDERS = {
     signIn: () => msToken({ interactive: true, force: true }),
     remote: (getToken) => new OneDriveRemote(getToken),
     forget: forgetMs,
-  },
-  dropbox: {
-    name: 'Dropbox',
-    available: () => !!dropboxAppKey(),
-    token: ({ interactive }) => dropboxToken({ interactive }),
-    signIn: () => dropboxToken({ interactive: true, force: true }),
-    remote: (getToken) => new DropboxRemote(getToken),
-    forget: forgetDropbox,
   },
 };
 

@@ -41,8 +41,14 @@ export function reviewsPerDay(logs, days, now = new Date()) {
   return out;
 }
 
-/** Activité quotidienne (tous modes) d'après les compteurs `daily` de chaque progression. */
-export function dailyActivity(progresses, days, now = new Date()) {
+/**
+ * Activité quotidienne (tous modes) : compteurs `daily` de chaque progression, ou lignes du journal si
+ * elles sont plus nombreuses (les compteurs de deux appareils se fusionnent par maximum, les journaux
+ * par union : avec la synchronisation, le journal donne le vrai total).
+ */
+export function dailyActivity(progresses, days, now = new Date(), logs = []) {
+  const logged = {};
+  for (const l of logs) if (l.t) logged[localDay(new Date(l.t))] = (logged[localDay(new Date(l.t))] || 0) + 1;
   const out = [];
   const d = new Date(startOfDay(now));
   d.setDate(d.getDate() - days + 1);
@@ -54,7 +60,7 @@ export function dailyActivity(progresses, days, now = new Date()) {
       n += p.daily?.[k]?.answers || 0;
       ms += p.daily?.[k]?.ms || 0;
     }
-    out.push({ day: k, n, ms });
+    out.push({ day: k, n: Math.max(n, logged[k] || 0), ms });
     d.setDate(d.getDate() + 1);
   }
   return out;

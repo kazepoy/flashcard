@@ -60,7 +60,7 @@ export function StatsPage({ setId = null }) {
       for (const [id, it] of Object.entries(progress.items)) if (it.srs) ids.add(id);
       totalItems += ids.size;
     }
-    const activity = dailyActivity(progresses, 365, now);
+    const activity = dailyActivity(progresses, 365, now, logs);
     const today = activity[activity.length - 1];
     const due = futureDue(progresses, 30, now);
     const retention = trueRetention(logs, now);
