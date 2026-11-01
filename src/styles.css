@@ -23,8 +23,11 @@
   --rule: #bcd0ec;
   --margin: #e4655c;
 
-  --font-ui: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
-  --font-card: Charter, 'Iowan Old Style', 'Palatino Linotype', 'Book Antiqua', Georgia, serif;
+  --font-sans: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+  --font-serif: Charter, 'Iowan Old Style', 'Palatino Linotype', 'Book Antiqua', Georgia, serif;
+  /* polices de l'interface : remplacées par un thème ou par la police des réglages */
+  --font-ui: var(--font-sans);
+  --font-card: var(--font-serif);
   --font-mono: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
   --font-hand: 'Segoe Print', 'Bradley Hand', 'Marker Felt', 'Comic Sans MS', 'Chalkboard SE', cursive;
 
@@ -940,32 +943,35 @@ summary {
   background-position: center;
   background-repeat: no-repeat;
 }
+/* police par défaut des cartes : celle des réglages ou du thème (--card-font), sinon manuscrite */
+.index-card.font-default {
+  font-family: var(--card-font, var(--font-hand));
+}
+/* police choisie pour le jeu ou la carte : toujours respectée, quels que soient thème et réglages */
+.index-card.font-serif {
+  font-family: var(--font-serif);
+}
 .index-card.font-sans {
-  font-family: var(--font-ui);
+  font-family: var(--font-sans);
 }
 .index-card.font-mono {
   font-family: var(--font-mono);
   font-size: calc(var(--fs) * 0.9);
 }
-/* police par défaut des cartes : manuscrite, sauf si le thème en impose une (--card-font) */
-.index-card.font-default {
-  font-family: var(--card-font, var(--font-hand));
-}
 .index-card.font-hand {
   font-family: var(--font-hand);
 }
-/* polices de lecture choisies pour un jeu ou une carte ; celle des réglages du lecteur l'emporte */
 .index-card.font-opendyslexic {
-  font-family: var(--reading-font, 'OpenDyslexic', system-ui, sans-serif);
+  font-family: 'OpenDyslexic', var(--font-sans);
 }
 .index-card.font-atkinson {
-  font-family: var(--reading-font, 'Atkinson Hyperlegible', system-ui, sans-serif);
+  font-family: 'Atkinson Hyperlegible', var(--font-sans);
 }
 .index-card.font-lexend {
-  font-family: var(--reading-font, 'Lexend', system-ui, sans-serif);
+  font-family: 'Lexend', var(--font-sans);
 }
 .index-card.font-andika {
-  font-family: var(--reading-font, 'Andika', system-ui, sans-serif);
+  font-family: 'Andika', var(--font-sans);
 }
 .index-card.size-sm {
   --fs: 1.05rem;

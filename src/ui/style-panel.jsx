@@ -1,8 +1,10 @@
 // Panneau « Apparence » d'un jeu ou d'une carte.
 import { CLOZE_COLORS, PAPER_COLORS, FONTS, SIZES, ALIGNS, PAPERS, isHex, sanitizeStyle } from '../core/style.js';
 import { Icon } from './components.jsx';
+import { useApp } from './ctx.js';
 import { t } from './i18n.js';
 import { MediaField } from './media-field.jsx';
+import { defaultCardFont } from './themes.js';
 
 // ------------------------------------------------------------------ style
 
@@ -59,7 +61,13 @@ export function Swatches({ value, onChange, allowNone = true, label, colors = PA
  * quand le jeu impose autre chose. Sans `inherit` (panneau du jeu), le défaut n'est pas stocké.
  */
 export function StylePanel({ style, onChange, preview, inherit = false }) {
+  const { settings } = useApp();
   const s = sanitizeStyle(style);
+  // « Par défaut » annonce la police qu'auront les cartes : celle des réglages, sinon manuscrite
+  const label = (key, v) =>
+    key === 'font' && v === 'default'
+      ? t('style.font.default', { font: t(`style.font.${defaultCardFont(settings)}`) })
+      : t(`style.${key}.${v}`);
   const patch = (k, v) => {
     const next = { ...s };
     if (v === undefined || v === null || v === '') delete next[k];
@@ -79,7 +87,7 @@ export function StylePanel({ style, onChange, preview, inherit = false }) {
         {inherit && <option value="">{t('editor.sameAsSet')}</option>}
         {values.map((f) => (
           <option key={f} value={f}>
-            {t(`style.${key}.${f}`)}
+            {label(key, f)}
           </option>
         ))}
       </select>
@@ -111,7 +119,7 @@ export function StylePanel({ style, onChange, preview, inherit = false }) {
           />
         </div>
         <div class="row grid-sel">
-          {choice('font', FONTS, 'hand')}
+          {choice('font', FONTS, 'default')}
           {choice('size', SIZES, 'md')}
           {choice('align', ALIGNS, 'left')}
           {choice('paper', PAPERS, 'ruled')}

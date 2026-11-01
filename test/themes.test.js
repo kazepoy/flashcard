@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { existsSync, readFileSync } from 'node:fs';
 import { FONTS } from '../src/core/style.js';
-import { READING_FONTS, THEMES, applyReadingFont } from '../src/ui/themes.js';
+import { READING_FONTS, THEMES, applyReadingFont, defaultCardFont } from '../src/ui/themes.js';
 
 const lum = (hex) => {
   const [r, g, b] = [1, 3, 5]
@@ -57,7 +57,7 @@ test('thèmes : jetons complets, identifiants uniques, contrastes WCAG AA', () =
   }
 });
 
-test('polices de lecture : @font-face et fichiers présents, application et retour aux polices du thème', () => {
+test('polices de lecture : fichiers, classes des cartes, application aux réglages et police par défaut des cartes', () => {
   const css = readFileSync(new URL('../src/styles.css', import.meta.url), 'utf8');
   const faces = [...css.matchAll(/@font-face \{([^}]*)\}/g)].map((m) => m[1]);
   assert.equal(new Set(READING_FONTS.map((f) => f.id)).size, READING_FONTS.length);
@@ -75,26 +75,27 @@ test('polices de lecture : @font-face et fichiers présents, application et reto
       const file = b.match(/url\('fonts\/([^']+)'\)/)[1];
       assert.ok(existsSync(new URL(`../public/fonts/${file}`, import.meta.url)), file);
     }
-    // aussi au choix dans l'apparence des cartes, sous la police des réglages
+    // aussi au choix dans l'apparence des cartes, avec une pile fixe (ni thème ni réglages)
     assert.ok(FONTS.includes(f.id), `${f.id} absent de FONTS`);
-    assert.ok(
-      css.includes(`.index-card.font-${f.id} {\n  font-family: var(--reading-font, '${f.name}',`),
-      `.index-card.font-${f.id}`,
-    );
+    assert.ok(css.includes(`.index-card.font-${f.id} {\n  font-family: '${f.name}', var(--font-sans);`), f.id);
+  }
+  // toute police d'une carte a sa classe ; seule « default » dépend des réglages et du thème
+  for (const id of FONTS) assert.ok(css.includes(`.index-card.font-${id} {`), `.index-card.font-${id}`);
+  for (const id of FONTS.filter((x) => x !== 'default')) {
+    const rule = css.match(new RegExp(`\\.index-card\\.font-${id} \\{([^}]*)\\}`))[1];
+    assert.doesNotMatch(rule, /--font-ui|--font-card|--card-font/, id);
   }
   const props = new Map();
   const doc = {
     documentElement: { style: { setProperty: (k, v) => props.set(k, v), removeProperty: (k) => props.delete(k) } },
   };
   applyReadingFont('lexend', doc);
-  assert.deepEqual([...props.keys()].sort(), [
-    '--card-font',
-    '--font-card',
-    '--font-hand',
-    '--font-ui',
-    '--reading-font',
-  ]);
+  assert.deepEqual([...props.keys()].sort(), ['--card-font', '--font-card', '--font-ui']);
   assert.match(props.get('--font-ui'), /^'Lexend', system-ui/);
   applyReadingFont('comic', doc); // identifiant inconnu (réglage d'une version plus récente)
   assert.equal(props.size, 0);
+  // police annoncée pour « Par défaut » dans l'apparence des cartes
+  assert.equal(defaultCardFont({ readingFont: 'default', theme: 'auto' }), 'hand');
+  assert.equal(defaultCardFont({ readingFont: 'andika', theme: 'terminal' }), 'andika');
+  assert.equal(defaultCardFont({ readingFont: 'default', theme: 'terminal' }), 'mono');
 });

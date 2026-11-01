@@ -522,57 +522,69 @@ try {
     assert.equal((await state())[1], '#0e1723'); // système sombre émulé
   });
 
-  await step(
-    'police de lecture : OpenDyslexic sur l’interface et les cartes, même avec le thème Terminal',
-    async () => {
-      const font = (sel) =>
-        page
-          .locator(sel)
-          .first()
-          .evaluate((el) => getComputedStyle(el).fontFamily);
-      await page.goto(base + '#/settings');
-      await page.locator('.font-opt', { hasText: 'OpenDyslexic' }).click();
-      await page.locator('.font-opt.on', { hasText: 'OpenDyslexic' }).waitFor();
-      // l'écriture de settings.json suit celle de l'étape précédente : on l'attend avant de recharger
-      await page.waitForFunction(
-        () =>
-          new Promise((resolve) => {
-            const open = indexedDB.open('flashcard-library');
-            open.onsuccess = () => {
-              const get = open.result.transaction('files').objectStore('files').get('settings.json');
-              get.onsuccess = () => {
-                resolve(!!get.result && new TextDecoder().decode(get.result).includes('"opendyslexic"'));
-                open.result.close();
-              };
+  await step('police des réglages : interface et cartes sans police choisie ; police du jeu respectée', async () => {
+    const font = (sel) =>
+      page
+        .locator(sel)
+        .first()
+        .evaluate((el) => getComputedStyle(el).fontFamily);
+    const setFont = async () => {
+      await page.goto(setUrl + '/edit');
+      await page.getByText('Apparence par défaut des cartes de ce jeu').click();
+      return page.locator('details.set-style select').first();
+    };
+    await page.goto(base + '#/settings');
+    await page.locator('.font-opt', { hasText: 'OpenDyslexic' }).click();
+    await page.locator('.font-opt.on', { hasText: 'OpenDyslexic' }).waitFor();
+    // l'écriture de settings.json suit celle de l'étape précédente : on l'attend avant de recharger
+    await page.waitForFunction(
+      () =>
+        new Promise((resolve) => {
+          const open = indexedDB.open('flashcard-library');
+          open.onsuccess = () => {
+            const get = open.result.transaction('files').objectStore('files').get('settings.json');
+            get.onsuccess = () => {
+              resolve(!!get.result && new TextDecoder().decode(get.result).includes('"opendyslexic"'));
+              open.result.close();
             };
-          }),
-      );
-      await page.reload();
-      await page.locator('.font-opt.on', { hasText: 'OpenDyslexic' }).waitFor();
-      assert.match(await font('h1'), /^'?"?OpenDyslexic/);
-      // fichier réellement chargé (servi par le préchargement hors ligne)
-      await page.waitForFunction(() =>
-        [...document.fonts].some((f) => f.family.replace(/"/g, '') === 'OpenDyslexic' && f.status === 'loaded'),
-      );
-      // le thème Terminal impose sa chasse fixe : la police de lecture l'emporte
-      await page.locator('.theme-opt', { hasText: /^Terminal$/ }).click();
-      await page.waitForFunction(() => document.getElementById('theme-vars'));
-      assert.match(await font('h1'), /^'?"?OpenDyslexic/);
-      await page.locator('.font-opt.on').scrollIntoViewIfNeeded();
-      await shot('17c-police-opendyslexic');
-      await page.goto(setUrl + '/study/flashcards');
-      await page.locator('.flip').waitFor();
-      // le jeu a choisi Lexend (étape « personnalisation ») : la police des réglages l'emporte
-      assert.match(await page.locator('.face-front').first().getAttribute('class'), /font-lexend/);
-      assert.match(await font('.face-front'), /^'?"?OpenDyslexic/);
-      await page.goto(base + '#/settings');
-      await page.locator('.font-opt', { hasText: 'Par défaut' }).click();
-      await page.waitForFunction(() => !document.documentElement.style.getPropertyValue('--font-ui'));
-      assert.match(await font('h1'), /monospace|Menlo/); // de nouveau la police du thème Terminal
-      await page.locator('.theme-opt', { hasText: /^Automatique$/ }).click();
-      await page.waitForFunction(() => !document.documentElement.dataset.theme);
-    },
-  );
+          };
+        }),
+    );
+    await page.reload();
+    await page.locator('.font-opt.on', { hasText: 'OpenDyslexic' }).waitFor();
+    assert.match(await font('h1'), /^'?"?OpenDyslexic/);
+    // fichier réellement chargé (servi par le préchargement hors ligne)
+    await page.waitForFunction(() =>
+      [...document.fonts].some((f) => f.family.replace(/"/g, '') === 'OpenDyslexic' && f.status === 'loaded'),
+    );
+    // le thème Terminal impose sa chasse fixe : la police des réglages l'emporte
+    await page.locator('.theme-opt', { hasText: /^Terminal$/ }).click();
+    await page.waitForFunction(() => document.getElementById('theme-vars'));
+    assert.match(await font('h1'), /^'?"?OpenDyslexic/);
+    await page.locator('.font-opt.on').scrollIntoViewIfNeeded();
+    await shot('17c-police-opendyslexic');
+    // le jeu a choisi Lexend (étape « personnalisation ») : il la garde
+    await page.goto(setUrl + '/study/flashcards');
+    await page.locator('.flip').waitFor();
+    assert.match(await font('.face-front'), /^"?Lexend/);
+    // remis sur « Par défaut », qui annonce la police des réglages : ses cartes la prennent
+    let sel = await setFont();
+    assert.equal(await sel.locator('option[value="default"]').innerText(), 'Par défaut (OpenDyslexic)');
+    await sel.selectOption('default');
+    await page.goto(setUrl + '/study/flashcards');
+    await page.locator('.flip').waitFor();
+    assert.match(await page.locator('.face-front').first().getAttribute('class'), /font-default/);
+    assert.match(await font('.face-front'), /^'?"?OpenDyslexic/);
+    // réglages sur « Par défaut » : polices du thème pour l'interface, manuscrite pour les cartes
+    await page.goto(base + '#/settings');
+    await page.locator('.font-opt', { hasText: 'Par défaut' }).click();
+    await page.waitForFunction(() => !document.documentElement.style.getPropertyValue('--font-ui'));
+    assert.match(await font('h1'), /monospace|Menlo/);
+    await page.locator('.theme-opt', { hasText: /^Automatique$/ }).click();
+    await page.waitForFunction(() => !document.documentElement.dataset.theme);
+    sel = await setFont();
+    assert.equal(await sel.locator('option[value="default"]').innerText(), 'Par défaut (Manuscrite)');
+  });
 
   await step("première ouverture : jeux d'exemple et langues des nouveaux jeux", async () => {
     const fresh = await browser.newContext({ locale: 'fr-FR' });

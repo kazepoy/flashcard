@@ -102,17 +102,17 @@ Un lecteur qui ne les connaît pas les ignore.
 
 Objet `style` (toutes les clés sont facultatives) :
 
-| Clé       | Valeurs                                                                                                                                                                                                                                                                                          |
-| --------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `bg`      | couleur de fond `#RRGGBB`                                                                                                                                                                                                                                                                        |
-| `backBg`  | couleur de fond du verso, si différente                                                                                                                                                                                                                                                          |
-| `fg`      | couleur du texte `#RRGGBB` ; le lecteur DOIT la remplacer par une couleur lisible (contraste WCAG ≥ 4,5) si elle ne l'est pas sur le fond                                                                                                                                                        |
-| `cloze`   | couleur `#RRGGBB` des mots révélés d'un texte à trous ; remplacée par une couleur lisible si besoin, comme `fg`                                                                                                                                                                                  |
-| `font`    | `serif` \| `sans` \| `mono` \| `hand`, ou une police de lecture : `opendyslexic` \| `atkinson` (Atkinson Hyperlegible) \| `lexend` \| `andika` ; absent : au choix du lecteur (Flashcard : manuscrite). La police de lecture choisie par le lecteur dans ses réglages l'emporte, sauf sur `mono` |
-| `size`    | `sm` \| `md` \| `lg` \| `xl`                                                                                                                                                                                                                                                                     |
-| `align`   | `left` \| `center`                                                                                                                                                                                                                                                                               |
-| `paper`   | `ruled` (lignes) \| `plain` (uni) \| `grid` (quadrillé) \| `dots` (pointillé)                                                                                                                                                                                                                    |
-| `bgImage` | chemin `media/…` : image de fond de la carte                                                                                                                                                                                                                                                     |
+| Clé       | Valeurs                                                                                                                                                                                                                                                                                                                                  |
+| --------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `bg`      | couleur de fond `#RRGGBB`                                                                                                                                                                                                                                                                                                                |
+| `backBg`  | couleur de fond du verso, si différente                                                                                                                                                                                                                                                                                                  |
+| `fg`      | couleur du texte `#RRGGBB` ; le lecteur DOIT la remplacer par une couleur lisible (contraste WCAG ≥ 4,5) si elle ne l'est pas sur le fond                                                                                                                                                                                                |
+| `cloze`   | couleur `#RRGGBB` des mots révélés d'un texte à trous ; remplacée par une couleur lisible si besoin, comme `fg`                                                                                                                                                                                                                          |
+| `font`    | `default` (police par défaut du lecteur, utile sur une carte pour ne pas reprendre celle du jeu) \| `serif` \| `sans` \| `mono` \| `hand` \| `opendyslexic` \| `atkinson` (Atkinson Hyperlegible) \| `lexend` \| `andika` ; absent : comme le jeu, sinon police par défaut du lecteur (Flashcard : celle des réglages, sinon manuscrite) |
+| `size`    | `sm` \| `md` \| `lg` \| `xl`                                                                                                                                                                                                                                                                                                             |
+| `align`   | `left` \| `center`                                                                                                                                                                                                                                                                                                                       |
+| `paper`   | `ruled` (lignes) \| `plain` (uni) \| `grid` (quadrillé) \| `dots` (pointillé)                                                                                                                                                                                                                                                            |
+| `bgImage` | chemin `media/…` : image de fond de la carte                                                                                                                                                                                                                                                                                             |
 
 Les valeurs inconnues ou invalides sont ignorées (aucune chaîne libre n'est jamais injectée dans du CSS).
 Sans couleur de fond ni de texte, le lecteur applique son thème (clair/sombre).
@@ -263,9 +263,10 @@ directement exploitable par l'optimiseur FSRS.
 importés si la bibliothèque était vide).
 `theme` : `"auto"` (clair ou sombre selon le système) ou l'identifiant d'un thème de l'interface
 (`light`, `dark`, `sepia`, `neon`…). Un lecteur applique `"auto"` à un identifiant qu'il ne connaît pas.
-`readingFont` : `"default"` (polices du thème) ou une police de lecture qui remplace celles de
-l'interface et des cartes : `opendyslexic`, `atkinson` (Atkinson Hyperlegible), `lexend`, `andika`.
-Un lecteur applique `"default"` à un identifiant qu'il ne connaît pas.
+`readingFont` : police de l'interface, `"default"` (polices du thème) ou `opendyslexic`, `atkinson`
+(Atkinson Hyperlegible), `lexend`, `andika`. C'est aussi la police des cartes sans `font` (à la place de
+la manuscrite) ; une carte ou un jeu qui en choisit une la garde. Un lecteur applique `"default"` à un
+identifiant qu'il ne connaît pas.
 
 La clé d'API du fournisseur d'IA n'est **jamais** écrite dans la bibliothèque
 (elle reste dans le stockage local du navigateur) : un dossier peut donc être

@@ -254,7 +254,7 @@ export default {
   'font.andika': 'Pensée pour apprendre à lire',
   'font.atkinson': 'Lettres faciles à distinguer',
   'font.default': 'Par défaut',
-  'font.defaultDesc': 'Polices du thème et des jeux',
+  'font.defaultDesc': 'Polices du thème',
   'font.lexend': 'Espacée, pour une lecture fluide',
   'font.opendyslexic': 'Conçue pour la dyslexie',
 
@@ -567,7 +567,7 @@ export default {
   'settings.readAloudButtonsBrowser': 'Boutons de lecture à voix haute (synthèse vocale du navigateur)',
   'settings.readingFont': 'Police de lecture',
   'settings.readingFontHint':
-    "Remplace les polices de l'interface et des cartes sur cet appareil, quel que soit le thème. Le texte à chasse fixe (code) ne change pas.",
+    "Police de l'interface. C'est aussi la police des cartes, à la place de la manuscrite, sauf si le jeu ou la carte en choisit une autre (Modifier › Apparence).",
   'settings.ready': 'Configuration prête.',
   'settings.resolveSyncConflicts': 'Résoudre les conflits de synchronisation',
   'settings.restoreArchive': 'Restaurer une archive',
@@ -749,6 +749,7 @@ export default {
   'style.font': 'Police',
   'style.font.andika': 'Andika',
   'style.font.atkinson': 'Atkinson Hyperlegible',
+  'style.font.default': 'Par défaut ({font})',
   'style.font.hand': 'Manuscrite',
   'style.font.lexend': 'Lexend',
   'style.font.mono': 'Machine à écrire',

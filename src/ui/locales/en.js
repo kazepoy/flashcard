@@ -253,7 +253,7 @@ export default {
   'font.andika': 'Made for beginning readers',
   'font.atkinson': 'Letters that are easy to tell apart',
   'font.default': 'Default',
-  'font.defaultDesc': 'Theme and set fonts',
+  'font.defaultDesc': 'Theme fonts',
   'font.lexend': 'Spacious, for fluent reading',
   'font.opendyslexic': 'Designed for dyslexia',
 
@@ -554,7 +554,7 @@ export default {
   'settings.readAloudButtonsBrowser': 'Read-aloud buttons (browser speech synthesis)',
   'settings.readingFont': 'Reading font',
   'settings.readingFontHint':
-    'Replaces the interface and card fonts on this device, whatever the theme. Monospaced text (code) stays the same.',
+    'Interface font. Cards use it too instead of handwriting, unless the set or card picks another font (Edit › Appearance).',
   'settings.ready': 'Ready.',
   'settings.resolveSyncConflicts': 'Resolve sync conflicts',
   'settings.restoreArchive': 'Restore an archive',
@@ -735,6 +735,7 @@ export default {
   'style.font': 'Font',
   'style.font.andika': 'Andika',
   'style.font.atkinson': 'Atkinson Hyperlegible',
+  'style.font.default': 'Default ({font})',
   'style.font.hand': 'Handwriting',
   'style.font.lexend': 'Lexend',
   'style.font.mono': 'Typewriter',

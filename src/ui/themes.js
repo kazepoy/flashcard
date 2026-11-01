@@ -342,15 +342,22 @@ export const READING_FONTS = [
 ];
 
 /**
- * Applique une police de lecture à l'interface et aux cartes, par-dessus celles du thème (style en
- * ligne, prioritaire) et celles choisies pour un jeu ou une carte (--reading-font) ; le texte à chasse
- * fixe (--font-mono) n'en change pas. « default » ou un identifiant inconnu rend les polices du thème.
+ * Applique la police des réglages à l'interface, par-dessus celles du thème (style en ligne,
+ * prioritaire). Elle devient aussi la police par défaut des cartes (--card-font, à la place de la
+ * manuscrite) ; une police choisie pour un jeu ou une carte reste respectée. « default » ou un
+ * identifiant inconnu rend les polices du thème.
  */
 export function applyReadingFont(id, doc = document) {
   const f = READING_FONTS.find((x) => x.id === id);
   const st = doc.documentElement.style;
-  for (const v of ['--font-ui', '--font-card', '--font-hand', '--card-font', '--reading-font']) {
+  for (const v of ['--font-ui', '--font-card', '--card-font']) {
     if (f) st.setProperty(v, f.stack);
     else st.removeProperty(v);
   }
+}
+
+/** Police par défaut des cartes (identifiant de FONTS), pour l'annoncer : réglages, sinon thème, sinon manuscrite. */
+export function defaultCardFont({ readingFont, theme } = {}) {
+  if (READING_FONTS.some((f) => f.id === readingFont)) return readingFont;
+  return THEMES.find((x) => x.id === theme)?.fonts?.['card-font'] === MONO ? 'mono' : 'hand';
 }

@@ -1,8 +1,9 @@
 // Personnalisation visuelle des cartes (couleurs, police, papier…). Toutes les valeurs sont validées :
 // aucune chaîne libre n'atteint le CSS (pas d'injection).
 
-// les quatre dernières sont les polices de lecture des réglages (ui/themes.js : READING_FONTS)
-export const FONTS = ['serif', 'sans', 'mono', 'hand', 'opendyslexic', 'atkinson', 'lexend', 'andika'];
+// « default » : police par défaut du lecteur (sur une carte, pour ne pas reprendre celle du jeu) ;
+// les quatre dernières sont aussi les polices de lecture des réglages (ui/themes.js : READING_FONTS)
+export const FONTS = ['default', 'serif', 'sans', 'mono', 'hand', 'opendyslexic', 'atkinson', 'lexend', 'andika'];
 export const SIZES = ['sm', 'md', 'lg', 'xl'];
 export const ALIGNS = ['left', 'center'];
 export const PAPERS = ['ruled', 'plain', 'grid', 'dots'];
@@ -86,7 +87,7 @@ export function cardAppearance(style = {}, side = 'prompt') {
     vars['--card-cloze'] = contrast(bg, wanted) >= 4.5 ? wanted : fg;
   } else if (style.cloze) vars['--card-cloze'] = style.cloze;
   const cls = [
-    'font-' + (style.font || 'default'), // défaut : manuscrite (ou celle du thème, voir styles.css)
+    'font-' + (style.font || 'default'), // défaut : police des réglages ou du thème, sinon manuscrite (styles.css)
     'size-' + (style.size || 'md'),
     'align-' + (style.align || 'left'),
     'paper-' + (style.paper || 'ruled'),
