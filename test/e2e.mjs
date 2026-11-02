@@ -27,6 +27,8 @@ const ctx = await browser.newContext({
 });
 // le parcours part d'une bibliothèque vide : pas de jeux d'exemple (vérifiés à part, en fin de test)
 await ctx.route('**/examples/*/index.json', (r) => r.fulfill({ json: [] }));
+// annonce des jeux d'exemple déjà vue : le bandeau de la bibliothèque est le rappel de sauvegarde
+await ctx.addInitScript(() => localStorage.setItem('flashcard.examplesNotice', 'seen'));
 const page = await ctx.newPage();
 const problems = [];
 page.on('pageerror', (e) => problems.push('pageerror: ' + e.message));
@@ -42,7 +44,7 @@ const step = async (name, fn) => {
     await fn();
     console.log('✓', name);
   } catch (e) {
-    console.log('✗', name, '\n   ', e.message.split('\n')[0]);
+    console.log('✗', name, '\n   ', process.env.E2E_FULL ? e.stack : e.message.split('\n')[0]);
     await shot('FAIL-' + name.replace(/\W+/g, '-'));
     process.exitCode = 1;
   }
@@ -168,23 +170,22 @@ try {
 
   await step("personnalisation : style du jeu et d'une carte", async () => {
     await page.goto(setUrl + '/edit');
-    await page.getByText('Apparence par défaut des cartes de ce jeu').click();
-    await page.locator('details.set-style .swatch[aria-label="#FFF3A3"]').first().click();
-    await page.locator('details.set-style select').nth(3).selectOption('grid');
-    await page.locator('details.set-style select').first().selectOption('lexend');
-    await page
-      .locator('.ed-card')
-      .first()
-      .getByRole('button', { name: /Apparence/ })
-      .click();
+    await page.getByText('Apparence des cartes de ce jeu').click();
+    const setStyle = page.locator('.ed-meta details.appearance');
+    await setStyle.locator('.swatch[aria-label="#FFF3A3"]').first().click();
+    await setStyle.locator('select').nth(4).selectOption('grid');
+    // centrage vertical proposé, comme l'alignement horizontal
+    assert.deepEqual(await setStyle.locator('select').nth(3).locator('option').allInnerTexts(), [
+      'Comme les réglages',
+      'Centré',
+      'En haut',
+    ]);
+    await setStyle.locator('select').first().selectOption('lexend');
+    await page.locator('.ed-card').first().getByText('Apparence de cette carte').click();
     await page.locator('.ed-card').first().locator('.swatch[aria-label="#1B2A41"]').first().click();
     // Carte 2 : papier « Lignée » explicite, malgré le quadrillage du jeu.
-    await page
-      .locator('.ed-card')
-      .nth(1)
-      .getByRole('button', { name: /Apparence/ })
-      .click();
-    await page.locator('.ed-card').nth(1).locator('.style-panel select').nth(3).selectOption('ruled');
+    await page.locator('.ed-card').nth(1).getByText('Apparence de cette carte').click();
+    await page.locator('.ed-card').nth(1).locator('.style-panel select').nth(4).selectOption('ruled');
     await shot('14-style-editeur');
     // Navigation immédiate : l'enregistrement en cours doit être relu par la page suivante.
     await page.goto(setUrl + '/study/flashcards');
@@ -211,6 +212,100 @@ try {
     await page.getByText('2 / 7').waitFor();
     const cls2 = await page.locator('.face-front').first().getAttribute('class');
     if (!/paper-ruled/.test(cls2)) throw new Error('papier explicite de la carte ignoré : ' + cls2);
+  });
+
+  await step('pied de fiche (indice, exemple) ; réinitialiser une carte rend le style du jeu', async () => {
+    await page.goto(setUrl + '/edit');
+    const first = page.locator('.ed-card').first();
+    await first.getByText(/^Indice, exemple, images/).click();
+    await first.getByLabel('Indice').fill('un meuble');
+    await first.getByLabel('Exemple').fill('La mesa es grande.');
+    await first.getByText('Apparence de cette carte').click();
+    await first.getByRole('button', { name: "Revenir à l'apparence du jeu" }).click();
+    assert.ok(await first.getByRole('button', { name: "Revenir à l'apparence du jeu" }).isDisabled());
+    await page.goto(setUrl + '/study/flashcards');
+    const front = page.locator('.face-front').first();
+    await front.locator('.face-foot').waitFor();
+    assert.match(await front.locator('.face-foot').innerText(), /Indice\s*:\s*un meuble/i);
+    assert.doesNotMatch(await front.getAttribute('class'), /is-dark/, 'style de la carte réinitialisé');
+    assert.match(await front.getAttribute('class'), /paper-grid/, 'style du jeu rendu');
+    await page
+      .getByRole('button', { name: /^Retourner/ })
+      .first()
+      .click();
+    assert.match(await page.locator('.face-back .face-foot').first().innerText(), /Exemple\s*:\s*La mesa es grande/i);
+    await shot('15b-pied-de-fiche');
+    // aperçu d'une carte, depuis l'éditeur puis depuis la page du jeu
+    await page.goto(setUrl + '/edit');
+    await page.locator('.ed-card').first().getByRole('button', { name: 'Aperçu' }).click();
+    const dlg = page.getByRole('dialog');
+    await dlg.locator('.face-front', { hasText: 'la mesa' }).waitFor();
+    await dlg.getByRole('button', { name: 'Retourner', exact: true }).click();
+    await dlg.locator('.flip.is-flipped').waitFor();
+    assert.match(await dlg.locator('.face-back').innerText(), /la table[\s\S]*Exemple\s*:\s*La mesa es grande/i);
+    await dlg.getByRole('checkbox', { name: /Sens inverse/ }).check();
+    await dlg.locator('.face-front', { hasText: 'la table' }).waitFor();
+    await shot('15c-apercu');
+    await dlg.getByRole('button', { name: 'Fermer' }).click();
+    await page.goto(setUrl);
+    await page.locator('.card-list li').first().getByRole('button', { name: 'Aperçu' }).click();
+    await page.getByRole('dialog').locator('.face-front', { hasText: 'la mesa' }).waitFor();
+    await page.getByRole('dialog').getByRole('button', { name: 'Fermer' }).click();
+  });
+
+  await step('étiquettes : plusieurs, séparées par des espaces tapés au clavier', async () => {
+    await page.goto(setUrl + '/edit');
+    const setTags = page.getByLabel('Étiquettes (séparées par des espaces)').first();
+    await setTags.click();
+    await setTags.pressSequentially('espagnol cuisine ');
+    assert.equal(await setTags.inputValue(), 'espagnol cuisine ', "l'espace final reste");
+    await setTags.pressSequentially('vocabulaire');
+    const card = page.locator('.ed-card').first();
+    await card.getByText(/^Indice, exemple, images/).click();
+    const cardTags = card.getByLabel('Étiquettes (séparées par des espaces)');
+    await cardTags.pressSequentially('nom meuble');
+    assert.equal(await cardTags.inputValue(), 'nom meuble');
+    await page.waitForFunction(() => document.querySelector('.save-state')?.textContent.includes('Enregistré'));
+    await page.reload();
+    assert.equal(
+      await page.getByLabel('Étiquettes (séparées par des espaces)').first().inputValue(),
+      'espagnol cuisine vocabulaire',
+    );
+  });
+
+  await step('cartes et jeux à apparence propre : signalés, remis au niveau du dessus', async () => {
+    // la carte 2 garde un papier « Lignée » explicite : le jeu le signale et propose de l'effacer
+    await page.goto(setUrl + '/edit');
+    await page.getByText('Apparence des cartes de ce jeu').click();
+    const setStyle = page.locator('.ed-meta details.appearance');
+    await setStyle.getByText('1 carte de ce jeu a sa propre apparence').waitFor();
+    await setStyle.getByRole('button', { name: "Les remettre à l'apparence du jeu" }).click();
+    assert.equal(await setStyle.locator('.own-style').count(), 0);
+    await page.goto(setUrl + '/study/flashcards');
+    await page.locator('.flip').waitFor();
+    await page
+      .getByRole('button', { name: /^Retourner/ })
+      .first()
+      .click();
+    await page.getByRole('button', { name: /Je sais/ }).click();
+    await page.getByText('2 / 7').waitFor();
+    assert.match(await page.locator('.face-front').first().getAttribute('class'), /paper-grid/, 'papier du jeu');
+    // couleur de texte du jeu (bleu) sur son fond jaune : appliquée à la fiche
+    await page.goto(setUrl + '/edit');
+    await page.getByText('Apparence des cartes de ce jeu').click();
+    await page.locator('.ed-meta details.appearance .swatch[aria-label="#1F4FD0"]').first().click();
+    await page.goto(setUrl + '/study/flashcards');
+    await page.locator('.flip').waitFor();
+    assert.equal(
+      await page
+        .locator('.face-front .face-content')
+        .first()
+        .evaluate((e) => getComputedStyle(e).color),
+      'rgb(31, 79, 208)',
+    );
+    // réglages : le jeu, qui a sa propre apparence, est signalé
+    await page.goto(base + '#/settings/cards');
+    await page.locator('.settings .own-style', { hasText: '1 jeu a sa propre apparence' }).waitFor();
   });
 
   await step('image masquée : dessin des masques et étude', async () => {
@@ -281,10 +376,21 @@ try {
     await page.getByRole('searchbox').fill('mesa');
     await page.waitForFunction(() => document.querySelectorAll('.btable tbody tr').length === 1);
     assert.match(await page.evaluate(() => location.hash), /^#\/browse\/mesa$/);
+    // menu « Jeu » : ajoute un seul filtre set:"…" à la requête, sans toucher au reste ; « Tous les jeux » le retire
+    const setMenu = page.locator('.set-filter select');
+    await setMenu.selectOption({ label: 'Espagnol — cuisine' });
+    assert.equal(await page.getByRole('searchbox').inputValue(), 'mesa set:"Espagnol — cuisine"');
+    await page.waitForFunction(() => document.querySelectorAll('.btable tbody tr').length === 1);
+    await setMenu.selectOption('');
+    assert.equal(await page.getByRole('searchbox').inputValue(), 'mesa');
     await page.locator('.row-open').first().click();
     await page.locator('.card-info').waitFor();
     await page.locator('.card-info').getByRole('button', { name: 'Drapeau Rouge' }).click();
     await page.locator('.card-info .history li').first().waitFor();
+    // aperçu de la carte depuis le panneau
+    await page.locator('.card-info').getByRole('button', { name: 'Aperçu' }).click();
+    await page.getByRole('dialog').locator('.face-front').waitFor();
+    await page.getByRole('dialog').getByRole('button', { name: 'Fermer' }).click();
     await shot('16c-navigateur');
     await page.getByRole('searchbox').fill('flag:1 or is:dupe');
     await page.waitForFunction(() => decodeURIComponent(location.hash).includes('flag:1'));
@@ -317,7 +423,54 @@ try {
   await step('réglages', async () => {
     await page.goto(base + '#/settings');
     await page.getByRole('heading', { name: 'Réglages' }).waitFor();
+    // rubriques repliées par défaut ; un clic en déplie une, les autres restent repliées
+    assert.equal(await page.locator('.settings-section[open]').count(), 0);
+    await page.locator('#settings-study > summary').click();
+    assert.deepEqual(await page.locator('.settings-section[open]').evaluateAll((els) => els.map((e) => e.id)), [
+      'settings-study',
+    ]);
+    assert.match(
+      await page.getByRole('link', { name: 'La répétition espacée sur Wikipédia' }).getAttribute('href'),
+      /^https:\/\/fr\.wikipedia\.org\/wiki\/R%C3%A9p%C3%A9tition_espac%C3%A9e$/,
+    );
+    assert.deepEqual(await page.locator('.settings h2').allInnerTexts(), [
+      'Apparence',
+      'Apparence par défaut des cartes',
+      'Étude',
+      'Synchronisation Bêta',
+      'Sauvegarde et restauration',
+      'Intelligence artificielle',
+    ]);
+    // apparence globale, repliée par défaut : très grande taille pour les cartes, papier pointillé que le jeu
+    // (quadrillé) remplace
+    // déplier une autre rubrique replie la précédente
+    await page.locator('#settings-cards > summary').click();
+    await page.waitForFunction(() => !document.getElementById('settings-study').open);
+    assert.deepEqual(await page.locator('.settings-section[open]').evaluateAll((els) => els.map((e) => e.id)), [
+      'settings-cards',
+    ]);
+    const global = page.locator('.settings .appearance');
+    assert.equal(await global.evaluate((el) => el.tagName), 'DIV', 'toujours visible, sans repli');
+    // mots révélés : l'aperçu montre un mot révélé, dans la couleur choisie
+    const clozeRow = global.locator('.style-controls .row').nth(3);
+    await clozeRow.locator('.swatch[aria-label="#C62828"]').click();
+    assert.equal(
+      await global
+        .locator('.index-card.mini mark.cloze')
+        .first()
+        .evaluate((e) => getComputedStyle(e).color),
+      'rgb(198, 40, 40)',
+    );
+    await clozeRow.locator('.swatch.none').click();
+    await global.locator('select').nth(1).selectOption('xl');
+    await global.locator('select').nth(4).selectOption('dots');
     await shot('16-reglages');
+    await page.goto(setUrl + '/study/flashcards');
+    const cls = await page.locator('.face-front').first().getAttribute('class');
+    assert.match(cls, /size-xl/);
+    assert.match(cls, /paper-grid/);
+    // l'adresse #/settings/<rubrique> la déplie
+    await page.goto(base + '#/settings/appearance');
     await page.getByLabel(/^Langue(?! des)/).selectOption('en');
     await page
       .getByRole('heading', { name: 'Settings' })
@@ -455,7 +608,7 @@ try {
     await page.waitForFunction(() => location.hash.startsWith('#/set/'));
     await page.goto(page.url() + '/edit');
     const card = page.locator('.ed-card').first();
-    await card.getByRole('button', { name: /Indice, exemple, images/ }).click();
+    await card.getByText(/^Indice, exemple, images/).click();
     check(await stored(card.locator('.media-field', { hasText: 'Image de la définition' })));
     // éditeur : même réduction ; une image déjà légère serait gardée telle quelle
     const term = card.locator('.media-field', { hasText: 'Image du terme' });
@@ -474,6 +627,24 @@ try {
       'true',
       'sans clé configurée : copier-coller par défaut',
     );
+    // onglet « Avec une clé d'API » sans fournisseur : l'explication seule, pas de formulaire
+    await page.getByRole('tab', { name: /Avec une clé d'API/ }).click();
+    await page
+      .getByRole('dialog')
+      .getByText(/Aucun fournisseur d'IA n'est configuré/)
+      .waitFor();
+    assert.equal(
+      await page
+        .getByRole('dialog')
+        .getByLabel(/Titre du jeu/)
+        .count(),
+      0,
+    );
+    await page
+      .getByRole('dialog')
+      .locator('.notice')
+      .getByRole('button', { name: /Avec mon compte/ })
+      .click();
     await page.getByLabel(/Titre du jeu/).fill('Planètes');
     await page.getByLabel(/Un sujet, vos notes/).fill('Les planètes du système solaire');
     const [popup] = await Promise.all([
@@ -509,7 +680,7 @@ try {
         document.documentElement.dataset.theme,
         getComputedStyle(document.documentElement).getPropertyValue('--desk').trim(),
       ]);
-    await page.goto(base + '#/settings');
+    await page.goto(base + '#/settings/appearance');
     await page.locator('.theme-opt', { hasText: /^Sépia$/ }).click();
     await page.waitForFunction(() => document.documentElement.dataset.theme === 'light');
     assert.deepEqual(await state(), ['light', '#ece0c8']);
@@ -530,10 +701,10 @@ try {
         .evaluate((el) => getComputedStyle(el).fontFamily);
     const setFont = async () => {
       await page.goto(setUrl + '/edit');
-      await page.getByText('Apparence par défaut des cartes de ce jeu').click();
-      return page.locator('details.set-style select').first();
+      await page.getByText('Apparence des cartes de ce jeu').click();
+      return page.locator('.ed-meta details.appearance select').first();
     };
-    await page.goto(base + '#/settings');
+    await page.goto(base + '#/settings/appearance');
     await page.locator('.font-opt', { hasText: 'OpenDyslexic' }).click();
     await page.locator('.font-opt.on', { hasText: 'OpenDyslexic' }).waitFor();
     // l'écriture de settings.json suit celle de l'étape précédente : on l'attend avant de recharger
@@ -553,7 +724,7 @@ try {
     await page.reload();
     await page.locator('.font-opt.on', { hasText: 'OpenDyslexic' }).waitFor();
     assert.match(await font('h1'), /^'?"?OpenDyslexic/);
-    // fichier réellement chargé (servi par le préchargement hors ligne)
+    // fichier réellement chargé (mis en cache à sa première utilisation)
     await page.waitForFunction(() =>
       [...document.fonts].some((f) => f.family.replace(/"/g, '') === 'OpenDyslexic' && f.status === 'loaded'),
     );
@@ -576,7 +747,7 @@ try {
     assert.match(await page.locator('.face-front').first().getAttribute('class'), /font-default/);
     assert.match(await font('.face-front'), /^'?"?OpenDyslexic/);
     // réglages sur « Par défaut » : polices du thème pour l'interface, manuscrite pour les cartes
-    await page.goto(base + '#/settings');
+    await page.goto(base + '#/settings/appearance');
     await page.locator('.font-opt', { hasText: 'Par défaut' }).click();
     await page.waitForFunction(() => !document.documentElement.style.getPropertyValue('--font-ui'));
     assert.match(await font('h1'), /monospace|Menlo/);
@@ -590,8 +761,12 @@ try {
     const fresh = await browser.newContext({ locale: 'fr-FR' });
     const p = await fresh.newPage();
     await p.goto(base);
-    await p.getByText('Visite guidée : les types de cartes', { exact: true }).waitFor();
-    assert.equal(await p.locator('.storage-notice').count(), 1);
+    await p.getByText('Visite guidée : découvrir Flashcard', { exact: true }).waitFor();
+    // un seul bandeau : d'abord les jeux d'exemple, puis, une fois l'annonce fermée, le rappel de sauvegarde
+    assert.equal(await p.locator('.examples-notice').count(), 1);
+    assert.equal(await p.locator('.backup-notice').count(), 0);
+    await p.locator('.examples-notice').getByRole('button', { name: 'Masquer ce message' }).click();
+    assert.match(await p.locator('.backup-notice').innerText(), /Configurez la synchronisation Dropbox/);
     assert.equal(await p.locator('.set-row').count(), 1);
     // nouveau jeu : langues des réglages (termes et définitions en français après la première ouverture)
     await p.getByRole('button', { name: /Nouveau jeu/ }).click();
@@ -599,7 +774,7 @@ try {
     assert.equal(await p.getByLabel('Langue des définitions').inputValue(), 'fr');
     assert.equal(await p.getByLabel('Langue des termes').inputValue(), 'fr');
     // limite du jour à 0 nouvelle carte : « Étudier quand même » ajoute 10 nouvelles cartes
-    await p.goto(base + '#/settings');
+    await p.goto(base + '#/settings/study');
     await p.getByLabel(/Nouvelles cartes par jour/).evaluate((el) => {
       el.value = '0';
       el.dispatchEvent(new Event('input', { bubbles: true }));
@@ -612,16 +787,64 @@ try {
     await p.locator('.flip').waitFor();
     assert.equal(await p.locator('.counts .pill.new').innerText(), '10 nouvelles');
     // remise à zéro : le jeu créé disparaît, les exemples reviennent
-    await p.goto(base + '#/settings');
+    await p.goto(base + '#/settings/backup');
     await p.getByRole('button', { name: /Tout supprimer et réinitialiser/ }).click();
     const del = p.getByRole('button', { name: 'Tout supprimer', exact: true });
     assert.equal(await del.isDisabled(), true, 'confirmation obligatoire');
     await p.getByLabel(/Je comprends/).check();
     await Promise.all([p.waitForEvent('load'), del.click()]);
-    await p.getByText('Visite guidée : les types de cartes', { exact: true }).waitFor();
+    await p.getByText('Visite guidée : découvrir Flashcard', { exact: true }).waitFor();
     const rows = await p.locator('.set-row').allInnerTexts();
     assert.equal(rows.length, 1, rows.join(' | '));
     assert.ok(!rows.some((r) => r.includes('Nouveau jeu')));
+    await fresh.close();
+  });
+
+  await step("jeux d'exemple : annonce à la première ouverture, ajout depuis la galerie", async () => {
+    const fresh = await browser.newContext({ locale: 'fr-FR' });
+    const p = await fresh.newPage();
+    await p.goto(base);
+    await p.getByText('Visite guidée : découvrir Flashcard', { exact: true }).waitFor();
+    // seule la visite guidée est importée d'office ; l'annonce propose les autres
+    assert.equal(await p.locator('.set-row').count(), 1);
+    await p.locator('.examples-notice').getByRole('button', { name: "Voir les jeux d'exemple" }).click();
+    const dlg = p.getByRole('dialog');
+    await dlg.locator('.example-card').first().waitFor();
+    assert.ok((await dlg.locator('.example-card').count()) >= 10);
+    await shot('24-jeux-exemple');
+    await dlg.getByRole('button', { name: 'Ajouter : Anatomie : premières planches' }).click();
+    await dlg.getByRole('button', { name: 'Mettre à jour : Anatomie : premières planches' }).waitFor();
+    await dlg.getByRole('button', { name: 'Fermer' }).first().click();
+    await p.getByText('Anatomie : premières planches', { exact: true }).waitFor();
+    assert.equal(await p.locator('.examples-notice').count(), 0, "l'annonce ne revient plus");
+    // une planche s'étudie : image masquée avec ses masques
+    await p.getByText('Anatomie : premières planches', { exact: true }).click();
+    await p.locator('.card-list li').first().getByRole('button', { name: 'Aperçu' }).click();
+    await p.getByRole('dialog').locator('.occ-face').first().waitFor();
+    await shot('25-planche-anatomie');
+    await fresh.close();
+  });
+
+  await step('archivage proposé : jeu jamais étudié depuis plus de 3 mois', async () => {
+    const fresh = await browser.newContext({ locale: 'fr-FR' });
+    const p = await fresh.newPage();
+    await p.goto(base);
+    await p.getByText('Visite guidée : découvrir Flashcard', { exact: true }).waitFor();
+    assert.equal(await p.locator('.archive-suggest').count(), 0, 'jeu récent : rien à proposer');
+    // quatre mois plus tard
+    await p.clock.install({ time: new Date(Date.now() + 120 * 86400000) });
+    // bandeaux prioritaires déjà traités : annonce des exemples vue, rappel de sauvegarde masqué
+    await p.evaluate(() => {
+      localStorage.setItem('flashcard.examplesNotice', 'seen');
+      localStorage.setItem('flashcard.backupNoticeSnooze', new Date().toISOString());
+    });
+    await p.reload();
+    await p.locator('.archive-suggest').getByRole('button', { name: 'Voir' }).click();
+    const dlg = p.getByRole('dialog');
+    await dlg.getByText(/jamais étudié, créé il y a \d+ mois/).waitFor();
+    await dlg.getByRole('button', { name: 'Archiver 1 jeu' }).click();
+    await p.getByText('1 jeu archivé').waitFor();
+    await p.waitForFunction(() => !document.querySelector('.set-row'));
     await fresh.close();
   });
 
@@ -629,11 +852,11 @@ try {
     const fresh = await browser.newContext({ locale: 'en-US' });
     const p = await fresh.newPage();
     await p.goto(base);
-    await p.getByText('Guided tour: card types', { exact: true }).waitFor();
+    await p.getByText('Guided tour: discover Flashcard', { exact: true }).waitFor();
     await p.getByRole('heading', { name: 'Library' }).waitFor();
     assert.equal(await p.evaluate(() => document.documentElement.lang), 'en');
-    await p.goto(base + '#/settings');
-    await p.getByRole('heading', { name: 'Appearance and language' }).waitFor();
+    await p.goto(base + '#/settings/study');
+    await p.getByRole('heading', { name: 'Appearance', exact: true }).waitFor();
     assert.match(await p.locator('body').innerText(), /Target retention: \d+%/);
     await fresh.close();
   });
@@ -643,6 +866,12 @@ try {
     await page.getByRole('link', { name: 'Aide et crédits' }).click();
     await page.getByRole('heading', { name: 'Vos données restent chez vous' }).waitFor();
     await page.getByRole('link', { name: 'ts-fsrs' }).waitFor();
+    await page.getByRole('heading', { name: 'Raccourcis clavier' }).waitFor();
+    await page.getByRole('heading', { name: "Installer sur l'écran d'accueil" }).waitFor();
+    assert.equal(
+      await page.getByRole('link', { name: 'La révision espacée' }).getAttribute('href'),
+      'https://fr.wikipedia.org/wiki/R%C3%A9p%C3%A9tition_espac%C3%A9e',
+    );
     assert.match(
       await page.locator('.help-intro').innerText(),
       /Version \d+\.\d+\.\d+ \(build \d{4}-\d{2}-\d{2} \d{2}:\d{2} UTC\)/,
@@ -653,205 +882,11 @@ try {
     await shot('20-aide');
   });
 
-  await step('synchronisation Google Drive (connexion et Drive simulés) entre deux appareils', async () => {
-    // faux Google Drive partagé par les deux navigateurs (requêtes REST de storage/gdrive.js)
-    const { createHash } = await import('node:crypto');
-    const files = new Map();
-    let n = 0;
-    const md5 = (b) => createHash('md5').update(b).digest('hex');
-    const drive = async (route) => {
-      const req = route.request();
-      const u = new URL(req.url());
-      const method = req.method();
-      const json = (body) => route.fulfill({ contentType: 'application/json', body: JSON.stringify(body) });
-      const q = u.searchParams.get('q') || '';
-      if (method === 'GET' && u.pathname === '/drive/v3/files') {
-        const parent = q.match(/'([^']+)' in parents/)?.[1];
-        const name = q.match(/name='([^']+)'/)?.[1];
-        const list = [...files].filter(
-          ([, f]) => !f.trashed && (parent ? f.parents?.includes(parent) : f.name === name),
-        );
-        return json({ files: list.map(([id, f]) => ({ id, name: f.name, md5Checksum: f.bytes && md5(f.bytes) })) });
-      }
-      if (method === 'POST' && u.pathname === '/drive/v3/files') {
-        const id = `id${++n}`;
-        files.set(id, JSON.parse(req.postData()));
-        return json({ id });
-      }
-      if (method === 'POST' && u.pathname === '/upload/drive/v3/files') {
-        const raw = req.postDataBuffer().toString('latin1');
-        const boundary = req.headers()['content-type'].split('boundary=')[1];
-        const parts = raw.split(`--${boundary}`);
-        const meta = JSON.parse(parts[1].split('\r\n\r\n')[1]);
-        const bytes = Buffer.from(parts[2].split('\r\n\r\n').slice(1).join('\r\n\r\n').replace(/\r\n$/, ''), 'latin1');
-        const id = `id${++n}`;
-        files.set(id, { ...meta, bytes });
-        return json({ id, md5Checksum: md5(bytes) });
-      }
-      const id = u.pathname.split('/').pop();
-      if (method === 'PATCH' && u.pathname.startsWith('/upload/')) {
-        files.get(id).bytes = req.postDataBuffer();
-        return json({ id, md5Checksum: md5(files.get(id).bytes) });
-      }
-      if (method === 'PATCH') {
-        Object.assign(files.get(id), JSON.parse(req.postData()));
-        return json({ id });
-      }
-      if (method === 'GET' && u.searchParams.get('alt') === 'media')
-        return route.fulfill({ contentType: 'application/octet-stream', body: files.get(id).bytes });
-      return route.fulfill({ status: 400, body: 'requête inattendue' });
-    };
-    const gis = `window.google = { accounts: { oauth2: {
-      initTokenClient: (c) => ({ requestAccessToken: () => setTimeout(() => c.callback({ access_token: 'jeton', expires_in: 3600 }), 0) }),
-      revoke: (t, cb) => cb && cb(),
-    } } };`;
-    const device = async () => {
-      const c = await browser.newContext({ locale: 'fr-FR' });
-      await c.addInitScript(() => localStorage.setItem('flashcard.googleClientId', 'test.apps.googleusercontent.com'));
-      await c.route('https://accounts.google.com/gsi/client', (r) =>
-        r.fulfill({ contentType: 'text/javascript', body: gis }),
-      );
-      await c.route('https://www.googleapis.com/**', drive);
-      const p = await c.newPage();
-      const errs = [];
-      p.on('pageerror', (e) => errs.push(e.message));
-      await p.goto(base);
-      await p.locator('.set-row').first().waitFor();
-      return { c, p, errs };
-    };
-    const connect = async (p) => {
-      await p.goto(base + '#/settings');
-      await p.getByRole('link', { name: /Configurer la synchronisation/ }).click();
-      await p.getByText('Recommandé').waitFor();
-      if (shots) await p.screenshot({ path: `${shots}/21a-synchronisation-choix.png`, fullPage: true });
-      await p.getByRole('button', { name: 'Connecter Google Drive' }).click();
-      await p.locator('.sync-status.idle').waitFor();
-    };
-    // appareil A : un jeu à lui, puis connexion
-    const a = await device();
-    await a.p.getByRole('button', { name: /Nouveau jeu/ }).click();
-    await a.p.getByLabel('Titre', { exact: true }).fill('Jeu de l’appareil A');
-    await a.p.getByText('Enregistré').waitFor();
-    await connect(a.p);
-    if (shots) await a.p.screenshot({ path: `${shots}/21-synchronisation.png` });
-    assert.ok([...files.values()].some((f) => f.mimeType?.includes('folder') && f.name === 'Flashcard'));
-    // appareil B : connexion → le jeu de A arrive, la visite guidée (commune) n'est pas dupliquée
-    const b = await device();
-    await connect(b.p);
-    await b.p.goto(base);
-    await b.p.getByText('Jeu de l’appareil A', { exact: true }).waitFor();
-    assert.equal(await b.p.locator('.set-row').count(), 2);
-    assert.deepEqual([...a.errs, ...b.errs], []);
-    await a.c.close();
-    await b.c.close();
-  });
-
-  await step('synchronisation OneDrive (connexion PKCE et Graph simulés) entre deux appareils', async () => {
-    const items = new Map(); // id → { name, parent, folder, bytes, cTag }
-    let n = 0;
-    const tokens = [];
-    const byPath = (path) => {
-      const [dir, name] = path.split('/');
-      const folder = [...items].find(([, i]) => i.folder && i.name === dir)?.[0];
-      return name ? [...items].find(([, i]) => i.parent === folder && i.name === name)?.[0] : folder;
-    };
-    const graph = async (route) => {
-      const req = route.request();
-      const u = new URL(req.url());
-      const method = req.method();
-      const json = (body, status = 200) =>
-        route.fulfill({ status, contentType: 'application/json', body: JSON.stringify(body) });
-      const m = decodeURIComponent(u.pathname).match(/approot:\/(.+?):\/(children|content)$/);
-      if (method === 'GET' && m?.[2] === 'children') {
-        const folder = byPath(m[1]);
-        if (!folder) return json({ error: { code: 'itemNotFound' } }, 404);
-        const value = [...items]
-          .filter(([, i]) => i.parent === folder)
-          .map(([id, i]) => ({ id, name: i.name, cTag: i.cTag, file: {} }));
-        return json({ value });
-      }
-      if (method === 'POST' && u.pathname.endsWith('/approot/children')) {
-        const { name } = JSON.parse(req.postData());
-        if (byPath(name)) return json({ error: { code: 'nameAlreadyExists' } }, 409);
-        items.set(`f${++n}`, { name, folder: true });
-        return json({});
-      }
-      if (method === 'PUT' && m?.[2] === 'content') {
-        const [dir, name] = m[1].split('/');
-        const id = byPath(m[1]) || `i${++n}`;
-        items.set(id, { name, parent: byPath(dir), bytes: req.postDataBuffer(), cTag: `c${++n}` });
-        return json({ id, cTag: items.get(id).cTag });
-      }
-      const id = u.pathname.split('/').pop();
-      if (method === 'GET' && u.searchParams.get('$select')?.includes('downloadUrl'))
-        return json({ id, '@microsoft.graph.downloadUrl': `https://download.example/${id}` });
-      if (method === 'DELETE') {
-        items.delete(id);
-        return json({});
-      }
-      return route.fulfill({ status: 400, body: 'requête inattendue' });
-    };
-    const device = async () => {
-      const c = await browser.newContext({ locale: 'fr-FR' });
-      await c.addInitScript(() => localStorage.setItem('flashcard.msClientId', '00000000-test'));
-      // page de connexion Microsoft simulée : renvoie aussitôt sur le site avec un code
-      await c.route('https://login.microsoftonline.com/common/oauth2/v2.0/authorize?*', (r) => {
-        const q = new URL(r.request().url()).searchParams;
-        assert.equal(q.get('code_challenge_method'), 'S256');
-        const back = `${q.get('redirect_uri')}?code=code-ok&state=${encodeURIComponent(q.get('state'))}`;
-        return r.fulfill({
-          contentType: 'text/html',
-          body: `<script>location.replace(${JSON.stringify(back)})</script>`,
-        });
-      });
-      await c.route('https://login.microsoftonline.com/common/oauth2/v2.0/token', (r) => {
-        const body = new URLSearchParams(r.request().postData());
-        tokens.push(body.get('grant_type'));
-        assert.ok(body.get('code_verifier') || body.get('refresh_token'));
-        return r.fulfill({
-          contentType: 'application/json',
-          body: JSON.stringify({ access_token: 'jeton', expires_in: 3600, refresh_token: 'rafraichir' }),
-        });
-      });
-      await c.route('https://graph.microsoft.com/**', graph);
-      await c.route('https://download.example/**', (r) =>
-        r.fulfill({ body: items.get(new URL(r.request().url()).pathname.slice(1)).bytes }),
-      );
-      const p = await c.newPage();
-      const errs = [];
-      p.on('pageerror', (e) => errs.push(e.message));
-      await p.goto(base);
-      await p.locator('.set-row').first().waitFor();
-      return { c, p, errs };
-    };
-    const connect = async (p) => {
-      await p.goto(base + '#/settings/sync');
-      await p.getByRole('button', { name: 'Connecter OneDrive' }).click();
-      await p.locator('.sync-status.idle').waitFor();
-    };
-    const a = await device();
-    await a.p.getByRole('button', { name: /Nouveau jeu/ }).click();
-    await a.p.getByLabel('Titre', { exact: true }).fill('Jeu OneDrive de A');
-    await a.p.getByText('Enregistré').waitFor();
-    await connect(a.p);
-    if (shots) await a.p.screenshot({ path: `${shots}/21b-synchronisation-onedrive.png` });
-    assert.deepEqual(tokens, ['authorization_code']);
-    assert.ok([...items.values()].some((i) => i.name?.endsWith('.json')));
-    const b = await device();
-    await connect(b.p);
-    await b.p.goto(base);
-    await b.p.getByText('Jeu OneDrive de A', { exact: true }).waitFor();
-    assert.equal(await b.p.locator('.set-row').count(), 2);
-    assert.deepEqual([...a.errs, ...b.errs], []);
-    await a.c.close();
-    await b.c.close();
-  });
-
   await step("import d'un jeu déjà présent : copie renommée ou mise à jour", async () => {
     const c = await browser.newContext({ locale: 'fr-FR' });
     const p = await c.newPage();
     await p.goto(base);
-    await p.getByText('Visite guidée : les types de cartes', { exact: true }).waitFor();
+    await p.getByText('Visite guidée : découvrir Flashcard', { exact: true }).waitFor();
     const importTour = async () => {
       await p.getByRole('button', { name: 'Importer' }).first().click();
       await p.locator('input[type=file][accept*=apkg]').setInputFiles('examples/fr/visite-guidee.flashcard.zip');
@@ -859,7 +894,7 @@ try {
     };
     // par défaut : copie, titre proposé « … (copie) », modifiable
     await importTour();
-    assert.equal(await p.locator('.import-set input').inputValue(), 'Visite guidée : les types de cartes (copie)');
+    assert.equal(await p.locator('.import-set input').inputValue(), 'Visite guidée : découvrir Flashcard (copie)');
     await p.locator('.import-set input').fill('Ma visite');
     await p.getByRole('button', { name: /^Importer \d+ cartes/ }).click();
     await p.waitForFunction(() => location.hash.startsWith('#/set/'));
@@ -869,7 +904,7 @@ try {
     // mise à jour : pas de nouveau jeu
     await importTour();
     await p.getByLabel('Ce jeu existe déjà dans votre bibliothèque').selectOption('update');
-    assert.equal(await p.locator('.import-set input').inputValue(), 'Visite guidée : les types de cartes');
+    assert.equal(await p.locator('.import-set input').inputValue(), 'Visite guidée : découvrir Flashcard');
     await p.getByRole('button', { name: /^Importer \d+ cartes/ }).click();
     await p.waitForFunction(() => location.hash.startsWith('#/set/'));
     await p.goto(base);
@@ -886,6 +921,10 @@ try {
       const u = new URL(req.url());
       const args = req.headers()['dropbox-api-arg'] && JSON.parse(req.headers()['dropbox-api-arg']);
       const json = (body) => route.fulfill({ contentType: 'application/json', body: JSON.stringify(body) });
+      if (u.pathname === '/2/files/list_folder' && !JSON.parse(req.postData()).recursive) {
+        const top = new Set([...files.keys()].map((p) => p.split('/').slice(0, 2).join('/')));
+        return json({ entries: [...top].map((p) => ({ '.tag': 'folder', path_display: p })), has_more: false });
+      }
       if (u.pathname === '/2/files/list_folder')
         return json({
           entries: [...files].map(([p, f]) => ({ '.tag': 'file', path_display: p, rev: f.rev })),
@@ -897,7 +936,8 @@ try {
       }
       if (u.pathname === '/2/files/download') return route.fulfill({ body: files.get(args.path).bytes });
       if (u.pathname === '/2/files/delete_v2') {
-        files.delete(JSON.parse(req.postData()).path);
+        const path = JSON.parse(req.postData()).path;
+        for (const p of [...files.keys()]) if (p === path || p.startsWith(path + '/')) files.delete(p);
         return json({});
       }
       return route.fulfill({ status: 400, body: 'requête inattendue' });
@@ -940,10 +980,67 @@ try {
     await a.p.getByRole('button', { name: /Nouveau jeu/ }).click();
     await a.p.getByLabel('Titre', { exact: true }).fill('Jeu Dropbox de A');
     await a.p.getByText('Enregistré').waitFor();
+    // réglage d'étude choisi sur A avant la connexion : il sera partagé
+    await a.p.goto(base + '#/settings/study');
+    await a.p.getByLabel(/Nouvelles cartes par jour/).evaluate((el) => {
+      el.value = '35';
+      el.dispatchEvent(new Event('input', { bubbles: true }));
+    });
+    await a.p.getByText('Nouvelles cartes par jour : 35').waitFor();
     await connect(a.p);
     assert.ok([...files.keys()].some((k) => k.startsWith('/sets/')));
+    assert.ok(files.has('/shared/settings.json'));
     const b = await device();
     await connect(b.p);
+    await b.p.goto(base);
+    await b.p.getByText('Jeu Dropbox de A', { exact: true }).waitFor();
+    assert.equal(await b.p.locator('.set-row').count(), 2);
+    // B reçoit le réglage d'étude de A, appliqué sans recharger la page
+    await b.p.goto(base + '#/settings/study');
+    await b.p.getByText('Nouvelles cartes par jour : 35').waitFor();
+    // « Tout supprimer » sur A : seule la bibliothèque de A est effacée, la copie Dropbox reste ;
+    // reconnecté, A retrouve ses jeux
+    const before = [...files.keys()].filter((k) => k.startsWith('/sets/')).sort();
+    await a.p.goto(base + '#/settings/backup');
+    await a.p.getByRole('button', { name: /Tout supprimer et réinitialiser/ }).click();
+    const wipe = a.p.getByRole('dialog');
+    await wipe.getByText(/Votre copie Dropbox n'est pas touchée/).waitFor();
+    await wipe.getByRole('checkbox').check();
+    await Promise.all([
+      a.p.waitForEvent('load'),
+      wipe.getByRole('button', { name: 'Tout supprimer', exact: true }).click(),
+    ]);
+    await a.p.locator('.set-row').first().waitFor();
+    assert.equal(await a.p.getByText('Jeu Dropbox de A', { exact: true }).count(), 0, 'effacé sur A');
+    await a.p.waitForTimeout(5000); // délai de synchronisation après écriture : rien ne doit partir
+    assert.deepEqual([...files.keys()].filter((k) => k.startsWith('/sets/')).sort(), before, 'Dropbox intact');
+    await a.p.evaluate(() => localStorage.setItem('flashcard.dropboxAppKey', 'cle-test'));
+    await connect(a.p);
+    await a.p.goto(base);
+    await a.p.getByText('Jeu Dropbox de A', { exact: true }).waitFor();
+    // nettoyage : un fichier étranger au dossier en ligne est supprimé, la bibliothèque reste
+    files.set('/sets/notes.txt', { bytes: Buffer.from('x'), rev: `r${++n}` });
+    await b.p.goto(base + '#/settings/backup');
+    await b.p.getByRole('button', { name: 'Nettoyer Dropbox' }).click();
+    await b.p.getByText(/Dropbox nettoyé : \d+ médias inutilisés, 1 fichiers étrangers supprimés/).waitFor();
+    assert.ok(!files.has('/sets/notes.txt'));
+    assert.ok([...files.keys()].some((k) => k.startsWith('/sets/')));
+    // purge : dossier en ligne vidé et synchronisation déconnectée, bibliothèque locale intacte
+    await b.p.getByRole('button', { name: /Purger le stockage en ligne/ }).click();
+    const purge = b.p.getByRole('dialog');
+    // purge impossible avant l'export complet de précaution
+    assert.ok(await purge.getByRole('checkbox').isDisabled());
+    assert.ok(await purge.getByRole('button', { name: /Purger le stockage en ligne/ }).isDisabled());
+    const saved = b.p.waitForEvent('download');
+    await purge.getByRole('button', { name: /Exporter toute la bibliothèque/ }).click();
+    assert.match((await saved).suggestedFilename(), /flashcard-bibliotheque\.flashcard\.zip$/);
+    await purge.getByText('Export téléchargé').waitFor();
+    await purge.getByRole('checkbox').check();
+    await purge.getByRole('button', { name: /Purger le stockage en ligne/ }).click();
+    await b.p.getByText(/Dropbox purgé : \d+ fichiers supprimés/).waitFor();
+    assert.deepEqual([...files.keys()], ['/purged.json']);
+    await b.p.goto(base + '#/settings/sync');
+    await b.p.getByRole('button', { name: 'Connecter Dropbox' }).waitFor();
     await b.p.goto(base);
     await b.p.getByText('Jeu Dropbox de A', { exact: true }).waitFor();
     assert.equal(await b.p.locator('.set-row').count(), 2);
@@ -964,6 +1061,63 @@ try {
     await first.getByRole('button', { name: 'Suspendre' }).click();
     await page.waitForFunction((b) => document.querySelector('.today .big').innerText === b, before);
     assert.equal(await first.locator('.badge').count(), 0);
+  });
+
+  await step('archiver un jeu, le restaurer depuis les réglages ; bandeau de sauvegarde', async () => {
+    await page.goto(setUrl);
+    await page.getByRole('button', { name: 'Archiver' }).click();
+    await page.getByText(/archivé : restaurable/).waitFor();
+    await page.locator('.set-row').first().waitFor();
+    assert.equal(await page.getByText('Espagnol — cuisine', { exact: true }).count(), 0);
+    await page.goto(base + '#/settings/backup');
+    const item = page.locator('.archive-list li', { hasText: 'Espagnol — cuisine' });
+    await item.waitFor();
+    await shot('23-archives');
+    await item.getByRole('button', { name: 'Restaurer' }).click();
+    await page.getByText(/est de retour dans la bibliothèque/).waitFor();
+    await page.goto(base);
+    await page.getByText('Espagnol — cuisine', { exact: true }).waitFor();
+    // sauvegarde complète récente : plus de bandeau
+    assert.equal(await page.locator('.backup-notice').count(), 1);
+    await page.goto(base + '#/settings/backup');
+    const download = page.waitForEvent('download');
+    await page.getByRole('button', { name: /Exporter toute la bibliothèque/ }).click();
+    await download;
+    await page.goto(base);
+    await page.locator('.set-row').first().waitFor();
+    assert.equal(await page.locator('.backup-notice').count(), 0);
+  });
+
+  await step('hors ligne : application, jeux et police déjà utilisée disponibles sans réseau', async () => {
+    const fresh = await browser.newContext({ locale: 'fr-FR' });
+    const p = await fresh.newPage();
+    await p.goto(base);
+    await p.getByText('Visite guidée : découvrir Flashcard', { exact: true }).waitFor();
+    await p.waitForFunction(
+      async () => (await navigator.serviceWorker.getRegistration())?.active?.state === 'activated',
+    );
+    await p.reload(); // page désormais servie par le service worker
+    // police de lecture : téléchargée à sa première utilisation, gardée pour plus tard
+    await p.goto(base + '#/settings/appearance');
+    await p.locator('.font-opt', { hasText: 'Lexend' }).click();
+    await p.waitForFunction(() =>
+      [...document.fonts].some((f) => f.family.replace(/"/g, '') === 'Lexend' && f.status === 'loaded'),
+    );
+    await p.waitForFunction(async () =>
+      (await (await caches.open('flashcard-lazy')).keys()).some((r) => r.url.includes('fonts/Lexend')),
+    );
+    // le lecteur PDF n'a pas été téléchargé : il ne l'est qu'à la demande
+    assert.equal(
+      await p.evaluate(async () => (await caches.keys()).length && !(await caches.match('./pdf.worker.min.mjs'))),
+      true,
+    );
+    await fresh.setOffline(true);
+    await p.goto(base);
+    await p.getByText('Visite guidée : découvrir Flashcard', { exact: true }).waitFor();
+    await p.waitForFunction(() =>
+      [...document.fonts].some((f) => f.family.replace(/"/g, '') === 'Lexend' && f.status === 'loaded'),
+    );
+    await fresh.close();
   });
 
   await step('mobile', async () => {

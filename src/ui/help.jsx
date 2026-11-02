@@ -1,4 +1,5 @@
-// Aide et crédits (#/help) : présentation, confidentialité, prise en main, code source et logiciels libres.
+// Aide et crédits (#/help) : présentation, confidentialité, prise en main, installation, raccourcis clavier, code source et
+// logiciels libres.
 import { Icon } from './components.jsx';
 import { href } from './ctx.js';
 import { t } from './i18n.js';
@@ -13,9 +14,10 @@ const PROMISES = [
   ['offline', 'help.pOfflineTitle', 'help.pOffline'],
   ['file', 'help.pOpenTitle', 'help.pOpen'],
 ];
+// troisième élément facultatif : [libellé, adresse] d'un lien placé en tête du texte
 const STEPS = [
   ['help.step1Title', 'help.step1'],
-  ['help.step2Title', 'help.step2'],
+  ['help.step2Title', 'help.step2', ['help.step2Link', 'help.spacedRepetitionUrl']],
   ['help.step3Title', 'help.step3'],
 ];
 const LIBS = [
@@ -72,24 +74,67 @@ export function HelpPage() {
           ))}
         </ul>
         <p class="muted small">
-          {t('help.privacyExceptions')} {t('help.privacyBackup')} <a href={href('settings')}>{t('common.settings')}</a>
+          {t('help.privacyExceptions')} {t('help.privacyBackup')}{' '}
+          <a href={href('settings/backup')}>{t('common.settings')}</a>
         </p>
       </section>
 
       <section aria-labelledby="help-start">
         <h2 id="help-start">{t('help.startTitle')}</h2>
         <ol class="help-steps">
-          {STEPS.map(([title, text], i) => (
+          {STEPS.map(([title, text, link], i) => (
             <li key={title}>
               <span class="help-step-n" aria-hidden="true">
                 {i + 1}
               </span>
               <strong>{t(title)}</strong>
-              <span>{t(text)}</span>
+              <span>
+                {link && (
+                  <a href={t(link[1])} {...external}>
+                    {t(link[0])}
+                  </a>
+                )}
+                {t(text)}
+              </span>
             </li>
           ))}
         </ol>
         <p class="muted small">{t('help.tourHint')}</p>
+      </section>
+
+      <section aria-labelledby="help-install">
+        <h2 id="help-install">{t('help.installTitle')}</h2>
+        <p>{t('help.installWhy')}</p>
+        <ul class="help-install">
+          {['help.installIos', 'help.installAndroid', 'help.installDesktop'].map((k) => (
+            <li key={k}>{t(k)}</li>
+          ))}
+        </ul>
+      </section>
+
+      <section aria-labelledby="help-keys">
+        <h2 id="help-keys">{t('help.shortcuts')}</h2>
+        <dl class="kv help-keys">
+          <div>
+            <dt>{t('help.kbdFlashcardsReview')}</dt>
+            <dd>
+              <kbd>{t('common.space')}</kbd> {t('help.kbdFlip')} · <kbd>←</kbd>
+              <kbd>→</kbd> · <kbd>1</kbd>–<kbd>4</kbd> {t('help.kbdRate')} · <kbd>S</kbd> {t('help.kbdStar')}
+            </dd>
+          </div>
+          <div>
+            <dt>{t('mode.learn')}</dt>
+            <dd>
+              <kbd>1</kbd>–<kbd>4</kbd> {t('help.kbdChoose')} · <kbd>↵</kbd> {t('help.kbdContinue')}
+            </dd>
+          </div>
+          <div>
+            <dt>{t('help.kbdEditor')}</dt>
+            <dd>
+              <kbd>Ctrl</kbd>+<kbd>↵</kbd> {t('help.kbdNewCard')}
+            </dd>
+          </div>
+        </dl>
       </section>
 
       <footer class="help-credits">

@@ -1,8 +1,14 @@
 // Service worker Flashcard : l'application fonctionne hors ligne une fois chargée.
-// Les marqueurs de version et de liste de préchargement sont remplacés par build.mjs.
+// Les marqueurs de version et de listes de fichiers sont remplacés par build.mjs.
+// - PRECACHE : téléchargés à l'installation (ce qui sert à chaque lancement), dans le cache de la version ;
+// - ON_DEMAND : lecteur PDF, moteur Anki, polices de lecture, jeux d'exemple, autre langue… mis en cache à leur
+//   première utilisation, dans un cache durable qui survit aux mises à jour (une police déjà utilisée reste
+//   disponible hors ligne) ; ce qui n'existe plus dans la version courante y est supprimé à l'activation.
 const VERSION = '__VERSION__';
 const CACHE = `flashcard-${VERSION}`;
+const LAZY_CACHE = 'flashcard-lazy';
 const PRECACHE = __PRECACHE__;
+const ON_DEMAND = new Set(__ON_DEMAND__.map((p) => new URL(p, self.registration.scope).href));
 
 self.addEventListener('install', (event) => {
   event.waitUntil(
@@ -15,12 +21,13 @@ self.addEventListener('install', (event) => {
 
 self.addEventListener('activate', (event) => {
   event.waitUntil(
-    caches
-      .keys()
-      .then((keys) =>
-        Promise.all(keys.filter((k) => k.startsWith('flashcard-') && k !== CACHE).map((k) => caches.delete(k))),
-      )
-      .then(() => self.clients.claim()),
+    (async () => {
+      for (const k of await caches.keys())
+        if (k.startsWith('flashcard-') && k !== CACHE && k !== LAZY_CACHE) await caches.delete(k);
+      const lazy = await caches.open(LAZY_CACHE);
+      for (const req of await lazy.keys()) if (!ON_DEMAND.has(req.url.split('?')[0])) await lazy.delete(req);
+      await self.clients.claim();
+    })(),
   );
 });
 
@@ -34,7 +41,10 @@ self.addEventListener('fetch', (event) => {
       if (hit) return hit;
       try {
         const res = await fetch(req);
-        if (res.ok) (await caches.open(CACHE)).put(req, res.clone());
+        if (res.ok) {
+          const name = ON_DEMAND.has(url.origin + url.pathname) ? LAZY_CACHE : CACHE;
+          (await caches.open(name)).put(req, res.clone());
+        }
         return res;
       } catch (e) {
         if (req.mode === 'navigate') return (await caches.match('./index.html')) || Response.error();

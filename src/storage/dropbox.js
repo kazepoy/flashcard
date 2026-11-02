@@ -43,17 +43,22 @@ export class DropboxRemote {
     );
   }
 
-  /** Tous les fichiers du dossier d'application : `rev` change à chaque nouvelle version. */
-  async list() {
+  /** Entrées du dossier d'application, toutes pages lues. */
+  async _entries(recursive) {
     const out = [];
-    let r = await this._json(`${API}/files/list_folder`, { path: '', recursive: true });
+    let r = await this._json(`${API}/files/list_folder`, { path: '', recursive });
     for (;;) {
-      for (const e of r.entries || [])
-        if (e['.tag'] === 'file') out.push({ path: e.path_display.replace(/^\//, ''), rev: e.rev });
-      if (!r.has_more) break;
+      out.push(...(r.entries || []));
+      if (!r.has_more) return out;
       r = await this._json(`${API}/files/list_folder/continue`, { cursor: r.cursor });
     }
-    return out;
+  }
+
+  /** Tous les fichiers du dossier d'application : `rev` change à chaque nouvelle version. */
+  async list() {
+    return (await this._entries(true))
+      .filter((e) => e['.tag'] === 'file')
+      .map((e) => ({ path: e.path_display.replace(/^\//, ''), rev: e.rev }));
   }
 
   async read(path) {
@@ -74,5 +79,10 @@ export class DropboxRemote {
   /** Suppression : le fichier reste récupérable dans les fichiers supprimés de Dropbox. */
   async remove(path) {
     await this._json(`${API}/files/delete_v2`, { path: `/${path}` });
+  }
+
+  /** Vide le dossier d'application, dossier par dossier (récupérable dans les fichiers supprimés). */
+  async clear() {
+    for (const e of await this._entries(false)) await this._json(`${API}/files/delete_v2`, { path: e.path_display });
   }
 }

@@ -1,0 +1,130 @@
+[
+  {
+    "file": "drapeaux-et-capitales.flashcard.zip",
+    "id": "01JZ0000000000000000101000",
+    "cards": 68,
+    "color": "#2563EB",
+    "title": "Drapeaux et capitales du monde",
+    "description": "Drapeaux dessinés, capitales, indices pour les paires trompeuses.",
+    "features": [
+      "Images au recto",
+      "Association",
+      "Gravité"
+    ]
+  },
+  {
+    "file": "systeme-solaire.flashcard.zip",
+    "id": "01JZ0000000000000000102000",
+    "cards": 13,
+    "color": "#1E3A8A",
+    "title": "Le système solaire",
+    "description": "Planche des planètes à compléter et questions d’astronomie.",
+    "features": [
+      "Image masquée",
+      "Indices"
+    ]
+  },
+  {
+    "file": "espagnol-de-voyage.flashcard.zip",
+    "id": "01JZ0000000000000000103000",
+    "cards": 43,
+    "color": "#DC2626",
+    "title": "Espagnol de voyage",
+    "description": "Mots et phrases utiles, avec exemples.",
+    "features": [
+      "Lecture à voix haute",
+      "Exemples",
+      "Écrire"
+    ]
+  },
+  {
+    "file": "anglais-faux-amis.flashcard.zip",
+    "id": "01JZ0000000000000000104000",
+    "cards": 36,
+    "color": "#0EA5E9",
+    "title": "Anglais : vocabulaire courant et faux amis",
+    "description": "Mots du quotidien, exemples en contexte, faux amis signalés.",
+    "features": [
+      "Indices",
+      "Exemples",
+      "Lecture à voix haute"
+    ]
+  },
+  {
+    "file": "allemand-premiers-mots.flashcard.zip",
+    "id": "01JZ0000000000000000105000",
+    "cards": 34,
+    "color": "#CA8A04",
+    "title": "Allemand : premiers mots",
+    "description": "Premiers mots, genre des noms en indice.",
+    "features": [
+      "Indices",
+      "Lecture à voix haute",
+      "Apprendre"
+    ]
+  },
+  {
+    "file": "grandes-dates.flashcard.zip",
+    "id": "01JZ0000000000000000106000",
+    "cards": 23,
+    "color": "#7C3AED",
+    "title": "Grandes dates de l’histoire",
+    "description": "Phrases à trous, de l’Antiquité à l’euro.",
+    "features": [
+      "Textes à trous",
+      "Plusieurs trous par carte"
+    ]
+  },
+  {
+    "file": "tables-de-multiplication.flashcard.zip",
+    "id": "01JZ0000000000000000107000",
+    "cards": 36,
+    "color": "#F59E0B",
+    "title": "Tables de multiplication (2 à 9)",
+    "description": "Toutes les tables sur des fiches colorées, pour les enfants.",
+    "features": [
+      "Apparence du jeu",
+      "Écrire",
+      "Gravité"
+    ]
+  },
+  {
+    "file": "elements-chimiques.flashcard.zip",
+    "id": "01JZ0000000000000000108000",
+    "cards": 30,
+    "color": "#059669",
+    "title": "Éléments chimiques (1 à 30)",
+    "description": "Symbole ↔ nom, numéro atomique en indice.",
+    "features": [
+      "Apprendre",
+      "Test",
+      "Sens inverse"
+    ]
+  },
+  {
+    "file": "formules-maths-physique.flashcard.zip",
+    "id": "01JZ0000000000000000109000",
+    "cards": 35,
+    "color": "#4F46E5",
+    "title": "Formules de maths et de physique",
+    "description": "Formules incontournables, unités en indice.",
+    "features": [
+      "Indices",
+      "Police du jeu",
+      "Test"
+    ]
+  },
+  {
+    "file": "anatomie.flashcard.zip",
+    "id": "01JZ0000000000000000110000",
+    "cards": 17,
+    "color": "#E11D48",
+    "title": "Anatomie : premières planches",
+    "description": "Cœur, squelette et œil à légender, pour les études de santé.",
+    "features": [
+      "Image masquée",
+      "Planches",
+      "Indices"
+    ]
+  }
+]

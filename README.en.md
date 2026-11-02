@@ -9,8 +9,10 @@ entirely in the browser, offline, with no account and no server: your cards stay
 file format.
 
 <p>
-  <img src="docs/screenshots/jeu.jpg" alt="“Guided tour” set page: study modes and cards" width="49%">
-  <img src="docs/screenshots/etude.jpg" alt="Studying an “image occlusion” card in dark theme" width="49%">
+  <img src="docs/screenshots/en-bibliotheque.jpg" alt="Library filled with example sets, with today's cards" width="49%">
+  <img src="docs/screenshots/en-planche.jpg" alt="Heart anatomy diagram as image occlusion, dark theme" width="49%">
+  <img src="docs/screenshots/en-fiche.jpg" alt="Flipped card: flag, answer and example in the card footer" width="49%">
+  <img src="docs/screenshots/en-apprendre.jpg" alt="Learn mode: Spanish vocabulary as multiple choice" width="49%">
 </p>
 
 ## Features
@@ -28,9 +30,8 @@ file format.
 - **Exchange**: Anki `.apkg` import / export (image occlusion included), CSV / TSV, Quizlet text,
   Markdown, `.flashcard.zip` archive (imported as a renamed copy or as an update); set sharing; printing
   and PDF of cut-out cards.
-- **Sync** (in development): automatic backup and sync between computer, phone and tablet through your
-  own Dropbox (recommended for now; a free 2 GB account is more than enough), Google Drive or OneDrive,
-  with no account and no server.
+- **Sync** (beta): automatic backup and sync between computer, phone and tablet through your
+  own Dropbox (a free 2 GB account is more than enough), with no account and no server.
 - **Comfort**: 11 light and dark themes, dyslexia-friendly reading fonts (OpenDyslexic, Atkinson
   Hyperlegible, Lexend, Andika), French and English, mobile, installable (PWA).
 - **Getting started**: on first launch, a “Guided tour” set shows every card type.

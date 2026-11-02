@@ -184,14 +184,14 @@ test("IA sans clé : consigne, sujet ou texte, lecture de la réponse collée, a
   assert.match(v, /documents joints à ce message\.$/);
   // interface en anglais : consigne en anglais (fichiers de langue), noms de langues en anglais
   const { setLang } = await import('../src/ui/i18n.js');
-  setLang('en');
+  await setLang('en');
   try {
     const e = chatPrompt({ text: 'The planets', languages: { term: 'fr', definition: 'en' } });
     assert.match(e, /^You create review cards/);
     assert.match(e, /Front \("term"\) in French, back \("definition"\) in English\./);
     assert.match(e, /Topic: <source>The planets<\/source>$/);
   } finally {
-    setLang('fr');
+    await setLang('fr');
   }
   // réponse typique d'un assistant : texte autour, bloc ```json, carte incomplète ignorée
   const reply =

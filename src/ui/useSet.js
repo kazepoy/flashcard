@@ -88,6 +88,8 @@ export function useSetData(setId) {
 
 /** Items d'étude mémoïsés selon le sens et le filtre « étoilées » ; cartes suspendues exclues. */
 export function useItems(set, progress, { direction = 'term', starredOnly = false, need = null } = {}) {
+  const { settings } = useApp();
+  const baseStyle = settings?.cardStyle;
   // clé de valeur (et non d'identité) : chaque mise à jour de la progression en crée une copie
   const starredKey = starredOnly && progress ? Object.keys(progress.starred).sort().join() : '';
   const suspendedKey = Object.entries(progress?.suspended || {})
@@ -98,9 +100,9 @@ export function useItems(set, progress, { direction = 'term', starredOnly = fals
   return useMemo(() => {
     if (!set) return [];
     const off = new Set(suspendedKey.split(','));
-    const all = usableFor(expandSet(set, direction), need).filter((i) => !off.has(i.cardId));
+    const all = usableFor(expandSet(set, direction, baseStyle), need).filter((i) => !off.has(i.cardId));
     if (!starredOnly) return all;
     const starred = new Set(starredKey.split(','));
     return all.filter((i) => starred.has(i.cardId));
-  }, [set, direction, starredOnly, need, starredKey, suspendedKey]);
+  }, [set, direction, baseStyle, starredOnly, need, starredKey, suspendedKey]);
 }

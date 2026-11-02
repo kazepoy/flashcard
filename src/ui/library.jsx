@@ -2,26 +2,37 @@ import { useMemo, useState } from 'preact/hooks';
 import { newCard, newSet } from '../core/format.js';
 import { expandSet } from '../core/items.js';
 import { todayQueue } from '../core/daily.js';
+import { archiveSuggestion } from '../core/archive.js';
 import { Empty, Icon } from './components.jsx';
 import { go, href, useApp, useAsync } from './ctx.js';
 import { errorText, t, tn } from './i18n.js';
 import { AiDialog } from './ai-dialog.jsx';
 import { ImportDialog } from './import-dialog.jsx';
+import { ExamplesNotice, examplesNoticeShown } from './examples.jsx';
+import { BackupNotice, backupNoticeShown } from './backup-notice.jsx';
+import { ArchiveSuggestDialog } from './archive-suggest.jsx';
+import { recentLocal, writeLocal } from './local.js';
+
+const SNOOZE_KEY = 'flashcard.archiveSuggestSnooze';
+const SNOOZE_DAYS = 30;
+const snoozed = () => recentLocal(SNOOZE_KEY, SNOOZE_DAYS);
 
 const NONE = []; // référence stable tant que rien n'est chargé
 
 export function LibraryPage() {
-  const { lib, version, settings } = useApp();
+  const { lib, version, settings, sync, needsPermission } = useApp();
   const [q, setQ] = useState('');
-  const [dialog, setDialog] = useState(null); // 'import' | 'ai'
+  const [dialog, setDialog] = useState(null); // 'import' | 'examples' | 'ai' | 'archive'
+  const [, rerender] = useState(0); // un bandeau masqué : le suivant peut apparaître
   const { data, loading, error, reload } = useAsync(async () => {
     const { sets, errors } = await lib.listSets();
     // en parallèle : chaque jeu et sa progression, pour le nombre de cartes du jour
     const rows = await Promise.all(
       sets.map(async (s) => {
         const [full, p] = await Promise.all([lib.loadSet(s.id), lib.loadProgress(s.id)]);
-        const c = todayQueue(expandSet(full, 'term'), p, settings).counts;
-        return { ...s, due: c.learning + c.review + c.new };
+        const items = expandSet(full, 'term');
+        const c = todayQueue(items, p, settings).counts;
+        return { ...s, due: c.learning + c.review + c.new, archive: archiveSuggestion(full, items, p) };
       }),
     );
     return { rows, errors };
@@ -42,6 +53,26 @@ export function LibraryPage() {
     return [...m.entries()].sort((a, b) => (a[0] === '' ? -1 : b[0] === '' ? 1 : a[0].localeCompare(b[0])));
   }, [filtered]);
   const totalDue = rows.reduce((n, r) => n + r.due, 0);
+  const toArchive = rows.filter((r) => r.archive);
+  // Un seul bandeau à la fois, par priorité : découvrir les exemples (premier lancement), mettre les données
+  // à l'abri, alléger la bibliothèque. Le suivant n'apparaît qu'une fois le précédent vu ou masqué.
+  const again = () => rerender((n) => n + 1);
+  const banner = examplesNoticeShown() ? (
+    <ExamplesNotice onOpen={() => (again(), setDialog('examples'))} onHide={again} />
+  ) : !needsPermission && sync.status !== 'paused' && backupNoticeShown(sync) ? (
+    <BackupNotice sync={sync} onHide={again} />
+  ) : toArchive.length > 0 && !snoozed() ? (
+    <div class="notice archive-suggest" role="note">
+      <Icon name="archive" size={20} />
+      <span>{tn('library.archiveSuggest', toArchive.length)}</span>
+      <button class="btn small" onClick={() => setDialog('archive')}>
+        {t('library.archiveSuggestSee')}
+      </button>
+      <button class="btn small" onClick={() => (writeLocal(SNOOZE_KEY, new Date().toISOString()), again())}>
+        {t('library.archiveSuggestLater')}
+      </button>
+    </div>
+  ) : null;
   const firstDue = rows.find((r) => r.due > 0);
 
   const create = async () => {
@@ -52,30 +83,36 @@ export function LibraryPage() {
 
   return (
     <div class="library">
+      {banner}
       <header class="lib-head">
-        <div>
-          <h1>{t('common.library')}</h1>
-          {rows.length > 0 && (
-            <p class="muted">{totalDue > 0 ? tn('library.cardsDueToday', totalDue) : t('library.allCaughtToday')}</p>
-          )}
-        </div>
+        <h1>{t('common.library')}</h1>
         <div class="actions">
+          <button class="btn primary-outline" onClick={create}>
+            <Icon name="plus" /> {t('library.newSet')}
+          </button>
+          <button class="btn" onClick={() => setDialog('ai')}>
+            <Icon name="spark" /> {t('library.createAi')}
+          </button>
+          <button class="btn" onClick={() => setDialog('import')}>
+            <Icon name="upload" /> {t('library.import')}
+          </button>
+        </div>
+      </header>
+
+      {/* à faire aujourd'hui, à part des boutons de création */}
+      {rows.length > 0 && (
+        <section class={'lib-today' + (firstDue ? ' due' : '')} aria-label={t('library.today')}>
+          <p>
+            <Icon name={firstDue ? 'chart' : 'check'} />{' '}
+            {totalDue > 0 ? tn('library.cardsDueToday', totalDue) : t('library.allCaughtToday')}
+          </p>
           {firstDue && (
             <a class="btn primary" href={href(`set/${firstDue.id}/study/review`)}>
               {t('library.reviewSet', { t: firstDue.title })}
             </a>
           )}
-          <button class="btn" onClick={() => setDialog('import')}>
-            <Icon name="upload" /> {t('library.import')}
-          </button>
-          <button class="btn" onClick={() => setDialog('ai')}>
-            <Icon name="spark" /> {t('library.createAi')}
-          </button>
-          <button class="btn primary-outline" onClick={create}>
-            <Icon name="plus" /> {t('library.newSet')}
-          </button>
-        </div>
-      </header>
+        </section>
+      )}
 
       {error && (
         <p class="notice bad" role="alert">
@@ -151,6 +188,14 @@ export function LibraryPage() {
       {dialog === 'import' && (
         <ImportDialog onClose={() => setDialog(null)} onDone={() => (setDialog(null), reload())} />
       )}
+      {dialog === 'examples' && (
+        <ImportDialog
+          initialTab="examples"
+          onClose={() => setDialog(null)}
+          onDone={() => (setDialog(null), reload())}
+        />
+      )}
+      {dialog === 'archive' && <ArchiveSuggestDialog rows={toArchive} onClose={() => setDialog(null)} />}
       {dialog === 'ai' && <AiDialog onClose={() => setDialog(null)} onDone={() => (setDialog(null), reload())} />}
     </div>
   );

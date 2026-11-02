@@ -15,8 +15,9 @@ et les données sont des fichiers au format décrit dans [SPEC.md](SPEC.md).
 | `npm run lint` / `npm run format`  | ESLint / Prettier ; `npm run check` : formatage, lint et tests (avant un commit) |
 | `node scripts/i18n-add.mjs f.json` | Ajoute des traductions `{ "clé": ["français", "english"] }` aux dictionnaires    |
 | `node test/e2e.mjs [dossier]`      | Parcours complet dans Chromium, après `npm run build` ; captures dans `dossier`  |
-| `node scripts/gen-examples.mjs`    | Régénère `examples/<langue>/` (jeux d'exemple et `index.json`)                   |
+| `node scripts/gen-examples.mjs`    | Régénère `examples/<langue>/` (visite guidée, catalogue `scripts/catalog.mjs`)   |
 | `node scripts/icons.mjs`           | Régénère les icônes PNG depuis `public/icon.svg`                                 |
+| `node scripts/screenshots.mjs`     | Refait les captures du README (`docs/screenshots/`), après `npm run build`       |
 
 ## Principes
 
@@ -35,6 +36,11 @@ et les données sont des fichiers au format décrit dans [SPEC.md](SPEC.md).
   (`Library.onExternalChange`) et fusionne sa progression en mémoire.
 - **Séance de révision** (`core/srs.js`, `SrsSession`) : jamais deux fois de suite la même carte s'il en
   reste une autre ; compte des cartes vues et terminées (barre de progression en deux tons).
+- **Hors ligne** : le service worker précharge ce qui sert à chaque lancement (`build.mjs` : `ON_DEMAND` liste le
+  reste) ; lecteur PDF, moteur Anki, polices de lecture, jeux d'exemple et autre langue sont mis en cache à leur
+  première utilisation, dans un cache qui survit aux mises à jour.
+- **Langues** : le français (référence et repli) est dans le script principal, les autres langues sont chargées à
+  la demande (`setLang` est asynchrone).
 - **Mises à jour** : le service worker active la nouvelle version, la page propose « Recharger » ; la page
   Aide affiche la version et la date du build.
 - **Une règle métier, un endroit.** Par exemple la file du jour (limites, examen, « étudier plus ») :
@@ -53,24 +59,27 @@ src/
 │               éléments d'étude), srs (FSRS, séance de révision), daily (file du jour), progress, learn,
 │               test, games, stats, analytics, search, occlusion, style, merge (conflits), errors
 ├─ storage/     stores (mémoire, IndexedDB, dossier réel), library (jeux, progressions, journaux, médias),
-│               sync (synchronisation fichier par fichier), gdrive, onedrive, dropbox (dossiers distants)
+│               sync (synchronisation fichier par fichier), dropbox (dossier distant)
 ├─ io/          Anki .apkg (import / export), CSV / TSV / Quizlet, Markdown, archive .flashcard.zip
 ├─ ai/          génération de cartes (API Anthropic ou compatible OpenAI, consigne copier-coller), PDF
 └─ ui/
    ├─ app.jsx         racine : barre de navigation, bandeaux, page courante
    ├─ ctx.js          contexte global, routeur (parseRoute → routeOf), useAsync ; routes.jsx : pages
    ├─ use-library.js  cycle de vie de la bibliothèque ; boot.js : ouverture du stockage ;
-   │                  first-run.js : première ouverture (langue, exemples) ; storage-notice.jsx
+   │                  first-run.js : première ouverture (langue, exemples) ; backup-notice.jsx (rappel de synchronisation ou de sauvegarde)
    ├─ useSet.js       chargement d'un jeu, progression immuable (update), enregistrement différé
    ├─ components.jsx  fiche, dialogue, icônes, médias, audio, raccourcis, notifications
-   ├─ library.jsx     bibliothèque ; import-dialog.jsx ; ai-dialog.jsx
+   ├─ library.jsx     bibliothèque, archivage proposé (core/archive.js) ; import-dialog.jsx ; ai-dialog.jsx ;
+   │                  examples.jsx : jeux d'exemple du catalogue (galerie, annonce)
    ├─ setpage.jsx     page d'un jeu, partage, export ; print.jsx : impression / PDF
-   ├─ editor.jsx      éditeur ; card-editor.jsx, style-panel.jsx, media-field.jsx, languages.js ;
+   ├─ editor.jsx      éditeur ; card-editor.jsx, media-field.jsx, languages.js ; style-panel.jsx :
+   │                  bloc « Apparence » commun aux réglages, au jeu et à la carte ;
    │                  occlusion.jsx : image masquée ; media.js : allègement des images
    ├─ browse.jsx      navigateur de cartes ; stats.jsx, charts.jsx : statistiques
-   ├─ settings.jsx    réglages ; themes.js : thèmes ; help.jsx : aide et crédits
-   ├─ sync-page.jsx   Réglages › Synchronisation ; use-sync.js : services et déclencheurs ;
-   │                  google-auth.js, microsoft-auth.js, dropbox-auth.js : connexions (pkce.js commun)
+   ├─ settings.jsx    réglages, en rubriques repliables (#/settings/<rubrique> en déplie une), une rubrique
+   │                  par module dans settings/ (appearance, study, sync, backup, ai ; run.js : actions) ; themes.js : thèmes ; help.jsx : aide, raccourcis clavier et crédits
+   ├─ sync-settings.jsx  rubrique Synchronisation des réglages ; use-sync.js : services et déclencheurs ;
+   │                  dropbox-auth.js : connexion (sur pkce.js)
    ├─ i18n.js         t(), tn() ; locales/ : un dictionnaire par langue
    └─ study/          un fichier par mode d'étude ; face.jsx affiche une face de carte
 public/        index.html, manifeste, service worker, icônes
@@ -102,47 +111,30 @@ test/          tests unitaires (node:test) et e2e.mjs
 
 ## Synchronisation
 
-Choix et comparaison des services (Google Drive, OneDrive, Dropbox, WebDAV…) : [SYNC.md](SYNC.md).
+Choix et comparaison des services (Dropbox ; Google Drive et OneDrive retirés ; WebDAV…) : [SYNC.md](SYNC.md).
 Calcul des statistiques et effet de la synchronisation sur elles : [STATS.md](STATS.md).
 Fonction IA (consignes, fournisseurs, réponse attendue) : [IA.md](IA.md).
 
-`storage/sync.js` compare chaque fichier (`sets/`, `progress/`, `logs/`, `media/` ; pas les réglages) à
+`storage/sync.js` compare chaque fichier (`sets/`, `progress/`, `logs/`, `media/`, `archive/`, `shared/`) à
 son état lors de la dernière synchronisation : un seul côté a changé → recopie ; les deux → fusion
 (`core/merge.js`) ; un côté supprimé sans que l'autre change → suppression propagée. Une carte
 supprimée laisse une marque dans `deleted` (voir SPEC.md). Le dossier distant implémente
-`list / read / write / remove` : `storage/gdrive.js` pour Google Drive (portée `drive.file`, dossier
-« Flashcard »), un faux en mémoire pour les tests ; le test e2e simule la connexion et le Drive.
-`ui/use-sync.js` lance la synchronisation à l'ouverture, au retour au premier plan, 4 s après une
-écriture (`Library.onWrite`) et toutes les 5 minutes. Sans serveur, le jeton Google dure une heure :
-ensuite la synchronisation se met en pause et un clic la reprend.
+`list / read / write / remove` (et `clear`, facultatif) : `storage/dropbox.js`, un faux en mémoire pour les
+tests ; le test e2e simule la connexion et l'API Dropbox. `ui/use-sync.js` lance la synchronisation à
+l'ouverture, au retour au premier plan, 4 s après une écriture (`Library.onWrite`) et toutes les 5 minutes ;
+après une vérification complète (ouverture, retour au premier plan), seuls les fichiers écrits depuis sont
+relus. Un autre service s'ajoute dans `PROVIDERS`.
 
-**Identifiant Google** (une fois, gratuit) :
+Les réglages d'étude et des nouveaux jeux (`shared/settings.json`, `SHARED_SETTINGS`) sont synchronisés et
+fusionnés réglage par réglage (le plus récent gagne) ; ceux de l'affichage restent par appareil. Les jeux
+archivés (`archive/<id>.flashcard.zip`, voir SPEC.md) sont synchronisés comme le reste ; une
+archive modifiée des deux côtés n'est pas fusionnée : la version distante l'emporte.
 
-1. [console.cloud.google.com](https://console.cloud.google.com) : créer un projet, puis activer
-   « Google Drive API » (API et services › Bibliothèque).
-2. Écran de consentement OAuth : type « Externe », nom et e-mail de contact, lien de confidentialité
-   (la page `#/help` du site), portée `…/auth/drive.file` ; publier l'application.
-3. Identifiants › Créer un ID client OAuth › « Application Web » ; origines JavaScript autorisées :
-   l'adresse du site (ex. `https://kazepoy.github.io`) et `http://localhost:8080` pour essayer.
-4. Fournir l'identifiant au build : variable de dépôt `GOOGLE_CLIENT_ID` (Settings › Secrets and
-   variables › Actions › Variables) pour GitHub Pages, ou `GOOGLE_CLIENT_ID=… npm run build`. Sans lui,
-   l'option Google Drive est grisée. Pour un essai sans reconstruire : clé `flashcard.googleClientId`
-   dans le stockage local du navigateur.
-
-**Identifiant Microsoft** (OneDrive, une fois, gratuit) :
-
-1. [entra.microsoft.com](https://entra.microsoft.com) (ou portail Azure › Microsoft Entra ID) ›
-   Inscriptions d'applications › Nouvelle inscription : nom « Flashcard » ; types de comptes « Comptes
-   dans un annuaire organisationnel et comptes Microsoft personnels ».
-2. URI de redirection, plateforme **Application monopage (SPA)** : l'adresse exacte de la page
-   d'accueil, barre finale comprise (`https://kazepoy.github.io/flashcard/`, `http://localhost:8080/`).
-3. Autorisations d'API › Microsoft Graph › délégué : `Files.ReadWrite.AppFolder` et `offline_access`.
-4. Copier l'ID d'application (client) ; aucun secret. Le fournir au build : variable `MS_CLIENT_ID`
-   (comme `GOOGLE_CLIENT_ID`), ou clé `flashcard.msClientId` dans le stockage local pour un essai.
-
-La connexion (`ui/microsoft-auth.js`) suit le flux « code d'autorisation + PKCE » dans une fenêtre qui
-revient sur le site (`handleAuthRedirect`, au démarrage) ; le jeton de rafraîchissement renouvelle
-l'accès sans clic pendant environ 24 h. Fichiers dans `Applications/Flashcard` (`storage/onedrive.js`).
+Réglages › Sauvegarde et restauration › Nettoyage supprime les médias inutilisés, synchronise, puis retire
+du dossier distant les fichiers étrangers à la bibliothèque (`removeStrayFiles`). La purge (`clearRemote`)
+vide le dossier distant, y laisse la marque `purged.json` et déconnecte : un autre appareil encore relié
+voit la marque et s'arrête (`syncRemoteEmpty`) au lieu de prendre le dossier vide pour des suppressions ;
+reconnecté, il y renvoie sa bibliothèque.
 
 **Clé d'application Dropbox** (une fois, gratuite) :
 
@@ -155,7 +147,7 @@ l'accès sans clic pendant environ 24 h. Fichiers dans `Applications/Flashcard` 
    `flashcard.dropboxAppKey` dans le stockage local pour un essai. En « développement », une application
    Dropbox accepte un nombre limité d'utilisateurs ; demander le passage en production depuis la console.
 
-Connexion PKCE avec accès hors ligne (`ui/dropbox-auth.js`, sur `ui/pkce.js`, commun avec OneDrive) : le
+Connexion PKCE avec accès hors ligne (`ui/dropbox-auth.js`, sur `ui/pkce.js`) : le
 jeton de rafraîchissement ne périme pas, la synchronisation reste connectée. Fichiers dans
 `Applications/Flashcard` (`storage/dropbox.js`).
 
@@ -193,7 +185,8 @@ partie du préchargement hors ligne.
   IA (client simulé), thèmes, traductions.
 - `test/e2e.mjs` (lancé plusieurs fois de suite pour vérifier sa stabilité) : création, chaque mode d'étude, apparence, image masquée, navigateur, statistiques,
   exports et PDF, IA par copier-coller, thèmes, police de lecture, première ouverture, remise à zéro, anglais, mobile,
-  synchronisation Google Drive, OneDrive et Dropbox (simulées) entre deux appareils, cartes suspendues, import en copie.
+  synchronisation Dropbox simulée entre deux appareils (réglages partagés, « Tout supprimer » sans effet en ligne,
+  nettoyage, purge), jeux d'exemple, archivage proposé, cartes suspendues, import en copie.
   Toute erreur de console ou clé de traduction inconnue fait échouer le parcours.
 - L'import / export `.apkg` a été vérifié avec le vrai Anki (paquet Python `anki` 26.09).
 
@@ -205,20 +198,19 @@ construit et publie sur GitHub Pages à chaque push sur `main` (à activer une f
 
 ## Dépendances
 
-| Paquet                              | Usage                                                            |
-| ----------------------------------- | ---------------------------------------------------------------- |
-| `preact`                            | Interface                                                        |
-| `ts-fsrs`                           | Algorithme de révision espacée FSRS                              |
-| `jszip`                             | Archives `.flashcard.zip` et `.apkg`                             |
-| `sql.js`, `fzstd`                   | Bases Anki (SQLite, compression zstd)                            |
-| `pdfjs-dist`                        | Texte des PDF pour l'IA (chargé à la demande)                    |
-| `esbuild`, `playwright-core` (dév.) | Construction ; test e2e et icônes avec le Chromium de la machine |
-| `prettier`, `eslint` (dév.)         | Formatage, analyse statique                                      |
+| Paquet                              | Usage                                                              |
+| ----------------------------------- | ------------------------------------------------------------------ |
+| `preact`                            | Interface                                                          |
+| `ts-fsrs` (version 6)               | Algorithme de révision espacée FSRS                                |
+| `jszip`                             | Archives `.flashcard.zip` et `.apkg`                               |
+| `sql.js`, `fzstd`                   | Bases Anki (SQLite, compression zstd) ; sql.js chargé à la demande |
+| `pdfjs-dist`                        | Texte des PDF pour l'IA (chargé à la demande)                      |
+| `esbuild`, `playwright-core` (dév.) | Construction ; test e2e et icônes avec le Chromium de la machine   |
+| `prettier`, `eslint` 10 (dév.)      | Formatage, analyse statique (références JSX suivies nativement)    |
 
 ## Limites connues et pistes
 
-- Synchronisation : pas de synchronisation quand l'application est fermée ; connexion limitée à 1 h
-  (Google) ou ~24 h (Microsoft), durable avec Dropbox.
+- Synchronisation : pas de synchronisation quand l'application est fermée ; Dropbox seulement.
 - Planification Anki ni importée ni exportée ; style des cartes non exporté vers `.apkg`.
 - Import par lien d'un jeu Quizlet public impossible (CORS) : passer par l'export texte de Quizlet.
 - Contraste du texte garanti par rapport à la couleur de fond d'une carte, pas à son image de fond.

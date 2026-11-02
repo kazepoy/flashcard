@@ -99,80 +99,90 @@
   font-weight: 400;
   font-display: swap;
   src: url('fonts/atkinson-hyperlegible-latin-400-normal.woff2') format('woff2');
-  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329,
-    U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+  unicode-range:
+    U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC,
+    U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
 }
 @font-face {
   font-family: 'Atkinson Hyperlegible';
   font-weight: 400;
   font-display: swap;
   src: url('fonts/atkinson-hyperlegible-latin-ext-400-normal.woff2') format('woff2');
-  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF,
-    U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+  unicode-range:
+    U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F,
+    U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
 }
 @font-face {
   font-family: 'Atkinson Hyperlegible';
   font-weight: 700;
   font-display: swap;
   src: url('fonts/atkinson-hyperlegible-latin-700-normal.woff2') format('woff2');
-  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329,
-    U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+  unicode-range:
+    U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC,
+    U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
 }
 @font-face {
   font-family: 'Atkinson Hyperlegible';
   font-weight: 700;
   font-display: swap;
   src: url('fonts/atkinson-hyperlegible-latin-ext-700-normal.woff2') format('woff2');
-  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF,
-    U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+  unicode-range:
+    U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F,
+    U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
 }
 @font-face {
   font-family: 'Lexend';
   font-weight: 100 900;
   font-display: swap;
   src: url('fonts/lexend-latin-wght-normal.woff2') format('woff2');
-  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329,
-    U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+  unicode-range:
+    U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC,
+    U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
 }
 @font-face {
   font-family: 'Lexend';
   font-weight: 100 900;
   font-display: swap;
   src: url('fonts/lexend-latin-ext-wght-normal.woff2') format('woff2');
-  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF,
-    U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+  unicode-range:
+    U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F,
+    U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
 }
 @font-face {
   font-family: 'Andika';
   font-weight: 400;
   font-display: swap;
   src: url('fonts/andika-latin-400-normal.woff2') format('woff2');
-  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329,
-    U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+  unicode-range:
+    U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC,
+    U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
 }
 @font-face {
   font-family: 'Andika';
   font-weight: 400;
   font-display: swap;
   src: url('fonts/andika-latin-ext-400-normal.woff2') format('woff2');
-  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF,
-    U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+  unicode-range:
+    U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F,
+    U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
 }
 @font-face {
   font-family: 'Andika';
   font-weight: 700;
   font-display: swap;
   src: url('fonts/andika-latin-700-normal.woff2') format('woff2');
-  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329,
-    U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+  unicode-range:
+    U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC,
+    U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
 }
 @font-face {
   font-family: 'Andika';
   font-weight: 700;
   font-display: swap;
   src: url('fonts/andika-latin-ext-700-normal.woff2') format('woff2');
-  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF,
-    U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+  unicode-range:
+    U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F,
+    U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
 }
 
 *,
@@ -625,9 +635,33 @@ legend {
   font-weight: 600;
   text-align: right;
 }
-details.help,
-details.set-style {
+details.help {
   margin: 0.4rem 0 0.9rem;
+}
+/* apparence des cartes : même bloc repliable aux trois niveaux (réglages, jeu, carte) */
+details.appearance {
+  margin: 0.4rem 0 0.9rem;
+}
+details.appearance[open] > summary {
+  margin-bottom: 0.6rem;
+}
+details.appearance > p {
+  margin: 0;
+}
+.own-style {
+  margin-top: 0.6rem;
+}
+.own-style .btn {
+  margin-top: 0.3rem;
+}
+.appearance-dot {
+  display: inline-block;
+  width: 0.5rem;
+  height: 0.5rem;
+  margin-left: 0.45rem;
+  border-radius: 50%;
+  background: var(--accent);
+  vertical-align: middle;
 }
 summary {
   cursor: pointer;
@@ -667,6 +701,35 @@ summary {
 }
 .ed-head {
   align-items: center;
+}
+.lib-head {
+  align-items: center;
+}
+.lib-head h1 {
+  margin: 0;
+}
+/* bibliothèque : bloc « aujourd'hui » (cartes à voir, révision), séparé des boutons de création */
+.lib-today {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.6rem 1rem;
+  margin: 0 0 1rem;
+  padding: 0.7rem 1rem;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--surface);
+}
+.lib-today p {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0;
+  font-weight: 600;
+}
+.lib-today.due {
+  border-left: 4px solid var(--hi);
 }
 .folder h2 {
   font: 600 1rem var(--font-ui);
@@ -904,7 +967,8 @@ summary {
 }
 /* papier */
 .index-card.paper-ruled {
-  background-image: linear-gradient(var(--margin), var(--margin)), linear-gradient(var(--bg), var(--bg)),
+  background-image:
+    linear-gradient(var(--margin), var(--margin)), linear-gradient(var(--bg), var(--bg)),
     linear-gradient(transparent calc(var(--lh) - 1px), var(--rule) calc(var(--lh) - 1px));
   background-repeat: no-repeat, no-repeat, repeat-y;
   background-size:
@@ -917,8 +981,8 @@ summary {
     0 var(--head);
 }
 .index-card.paper-grid {
-  background-image: linear-gradient(var(--rule) 1px, transparent 1px),
-    linear-gradient(90deg, var(--rule) 1px, transparent 1px);
+  background-image:
+    linear-gradient(var(--rule) 1px, transparent 1px), linear-gradient(90deg, var(--rule) 1px, transparent 1px);
   background-size: 1.6rem 1.6rem;
 }
 .index-card.paper-dots {
@@ -934,10 +998,8 @@ summary {
 }
 .index-card.has-bg-image,
 .index-card.has-bg-image[class*='paper-'] {
-  background-image: linear-gradient(
-      color-mix(in srgb, var(--bg) 74%, transparent),
-      color-mix(in srgb, var(--bg) 74%, transparent)
-    ),
+  background-image:
+    linear-gradient(color-mix(in srgb, var(--bg) 74%, transparent), color-mix(in srgb, var(--bg) 74%, transparent)),
     var(--card-image, none);
   background-size: auto, cover;
   background-position: center;
@@ -986,6 +1048,15 @@ summary {
 .index-card.align-center {
   text-align: center;
 }
+/* centrage vertical : la fiche est une colonne ; des marges automatiques placent le contenu au milieu de la
+   place laissée entre l'en-tête et le pied, sans toucher à sa mise en page interne (images, listes) */
+.index-card.valign-middle > .face-content {
+  flex: 0 1 auto;
+  margin-block: auto;
+}
+.index-card.align-center .foot-row {
+  justify-content: center;
+}
 .index-card.align-center .card-img {
   margin-inline: auto;
 }
@@ -1022,15 +1093,22 @@ summary {
   opacity: 0.7;
 }
 .index-card.small,
-.index-card.mini {
-  --fs: 1.1rem;
-  min-height: 0;
-  padding-bottom: 0.8rem;
-}
+/* aperçu de l'apparence : fiche réduite, mais taille et alignement vertical restent visibles */
 .index-card.mini {
   --fs: 0.95rem;
-  flex: 1;
+  min-height: 7.5rem;
+  padding-bottom: 0.8rem;
   padding-inline: 0.9rem;
+  flex: 1;
+}
+.index-card.mini.size-sm {
+  --fs: 0.8rem;
+}
+.index-card.mini.size-lg {
+  --fs: 1.2rem;
+}
+.index-card.mini.size-xl {
+  --fs: 1.5rem;
 }
 .card-img {
   display: block;
@@ -1633,8 +1711,7 @@ summary {
 .ed-fields textarea {
   font: 1.05rem/1.4 var(--font-card);
 }
-.cloze-tools,
-.ed-toggles {
+.cloze-tools {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
@@ -1682,13 +1759,15 @@ summary {
 .style-controls .grid-sel {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 0.5rem 1rem;
+  align-items: end;
+  gap: 0.2rem 1rem;
 }
-.style-controls .grid-sel .field-inline {
-  justify-content: space-between;
+/* libellé au-dessus, menu pleine largeur : colonnes régulières quelle que soit la longueur des libellés */
+.style-controls .grid-sel .field {
+  margin: 0;
 }
 .style-controls .grid-sel select {
-  width: 9.5rem;
+  width: 100%;
 }
 .style-preview {
   align-self: start;
@@ -1982,10 +2061,6 @@ summary {
 }
 
 /* ------------------------------------------------------------------ navigateur de cartes */
-.page.wide,
-.topbar.wide {
-  max-width: 84rem;
-}
 .ci-item h4 {
   margin: 0.6rem 0 0.2rem;
   font: 600 0.85rem var(--font-ui);
@@ -2014,6 +2089,9 @@ summary {
 }
 .browse-search .search input {
   width: 100%;
+}
+.browse-search .set-filter select {
+  max-width: 13rem;
 }
 .browse-search .sort {
   display: flex;
@@ -2071,14 +2149,22 @@ details.search-help table {
   align-items: start;
 }
 .browse-body.with-info {
-  grid-template-columns: minmax(0, 1fr) minmax(18rem, 26rem);
+  grid-template-columns: minmax(0, 1fr) minmax(17rem, 23rem);
+}
+/* largeur commune aux autres pages : panneau ouvert, la table garde le terme et l'échéance (le panneau montre
+   la définition et le jeu) */
+.browse-body.with-info .btable .c-def,
+.browse-body.with-info .btable .c-set {
+  display: none;
 }
 .browse-list {
   min-width: 0;
 }
 .btable {
   width: 100%;
-  border-collapse: collapse;
+  border-collapse: separate; /* sinon les coins arrondis ne s'appliquent pas */
+  border-spacing: 0;
+  overflow: hidden;
   table-layout: fixed;
   background: var(--surface);
   border: 1px solid var(--line);
@@ -2092,6 +2178,15 @@ details.search-help table {
   font-size: 0.8rem;
   padding: 0.45rem 0.5rem;
   border-bottom: 1px solid var(--line-strong);
+}
+.btable thead th {
+  background: var(--surface-2);
+}
+.btable tbody tr {
+  cursor: pointer;
+}
+.btable tbody tr:hover td {
+  background: color-mix(in srgb, var(--surface-2) 60%, var(--surface));
 }
 .btable td {
   padding: 0.35rem 0.5rem;
@@ -2855,8 +2950,20 @@ details.search-help table {
 /* ------------------------------------------------------------------ choix de la police de lecture */
 .font-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(11rem, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 0.6rem;
+}
+/* « Par défaut » seule sur sa ligne, les polices de lecture sur la suivante */
+.font-grid > :first-child {
+  grid-column: 1;
+}
+.font-grid > :nth-child(2) {
+  grid-column-start: 1;
+}
+@media (max-width: 40rem) {
+  .font-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 .font-opt {
   padding: 0.55rem 0.7rem;
@@ -2991,17 +3098,17 @@ details.search-help table {
 }
 
 /* ------------------------------------------------------------------ rappel de sauvegarde */
-.storage-notice {
+.backup-notice {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   gap: 0.5rem 0.8rem;
   font-size: 0.9rem;
 }
-.storage-notice span {
+.backup-notice span {
   flex: 1 1 16rem;
 }
-.storage-notice .btn {
+.backup-notice .btn {
   flex: none;
 }
 
@@ -3015,17 +3122,145 @@ details.search-help table {
   font: 0.8rem/1.4 var(--font-mono);
 }
 
-/* ------------------------------------------------------------------ réglages : remise à zéro */
-.danger-zone {
-  border-color: color-mix(in srgb, var(--bad) 45%, var(--line));
+/* ------------------------------------------------------------------ aperçu d'une carte */
+.card-preview {
+  margin-top: 0.6rem;
 }
-.danger-zone h2 {
+.dialog-foot .muted {
+  align-self: center;
+}
+
+/* ------------------------------------------------------------------ réglages : rubriques repliables */
+.settings-section {
+  padding-block: 0;
+}
+.settings-section > summary {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding-block: 1rem;
+  list-style: none;
+}
+.settings-section > summary::-webkit-details-marker {
+  display: none;
+}
+.settings-section > summary h2 {
+  margin: 0;
+}
+/* chevron : à droite, tourné vers le bas quand la rubrique est dépliée */
+.settings-section > summary::after {
+  content: '';
+  margin-left: auto;
+  width: 0.55rem;
+  height: 0.55rem;
+  border-right: 2px solid var(--muted);
+  border-bottom: 2px solid var(--muted);
+  transform: rotate(-45deg);
+  transition: transform 0.15s;
+}
+.settings-section[open] > summary::after {
+  transform: rotate(45deg);
+}
+.settings-section > summary:hover h2 {
+  color: var(--accent);
+}
+.settings-body {
+  padding-bottom: 1rem;
+}
+
+/* ------------------------------------------------------------------ bibliothèque : jeux d'exemple, archivage proposé */
+.examples-notice,
+.archive-suggest {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 0.8rem;
+}
+.examples-notice > span,
+.archive-suggest > span {
+  flex: 1 1 18rem;
+}
+.example-grid {
+  list-style: none;
+  padding: 0;
+  margin: 0.6rem 0 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(15rem, 1fr));
+  gap: 0.7rem;
+}
+.example-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  padding: 0.7rem 0.8rem;
+  border: 1px solid var(--line);
+  border-left: 5px solid var(--tab, var(--accent));
+  border-radius: 8px;
+  background: var(--surface);
+}
+.example-features {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+}
+.example-features .chip {
+  font-size: 0.75rem;
+}
+.example-card .btn {
+  margin-top: auto;
+  align-self: flex-start;
+}
+.archive-pick {
+  list-style: none;
+  padding: 0;
+  margin: 0.4rem 0 0;
+}
+.archive-pick li {
+  padding: 0.35rem 0;
+  border-bottom: 1px solid var(--line);
+}
+
+/* ------------------------------------------------------------------ réglages : jeux archivés */
+.archive-list {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 0.4rem;
+}
+.archive-list li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem 0.6rem;
+  padding: 0.45rem 0;
+  border-bottom: 1px solid var(--line);
+}
+.archive-title {
+  flex: 1 1 12rem;
+}
+
+/* ------------------------------------------------------------------ réglages : purge, remise à zéro */
+.danger-zone {
+  margin-top: 1.4rem;
+  padding: 0.2rem 1rem 1rem;
+  border: 1px solid color-mix(in srgb, var(--bad) 45%, var(--line));
+  border-radius: 10px;
+}
+.danger-zone h3 {
   color: var(--bad);
+}
+.danger-zone h4 {
+  margin: 1rem 0 0.3rem;
+}
+.danger-zone p {
+  margin-top: 0;
 }
 
 /* ------------------------------------------------------------------ aide et crédits */
 .help {
   max-width: 52rem;
+}
+.help-install li + li {
+  margin-top: 0.3rem;
 }
 .help section {
   margin-top: 2rem;
@@ -3146,11 +3381,13 @@ details.search-help table {
 }
 
 /* ------------------------------------------------------------------ synchronisation */
-.sync-page {
-  max-width: 46rem;
-}
-.sync-page .lead {
-  color: var(--muted);
+/* une carte de service : encadrée dans la rubrique des réglages */
+.sync-card {
+  margin: 0.8rem 0;
+  padding: 0.8rem 1rem;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--surface-2);
 }
 .sync-head {
   display: flex;
@@ -3280,10 +3517,48 @@ h2 .badge {
   margin-bottom: 0.4em;
   border-bottom: 1px dashed currentColor;
 }
-/* papier ligné : pas d'espacement hors trame entre réponse, exemple et indice */
-.index-card.paper-ruled .extra,
-.index-card.paper-ruled .hint {
+/* papier ligné : pas d'espacement hors trame entre réponse et complément */
+.index-card.paper-ruled .extra {
   margin-top: 0;
+}
+
+/* ------------------------------------------------------------------ pied de fiche : indice, exemple */
+/* la fiche est une colonne : le pied descend en bas, sous un trait du même genre que celui de l'en-tête */
+.index-card {
+  display: flex;
+  flex-direction: column;
+}
+.index-card > .face-content {
+  flex: 1 0 auto;
+}
+.face-foot {
+  margin: 0.6rem -1.6rem -1.4rem;
+  padding: 0.35rem 1.6rem 0.6rem;
+  border-top: 2px solid var(--margin);
+  background: var(--bg);
+  font-size: 0.72em;
+  line-height: 1.45;
+}
+.index-card:not(.paper-ruled) .face-foot {
+  border-top-color: color-mix(in srgb, currentColor 35%, transparent);
+  background: none;
+}
+.foot-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 0.4em;
+}
+.foot-row .md p {
+  margin: 0;
+}
+.foot-label {
+  font: 700 0.85em/1.7 var(--font-ui);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  opacity: 0.6;
+}
+.foot-hint > span:last-child {
+  font-style: italic;
 }
 
 /* ------------------------------------------------------------------ import : titre et sort de chaque jeu */

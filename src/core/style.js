@@ -5,7 +5,9 @@
 // les quatre dernières sont aussi les polices de lecture des réglages (ui/themes.js : READING_FONTS)
 export const FONTS = ['default', 'serif', 'sans', 'mono', 'hand', 'opendyslexic', 'atkinson', 'lexend', 'andika'];
 export const SIZES = ['sm', 'md', 'lg', 'xl'];
-export const ALIGNS = ['left', 'center'];
+export const ALIGNS = ['center', 'left'];
+/** Alignement vertical du contenu de la fiche (défaut : centré entre l'en-tête et le pied). */
+export const VALIGNS = ['middle', 'top'];
 export const PAPERS = ['ruled', 'plain', 'grid', 'dots'];
 
 /** Couleurs de papier proposées (l'utilisateur peut aussi choisir n'importe quelle couleur #RRGGBB). */
@@ -23,6 +25,17 @@ export const PAPER_COLORS = [
 export const isHex = (s) => typeof s === 'string' && /^#[0-9a-fA-F]{6}$/.test(s);
 const isMedia = (s) => typeof s === 'string' && /^media\/[0-9a-f]{64}\.[0-9a-z]{1,6}$/.test(s);
 
+/** Couleurs de texte proposées : encres foncées, et blanc pour les fonds sombres. */
+export const TEXT_COLORS = [
+  { id: 'black', hex: '#111111' },
+  { id: 'blue', hex: '#1F4FD0' },
+  { id: 'red', hex: '#C62828' },
+  { id: 'green', hex: '#2E7D32' },
+  { id: 'purple', hex: '#6A1B9A' },
+  { id: 'brown', hex: '#6D4C41' },
+  { id: 'white', hex: '#FFFFFF' },
+];
+
 /** Couleurs proposées pour les mots révélés d'un texte à trous. */
 export const CLOZE_COLORS = [
   { id: 'blue', hex: '#1F4FD0' },
@@ -33,7 +46,7 @@ export const CLOZE_COLORS = [
   { id: 'pink', hex: '#AD1457' },
 ];
 
-/** Ne garde que les clés valides d'un style : {bg, backBg, fg, cloze, font, size, align, paper, bgImage}. */
+/** Ne garde que les clés valides d'un style : {bg, backBg, fg, cloze, font, size, align, valign, paper, bgImage}. */
 export function sanitizeStyle(raw) {
   const s = {};
   if (!raw || typeof raw !== 'object') return s;
@@ -44,13 +57,14 @@ export function sanitizeStyle(raw) {
   if (FONTS.includes(raw.font)) s.font = raw.font;
   if (SIZES.includes(raw.size)) s.size = raw.size;
   if (ALIGNS.includes(raw.align)) s.align = raw.align;
+  if (VALIGNS.includes(raw.valign)) s.valign = raw.valign;
   if (PAPERS.includes(raw.paper)) s.paper = raw.paper;
   if (isMedia(raw.bgImage)) s.bgImage = raw.bgImage;
   return s;
 }
 
-/** Style effectif : le style de la carte complète celui du jeu. */
-export const mergeStyle = (setStyle, cardStyle) => ({ ...sanitizeStyle(setStyle), ...sanitizeStyle(cardStyle) });
+/** Style effectif : chaque niveau complète le précédent (réglages, puis jeu, puis carte). */
+export const mergeStyle = (...layers) => Object.assign({}, ...layers.map(sanitizeStyle));
 
 export function luminance(hex) {
   const [r, g, b] = [1, 3, 5]
@@ -67,10 +81,16 @@ export function contrast(a, b) {
 const INK = '#1B2A41';
 const PAPER = '#FFFFFF';
 
-/** Couleur de texte lisible sur `bg` (la couleur choisie si elle est assez contrastée, sinon encre ou blanc). */
+/** Contraste minimal du texte d'une fiche (grands caractères : seuil WCAG du texte large). */
+export const MIN_TEXT_CONTRAST = 3;
+
+/**
+ * Couleur de texte lisible sur `bg` : la couleur choisie si elle est assez contrastée, sinon encre ou blanc
+ * (la plus contrastée).
+ */
 export function autoFg(bg, preferred) {
   if (!isHex(bg)) return preferred && isHex(preferred) ? preferred : null;
-  if (preferred && isHex(preferred) && contrast(bg, preferred) >= 4.5) return preferred;
+  if (preferred && isHex(preferred) && contrast(bg, preferred) >= MIN_TEXT_CONTRAST) return preferred;
   return contrast(bg, INK) >= contrast(bg, PAPER) ? INK : PAPER;
 }
 
@@ -89,7 +109,8 @@ export function cardAppearance(style = {}, side = 'prompt') {
   const cls = [
     'font-' + (style.font || 'default'), // défaut : police des réglages ou du thème, sinon manuscrite (styles.css)
     'size-' + (style.size || 'md'),
-    'align-' + (style.align || 'left'),
+    'align-' + (style.align || 'center'), // défaut : centré
+    'valign-' + (style.valign || 'middle'), // défaut : centré
     'paper-' + (style.paper || 'ruled'),
   ];
   if (bg && luminance(bg) < 0.25) cls.push('is-dark');

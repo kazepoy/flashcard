@@ -30,10 +30,6 @@ const options = {
     'process.env.NODE_ENV': watch ? '"development"' : '"production"',
     __APP_VERSION__: JSON.stringify(pkg.version),
     __BUILD_ID__: JSON.stringify(new Date().toISOString().slice(0, 16).replace('T', ' ')),
-    // identifiant OAuth Google de ce site (synchronisation Google Drive) ; vide : option indisponible
-    __GOOGLE_CLIENT_ID__: JSON.stringify(process.env.GOOGLE_CLIENT_ID || ''),
-    // identifiant d'application Microsoft (synchronisation OneDrive) ; vide : option indisponible
-    __MS_CLIENT_ID__: JSON.stringify(process.env.MS_CLIENT_ID || ''),
     // clé d'application Dropbox (synchronisation Dropbox) ; vide : option indisponible
     __DROPBOX_APP_KEY__: JSON.stringify(process.env.DROPBOX_APP_KEY || ''),
   },
@@ -59,6 +55,9 @@ await cp('node_modules/pdfjs-dist/build/pdf.worker.min.mjs', join(out, 'pdf.work
 // Jeux d'exemple importés à la première ouverture (examples/<langue>/index.json + archives)
 await cp('examples', join(out, 'examples'), { recursive: true, filter: (f) => !f.endsWith('.md') });
 
+/** Fichiers mis en cache à leur première utilisation seulement (voir finish). */
+const ON_DEMAND = /^(fonts\/|examples\/|pdf\.worker|sql-wasm|chunks\/(pdf|sql-wasm|en|fr)[.-])/;
+
 async function finish() {
   // CSS : esbuild le produit à côté de main.js (main.css) lorsqu'il est importé ; sinon on copie la feuille.
   try {
@@ -75,14 +74,23 @@ async function finish() {
     }
   };
   await walk(out);
-  const pre = files.filter((f) => f !== 'sw.js' && !f.endsWith('.map')).sort();
+  const all = files.filter((f) => f !== 'sw.js' && !f.endsWith('.map')).sort();
+  // Préchargés à l'installation : ce qui sert à chaque lancement. Le reste (PDF, Anki, polices de lecture, jeux
+  // d'exemple, autre langue) est mis en cache à sa première utilisation (sw.js : cache durable).
+  const lazy = all.filter((f) => ON_DEMAND.test(f));
+  const pre = all.filter((f) => !ON_DEMAND.test(f));
   const hash = createHash('sha256');
-  for (const f of pre) hash.update(f).update(await readFile(join(out, f)));
+  for (const f of all) hash.update(f).update(await readFile(join(out, f)));
   const sw = (await readFile('public/sw.js', 'utf8'))
     .replaceAll('__VERSION__', hash.digest('hex').slice(0, 12))
-    .replaceAll('__PRECACHE__', JSON.stringify(['./', ...pre.map((f) => './' + f)]));
+    .replaceAll('__PRECACHE__', JSON.stringify(['./', ...pre.map((f) => './' + f)]))
+    .replaceAll('__ON_DEMAND__', JSON.stringify(lazy.map((f) => './' + f)));
   await writeFile(join(out, 'sw.js'), sw);
-  console.log(`dist/ prêt : ${pre.length} fichiers`);
+  const size = async (list) => (await Promise.all(list.map((f) => stat(join(out, f))))).reduce((n, s) => n + s.size, 0);
+  console.log(
+    `dist/ prêt : ${pre.length} fichiers préchargés (${((await size(pre)) / 1024).toFixed(0)} Ko), ` +
+      `${lazy.length} à la demande (${((await size(lazy)) / 1024).toFixed(0)} Ko)`,
+  );
 }
 
 if (watch) {

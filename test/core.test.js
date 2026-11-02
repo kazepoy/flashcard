@@ -316,11 +316,15 @@ test("style : validation stricte (pas d'injection CSS)", () => {
     font: 'comic',
     size: 'xl',
     align: 'center',
+    valign: 'middle',
     paper: 'grid',
     bgImage: '../../etc/passwd',
     extra: 1,
   });
-  assert.deepEqual(s, { bg: '#FFF3A3', size: 'xl', align: 'center', paper: 'grid' });
+  assert.deepEqual(s, { bg: '#FFF3A3', size: 'xl', align: 'center', valign: 'middle', paper: 'grid' });
+  assert.equal(sanitizeStyle({ valign: 'bottom' }).valign, undefined);
+  assert.match(cardAppearance({ valign: 'middle' }).className, /valign-middle/);
+  assert.match(cardAppearance({}).className, /align-center .*valign-middle/);
   assert.deepEqual(sanitizeStyle(null), {});
   assert.equal(isHex('#12345'), false);
   assert.equal(
@@ -359,6 +363,9 @@ test('items : style hérité du jeu, images recto/verso selon le sens', () => {
   const [fwd] = expandSet(s, 'term');
   assert.equal(fwd.style.bg, '#CFF1DC');
   assert.equal(fwd.style.font, 'mono');
+  // trois niveaux : réglages, complétés par le jeu, puis par la carte
+  const [g] = expandSet(s, 'term', { bg: '#FFFFFF', paper: 'dots', font: 'serif', size: 'xl' });
+  assert.deepEqual([g.style.bg, g.style.paper, g.style.font, g.style.size], ['#CFF1DC', 'dots', 'mono', 'xl']);
   assert.equal(fwd.promptImage, s.cards[0].termImage);
   assert.equal(fwd.answerImage, s.cards[0].image);
   const [rev] = expandSet(s, 'def');
@@ -500,4 +507,65 @@ test("SrsSession : jamais deux fois de suite la même carte, sauf si c'est la de
   assert.notEqual(y.id, x.id);
   s2.answer(y.id, Grade.Again, now);
   assert.equal(s2.current(now).id, x.id, "la carte en apprentissage la plus proche, pas celle qu'on vient de voir");
+});
+
+test('style : les couleurs de texte proposées restent lisibles (donc appliquées) sur les fonds proposés', async () => {
+  const { TEXT_COLORS, PAPER_COLORS } = await import('../src/core/style.js');
+  const light = PAPER_COLORS.filter((c) => c.id !== 'ink');
+  for (const fg of TEXT_COLORS.filter((c) => c.id !== 'white'))
+    for (const bg of light) assert.equal(autoFg(bg.hex, fg.hex), fg.hex, `${fg.id} sur ${bg.id}`);
+  assert.equal(autoFg('#1B2A41', '#FFFFFF'), '#FFFFFF');
+  // illisible : remplacée
+  assert.equal(autoFg('#FFF3A3', '#FFFFFF'), '#1B2A41');
+});
+
+test('archivage proposé : plus étudié depuis 3 mois, jamais étudié, ou terminé', async () => {
+  const { archiveSuggestion } = await import('../src/core/archive.js');
+  const now = new Date('2026-11-02T12:00:00Z');
+  const day = 86400000;
+  const iso = (d) => new Date(now.getTime() + d * day).toISOString();
+  const s = newSet({
+    created: iso(-10),
+    cards: [newCard({ term: 'a', definition: 'b' }), newCard({ term: 'c', definition: 'd' })],
+  });
+  const items = expandSet(s, 'term');
+  const p = (entries) => ({ items: Object.fromEntries(entries), suspended: {} });
+  const st = (last, due) => ({ srs: { last_review: iso(last), due: iso(due) } });
+  // récent, jamais étudié : rien
+  assert.equal(archiveSuggestion(s, items, p([]), now), null);
+  // créé il y a 4 mois, jamais étudié
+  assert.equal(archiveSuggestion({ ...s, created: iso(-120) }, items, p([]), now).reason, 'never');
+  // dernière révision il y a 100 jours
+  assert.deepEqual(archiveSuggestion(s, items, p([[items[0].id, st(-100, 5)]]), now), {
+    reason: 'idle',
+    last: iso(-100),
+  });
+  // étudié récemment, une carte encore à revoir bientôt : rien
+  assert.equal(
+    archiveSuggestion(
+      s,
+      items,
+      p([
+        [items[0].id, st(-2, 300)],
+        [items[1].id, st(-2, 20)],
+      ]),
+      now,
+    ),
+    null,
+  );
+  // toutes les cartes revues dans plus de 6 mois : terminé
+  assert.equal(
+    archiveSuggestion(
+      s,
+      items,
+      p([
+        [items[0].id, st(-2, 300)],
+        [items[1].id, st(-3, 200)],
+      ]),
+      now,
+    ).reason,
+    'done',
+  );
+  // une carte jamais vue : pas terminé
+  assert.equal(archiveSuggestion(s, items, p([[items[0].id, st(-2, 300)]]), now), null);
 });

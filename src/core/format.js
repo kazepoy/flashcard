@@ -86,6 +86,8 @@ export const DEFAULT_SETTINGS = {
   theme: 'auto',
   readingFont: 'default', // police de l'interface et des cartes (voir ui/themes.js)
   language: { term: null, definition: null }, // langues proposées aux nouveaux jeux
+  cardStyle: {}, // apparence par défaut des cartes, que chaque jeu puis chaque carte peut remplacer
+  sharedChanged: {}, // date de dernière modification de chaque réglage partagé (voir storage/library.js)
   initialized: false, // première ouverture traitée (voir ui/first-run.js)
   newPerDay: 20,
   reviewsPerDay: 200,
@@ -93,6 +95,24 @@ export const DEFAULT_SETTINGS = {
   typoTolerance: true,
   tts: true,
 };
+
+/**
+ * Réglages partagés entre appareils par la synchronisation (shared/settings.json) : ceux de l'étude et des
+ * nouveaux jeux. Thème, langue, police, apparence par défaut des cartes restent propres à chaque appareil.
+ */
+export const SHARED_SETTINGS = ['language', 'newPerDay', 'reviewsPerDay', 'retention', 'typoTolerance', 'tts'];
+
+/** Fichier des réglages partagés : valeurs et date de dernière modification de chacune ('' : jamais modifiée). */
+export function normalizeSharedSettings(raw) {
+  const out = { format: 'flashcard.sharedSettings', version: FORMAT_VERSION, values: {}, changed: {} };
+  if (!raw || raw.format !== 'flashcard.sharedSettings') return out;
+  for (const k of SHARED_SETTINGS) {
+    if (!raw.values || !(k in raw.values)) continue;
+    out.values[k] = raw.values[k];
+    out.changed[k] = typeof raw.changed?.[k] === 'string' ? raw.changed[k] : '';
+  }
+  return out;
+}
 
 /** Valide et nettoie un objet « set » lu depuis un fichier. Lève une Error si invalide. */
 /** Cartes supprimées { id: date ISO } (synchronisation) : seules les entrées valides sont gardées. */

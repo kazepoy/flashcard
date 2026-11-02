@@ -1,6 +1,7 @@
 // Fusion de progressions et de journaux : résout les conflits de synchronisation
 // (iCloud Drive, Syncthing, Nextcloud… créent des copies « en conflit » quand deux appareils
 // modifient le même fichier). L'algorithme est commutatif, associatif et idempotent.
+import { SHARED_SETTINGS, normalizeSharedSettings } from './format.js';
 
 const time = (s) => (s ? new Date(s).getTime() : 0);
 
@@ -82,6 +83,29 @@ export function mergeLogs(a = '', b = '') {
 }
 
 /** Fusion de deux jeux (contenu) : le plus récent par `updated` l'emporte, cartes des deux côtés conservées. */
+/**
+ * Réglages partagés : pour chaque réglage, la valeur modifiée le plus récemment l'emporte ; à date égale,
+ * la plus grande (JSON) départage, pour un résultat indépendant de l'ordre.
+ */
+export function mergeSharedSettings(a, b) {
+  const x = normalizeSharedSettings(a);
+  const y = normalizeSharedSettings(b);
+  const out = normalizeSharedSettings(null);
+  for (const k of SHARED_SETTINGS) {
+    const inX = k in x.values;
+    const inY = k in y.values;
+    if (!inX && !inY) continue;
+    let pick = inX ? x : y;
+    if (inX && inY) {
+      const [cx, cy] = [x.changed[k], y.changed[k]];
+      if (cy > cx || (cy === cx && JSON.stringify(y.values[k]) > JSON.stringify(x.values[k]))) pick = y;
+    }
+    out.values[k] = pick.values[k];
+    out.changed[k] = pick.changed[k];
+  }
+  return out;
+}
+
 export function mergeSets(a, b) {
   if (!a) return b;
   if (!b) return a;

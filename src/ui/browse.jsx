@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState } from 'preact/hooks';
 import { setSuspended, toggleStar } from '../core/progress.js';
 import { FLAGS, buildRows, cardHistory, rowSummary, search, setFlag, sortRows } from '../core/search.js';
 import { Scheduler, SrsState } from '../core/srs.js';
+import { CardPreviewDialog } from './card-preview.jsx';
 import { Empty, Icon, Md } from './components.jsx';
 import { href, parseRoute, useApp, useAsync } from './ctx.js';
 import { errorText, locale, percent, t, tn } from './i18n.js';
@@ -44,6 +45,19 @@ const writeQueryToUrl = (q) => history.replaceState(null, '', '#/browse' + (q ? 
 
 const NONE = []; // référence stable tant que rien n'est chargé
 
+// Filtre par jeu : un seul terme set:"titre" (positif) dans la requête, réglé par le menu « Jeu ».
+// Les guillemets d'un titre deviennent « * » (joker), comme pour le lien « Chercher dans ce jeu ».
+const SET_TOKEN = /(^|\s)set:("[^"]*"|[^\s"]+)/g;
+const setKey = (title) => title.replace(/"/g, '*');
+/** Titre du jeu filtré par la requête, ou '' (aucun, ou plusieurs). */
+function setOfQuery(q) {
+  const m = [...q.matchAll(SET_TOKEN)];
+  return m.length === 1 ? m[0][2].replace(/^"|"$/g, '') : '';
+}
+/** Requête avec ce seul filtre de jeu (aucun si `key` est vide), le reste inchangé. */
+const withSet = (q, key) =>
+  [q.replace(SET_TOKEN, '$1').replace(/\s+/g, ' ').trim(), key ? `set:"${key}"` : ''].filter(Boolean).join(' ');
+
 export function BrowsePage({ initialQuery = '' }) {
   const { lib, version, settings, toast } = useApp();
   const [query, setQuery] = useState(initialQuery);
@@ -59,7 +73,12 @@ export function BrowsePage({ initialQuery = '' }) {
     const { sets } = await lib.listSets();
     const libs = [];
     for (const s of sets) libs.push({ set: await lib.loadSet(s.id), progress: await lib.loadProgress(s.id) });
-    return { rows: buildRows(libs.filter((x) => x.set)), setCount: libs.length };
+    const loaded = libs.filter((x) => x.set);
+    return {
+      rows: buildRows(loaded),
+      setCount: libs.length,
+      sets: loaded.map((x) => x.set.title).sort((a, b) => a.localeCompare(b, locale())),
+    };
   }, [lib, version]);
 
   // navigation vers #/browse/<autre requête> (lien, menu) alors que la page est déjà ouverte
@@ -177,6 +196,21 @@ export function BrowsePage({ initialQuery = '' }) {
             onInput={(e) => setQuery(e.currentTarget.value)}
             autoFocus
           />
+        </label>
+        <label class="field-inline sort set-filter">
+          <span>{t('browse.setFilter')}</span>
+          <select value={setOfQuery(query)} onChange={(e) => setQuery(withSet(query, e.currentTarget.value))}>
+            <option value="">{t('browse.allSets')}</option>
+            {/* un filtre tapé à la main qui ne correspond à aucun titre reste affiché tel quel */}
+            {setOfQuery(query) && !data.sets.some((s) => setKey(s) === setOfQuery(query)) && (
+              <option value={setOfQuery(query)}>{setOfQuery(query)}</option>
+            )}
+            {data.sets.map((s) => (
+              <option key={s} value={setKey(s)}>
+                {s}
+              </option>
+            ))}
+          </select>
         </label>
         <label class="field-inline sort">
           <span>{t('browse.sort')}</span>
@@ -310,6 +344,8 @@ function Row({ row, active, checked, onCheck, onOpen }) {
     <tr
       class={(active ? 'active' : '') + (row.suspended ? ' suspended' : '')}
       style={flag ? { '--flag': flag.hex } : undefined}
+      // toute la ligne ouvre la carte (le bouton du terme reste la cible du clavier), sauf la case à cocher
+      onClick={(e) => !e.target.closest('input, button') && onOpen()}
     >
       <td class="c-sel">
         <input type="checkbox" aria-label={t('browse.select')} checked={checked} onChange={onCheck} />
@@ -383,6 +419,7 @@ function itemLabel(id, card) {
 function CardInfo({ row, scheduler, onClose, onFlag, onStar, onSuspend }) {
   const { lib } = useApp();
   const { card, set } = row;
+  const [preview, setPreview] = useState(false);
   const { data: log } = useAsync(() => lib.readLog(set.id), [lib, set.id]);
   const history = log ? cardHistory(log, card.id) : [];
   const now = new Date();
@@ -403,6 +440,9 @@ function CardInfo({ row, scheduler, onClose, onFlag, onStar, onSuspend }) {
         <Md text={card.definition} />
       </div>
       <p class="ci-actions">
+        <button class="btn small" onClick={() => setPreview(true)}>
+          <Icon name="eye" /> {t('preview.action')}
+        </button>
         <a class="btn small" href={href(`set/${set.id}/edit/${card.id}`)}>
           <Icon name="edit" /> {t('common.edit')}
         </a>
@@ -506,6 +546,7 @@ function CardInfo({ row, scheduler, onClose, onFlag, onStar, onSuspend }) {
           ))}
         </ol>
       )}
+      {preview && <CardPreviewDialog card={card} set={set} onClose={() => setPreview(false)} />}
     </aside>
   );
 }

@@ -1,0 +1,130 @@
+[
+  {
+    "file": "flags-and-capitals.flashcard.zip",
+    "id": "01JZ0000000000000000201000",
+    "cards": 68,
+    "color": "#2563EB",
+    "title": "Flags and capitals of the world",
+    "description": "Drawn flags, capitals, hints for look-alike pairs.",
+    "features": [
+      "Images on the front",
+      "Match",
+      "Gravity"
+    ]
+  },
+  {
+    "file": "solar-system.flashcard.zip",
+    "id": "01JZ0000000000000000202000",
+    "cards": 13,
+    "color": "#1E3A8A",
+    "title": "The solar system",
+    "description": "A planets diagram to fill in and astronomy questions.",
+    "features": [
+      "Image occlusion",
+      "Hints"
+    ]
+  },
+  {
+    "file": "spanish-for-travellers.flashcard.zip",
+    "id": "01JZ0000000000000000203000",
+    "cards": 43,
+    "color": "#DC2626",
+    "title": "Spanish for travellers",
+    "description": "Useful words and phrases, with examples.",
+    "features": [
+      "Read aloud",
+      "Examples",
+      "Write"
+    ]
+  },
+  {
+    "file": "french-for-travellers.flashcard.zip",
+    "id": "01JZ0000000000000000204000",
+    "cards": 39,
+    "color": "#0EA5E9",
+    "title": "French for travellers",
+    "description": "Useful words and phrases, with examples.",
+    "features": [
+      "Read aloud",
+      "Examples",
+      "Write"
+    ]
+  },
+  {
+    "file": "german-first-words.flashcard.zip",
+    "id": "01JZ0000000000000000205000",
+    "cards": 34,
+    "color": "#CA8A04",
+    "title": "German first words",
+    "description": "First words, noun gender as a hint.",
+    "features": [
+      "Hints",
+      "Read aloud",
+      "Learn"
+    ]
+  },
+  {
+    "file": "key-dates.flashcard.zip",
+    "id": "01JZ0000000000000000206000",
+    "cards": 23,
+    "color": "#7C3AED",
+    "title": "Key dates in history",
+    "description": "Sentences with blanks, from antiquity to the euro.",
+    "features": [
+      "Cloze",
+      "Several blanks per card"
+    ]
+  },
+  {
+    "file": "times-tables.flashcard.zip",
+    "id": "01JZ0000000000000000207000",
+    "cards": 36,
+    "color": "#F59E0B",
+    "title": "Times tables (2 to 9)",
+    "description": "All the tables on colourful cards, for kids.",
+    "features": [
+      "Set appearance",
+      "Write",
+      "Gravity"
+    ]
+  },
+  {
+    "file": "chemical-elements.flashcard.zip",
+    "id": "01JZ0000000000000000208000",
+    "cards": 30,
+    "color": "#059669",
+    "title": "Chemical elements (1 to 30)",
+    "description": "Symbol ↔ name, atomic number as a hint.",
+    "features": [
+      "Learn",
+      "Test",
+      "Reverse direction"
+    ]
+  },
+  {
+    "file": "maths-physics-formulas.flashcard.zip",
+    "id": "01JZ0000000000000000209000",
+    "cards": 35,
+    "color": "#4F46E5",
+    "title": "Maths and physics formulas",
+    "description": "Essential formulas, units as hints.",
+    "features": [
+      "Hints",
+      "Set font",
+      "Test"
+    ]
+  },
+  {
+    "file": "anatomy.flashcard.zip",
+    "id": "01JZ0000000000000000210000",
+    "cards": 17,
+    "color": "#E11D48",
+    "title": "Anatomy: first diagrams",
+    "description": "Heart, skeleton and eye to label, for health students.",
+    "features": [
+      "Image occlusion",
+      "Diagrams",
+      "Hints"
+    ]
+  }
+]

@@ -1,17 +1,18 @@
 import { useEffect, useRef, useState } from 'preact/hooks';
 import { newCard } from '../core/format.js';
+import { sanitizeStyle } from '../core/style.js';
 import { parseDelimited, rowsToCards } from '../io/csv.js';
-import { Dialog, Empty, Icon, IndexCard } from './components.jsx';
+import { Dialog, Empty, Icon, TagsInput } from './components.jsx';
 import { go, href, useApp } from './ctx.js';
 import { errorText, t, tn } from './i18n.js';
 import { CardEditor } from './card-editor.jsx';
 import { LANGS } from './languages.js';
-import { StylePanel, Swatches } from './style-panel.jsx';
+import { AppearanceSection, Swatches } from './style-panel.jsx';
 
 // ------------------------------------------------------------------ page
 
 export function Editor({ setId, focusCardId = null }) {
-  const { lib, toast } = useApp();
+  const { lib, toast, settings } = useApp();
   const setRef = useRef(null);
   const [, bump] = useState(0);
   const [status, setStatus] = useState('saved');
@@ -108,6 +109,11 @@ export function Editor({ setId, focusCardId = null }) {
       },
     });
   };
+  const ownStyle = set.cards.filter((c) => Object.keys(sanitizeStyle(c.style)).length).length;
+  const resetCardStyles = () => {
+    set.cards = set.cards.map((c) => (Object.keys(sanitizeStyle(c.style)).length ? { ...c, style: {} } : c));
+    touch();
+  };
   const duplicate = (i) =>
     addCard({ ...set.cards[i], id: undefined, style: { ...set.cards[i].style }, tags: [...set.cards[i].tags] }, i + 1);
 
@@ -178,10 +184,7 @@ export function Editor({ setId, focusCardId = null }) {
         </div>
         <label class="field">
           <span>{t('editor.tagsSeparatedSpaces')}</span>
-          <input
-            value={set.tags.join(' ')}
-            onInput={(e) => mutateSet({ tags: e.currentTarget.value.split(/\s+/).filter(Boolean) })}
-          />
+          <TagsInput tags={set.tags} onChange={(tags) => mutateSet({ tags })} />
         </label>
         <div class="row">
           <span class="lbl">{t('editor.tabColor')}</span>
@@ -191,28 +194,22 @@ export function Editor({ setId, focusCardId = null }) {
             label={t('editor.tabColor')}
           />
         </div>
-        <details class="set-style">
-          <summary>{t('editor.defaultAppearanceSetsCards')}</summary>
-          <StylePanel
-            style={set.style}
-            onChange={(s) => mutateSet({ style: s })}
-            preview={(s) => (
-              <div class="mini-pair">
-                <IndexCard class="mini" style={s} side="prompt">
-                  <div class="face-content">
-                    <p>{t('browse.sort.term')}</p>
-                  </div>
-                </IndexCard>
-                <IndexCard class="mini" style={s} side="answer">
-                  <div class="face-content">
-                    <p>{t('browse.sort.def')}</p>
-                  </div>
-                </IndexCard>
-              </div>
-            )}
-          />
-          <p class="muted small">{t('editor.eachCardOverrideThese')}</p>
-        </details>
+        <AppearanceSection
+          level="set"
+          style={set.style}
+          base={settings.cardStyle}
+          onChange={(st) => mutateSet({ style: st })}
+        >
+          {/* une carte qui a sa propre apparence ne suit pas celle du jeu : on le dit, et on propose de l'effacer */}
+          {ownStyle > 0 && (
+            <p class="notice small own-style">
+              {tn('appearance.cardsOwnStyle', ownStyle)}{' '}
+              <button type="button" class="btn small" onClick={resetCardStyles}>
+                <Icon name="undo" /> {t('appearance.resetCardsToSet')}
+              </button>
+            </p>
+          )}
+        </AppearanceSection>
       </section>
 
       <section aria-labelledby="ed-cards">
@@ -240,6 +237,7 @@ export function Editor({ setId, focusCardId = null }) {
                 index={i}
                 total={set.cards.length}
                 set={set}
+                baseStyle={settings.cardStyle}
                 autofocus={focusId === c.id}
                 update={(p) => updateCard(i, p)}
                 move={(d) => move(i, d)}

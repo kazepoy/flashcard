@@ -10,64 +10,101 @@ export function langOf(set, item, side) {
   return (side === 'prompt') === promptIsTerm ? term : definition;
 }
 
-/** Une face de carte ; `recall` : au verso, rappelle la question au-dessus de la réponse (fiches retournées). */
+/** Pied de fiche, sous un trait comme l'en-tête : indice et exemple. */
+function FaceFoot({ hint, example }) {
+  if (!hint && !example) return null;
+  return (
+    <div class="face-foot">
+      {hint && (
+        <div class="foot-row foot-hint">
+          <span class="foot-label">{t('study.hintLabel')}</span>
+          <span>{hint}</span>
+        </div>
+      )}
+      {example && (
+        <div class="foot-row foot-example">
+          <span class="foot-label">{t('study.exampleLabel')}</span>
+          <Md text={example} />
+        </div>
+      )}
+    </div>
+  );
+}
+
+/**
+ * Une face de carte et son pied (indice : au recto si `showHint`, au verso hors texte à trous, dont l'indice
+ * est dans le trou ; exemple : au verso). `recall` : au verso, rappelle la question au-dessus de la réponse.
+ */
 export function CardFace({ item, set, side, showHint = false, recall = false }) {
+  const foot =
+    side === 'prompt' ? (
+      <FaceFoot hint={showHint && item.hint} />
+    ) : (
+      <FaceFoot hint={item.kind !== 'cloze' && item.hint} example={item.example} />
+    );
   if (item.kind === 'occlusion') {
     return (
-      <div class="face-content occ-face">
-        {item.prompt && <Md text={item.prompt} />}
-        <OcclusionView occ={item.occlusion} side={side} />
-        {side === 'answer' && item.answer && (
-          <p class="occ-answer">
-            <strong>{item.answer}</strong>
-          </p>
-        )}
-        {side === 'answer' && item.extra && <Md class="extra" text={item.extra} />}
-        {showHint && side === 'prompt' && item.hint && <p class="hint">{item.hint}</p>}
-        {side === 'answer' && item.answerAudio && (
-          <div class="face-tools">
-            <AudioButton path={item.answerAudio} text="" />
-          </div>
-        )}
-      </div>
+      <>
+        <div class="face-content occ-face">
+          {item.prompt && <Md text={item.prompt} />}
+          <OcclusionView occ={item.occlusion} side={side} />
+          {side === 'answer' && item.answer && (
+            <p class="occ-answer">
+              <strong>{item.answer}</strong>
+            </p>
+          )}
+          {side === 'answer' && item.extra && <Md class="extra" text={item.extra} />}
+          {side === 'answer' && item.answerAudio && (
+            <div class="face-tools">
+              <AudioButton path={item.answerAudio} text="" />
+            </div>
+          )}
+        </div>
+        {foot}
+      </>
     );
   }
   if (side === 'prompt') {
     return (
-      <div class="face-content">
-        <Md text={item.prompt} />
-        <MediaImage path={item.promptImage} />
-        {showHint && item.hint && <p class="hint">{item.hint}</p>}
-        <div class="face-tools">
-          <AudioButton
-            path={item.promptAudio}
-            text={item.promptAudio ? '' : item.prompt}
-            lang={langOf(set, item, 'prompt')}
-          />
+      <>
+        <div class="face-content">
+          <Md text={item.prompt} />
+          <MediaImage path={item.promptImage} />
+          <div class="face-tools">
+            <AudioButton
+              path={item.promptAudio}
+              text={item.promptAudio ? '' : item.prompt}
+              lang={langOf(set, item, 'prompt')}
+            />
+          </div>
         </div>
-      </div>
+        {foot}
+      </>
     );
   }
   return (
-    <div class="face-content">
-      {/* rappel de la question (sauf texte à trous : la phrase révélée la contient déjà) */}
-      {recall && item.kind === 'basic' && (
-        <div class="face-recall">
-          <Md text={item.prompt} />
-          <MediaImage path={item.promptImage} />
+    <>
+      <div class="face-content">
+        {/* rappel de la question (sauf texte à trous : la phrase révélée la contient déjà) */}
+        {recall && item.kind === 'basic' && (
+          <div class="face-recall">
+            <Md text={item.prompt} />
+            <MediaImage path={item.promptImage} />
+          </div>
+        )}
+        <Md text={item.kind === 'cloze' ? item.reveal : item.answer} />
+        <MediaImage path={item.answerImage} />
+        {/* complément d'un texte à trous ; l'exemple d'une carte simple est dans le pied */}
+        {item.extra && item.kind !== 'basic' && <Md class="extra" text={item.extra} />}
+        <div class="face-tools">
+          <AudioButton
+            path={item.answerAudio}
+            text={item.answerAudio ? '' : item.answer}
+            lang={langOf(set, item, 'answer')}
+          />
         </div>
-      )}
-      <Md text={item.kind === 'cloze' ? item.reveal : item.answer} />
-      <MediaImage path={item.answerImage} />
-      {item.extra && <Md class="extra" text={item.extra} />}
-      {item.hint && item.kind !== 'cloze' && <p class="hint">{t('study.hint', { h: item.hint })}</p>}
-      <div class="face-tools">
-        <AudioButton
-          path={item.answerAudio}
-          text={item.answerAudio ? '' : item.answer}
-          lang={langOf(set, item, 'answer')}
-        />
       </div>
-    </div>
+      {foot}
+    </>
   );
 }

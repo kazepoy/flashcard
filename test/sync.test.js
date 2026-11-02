@@ -1,12 +1,9 @@
-import { createRequire } from 'node:module';
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { MemoryStore } from '../src/storage/stores.js';
 import { Library } from '../src/storage/library.js';
-import { syncLibrary } from '../src/storage/sync.js';
+import { PURGED, clearRemote, removeStrayFiles, syncLibrary } from '../src/storage/sync.js';
 import { newCard, newSet } from '../src/core/format.js';
-
-const require = createRequire(import.meta.url);
 
 /** Dossier distant en mémoire : `rev` change à chaque écriture. */
 class MemoryRemote {
@@ -126,197 +123,6 @@ test("sync : la synchronisation n'est pas déclenchée par ses propres écriture
   assert.equal(seen.length, 1);
 });
 
-/** Faux Google Drive : les requêtes REST utilisées par GDriveRemote, sur une table en mémoire. */
-function fakeDrive() {
-  const { createHash } = require('node:crypto');
-  const files = new Map(); // id → { name, parents, mimeType, bytes, trashed }
-  let n = 0;
-  const md5 = (b) => createHash('md5').update(b).digest('hex');
-  const ok = (body) => ({
-    ok: true,
-    status: 200,
-    json: async () => body,
-    arrayBuffer: async () => body.buffer,
-    text: async () => '',
-  });
-  const calls = [];
-  const fetchImpl = async (url, init = {}) => {
-    const u = new URL(url);
-    const method = init.method || 'GET';
-    calls.push(`${method} ${u.pathname}`);
-    assert.match(init.headers.Authorization, /^Bearer jeton$/);
-    const q = u.searchParams.get('q') || '';
-    if (method === 'GET' && u.pathname === '/drive/v3/files') {
-      const list = [...files]
-        .filter(([, f]) => !f.trashed)
-        .filter(([, f]) =>
-          q.includes(' in parents')
-            ? f.parents?.includes(q.match(/'([^']+)' in parents/)[1])
-            : f.name === q.match(/name='([^']+)'/)[1],
-        );
-      return ok({ files: list.map(([id, f]) => ({ id, name: f.name, md5Checksum: f.bytes && md5(f.bytes) })) });
-    }
-    if (method === 'POST' && u.pathname === '/drive/v3/files') {
-      const id = `id${++n}`;
-      files.set(id, { ...JSON.parse(init.body) });
-      return ok({ id });
-    }
-    if (method === 'POST' && u.pathname === '/upload/drive/v3/files') {
-      const raw = Buffer.from(await init.body.arrayBuffer());
-      const boundary = init.headers['Content-Type'].split('boundary=')[1];
-      const parts = raw.toString('latin1').split(`--${boundary}`);
-      const meta = JSON.parse(parts[1].split('\r\n\r\n')[1]);
-      const body = Buffer.from(parts[2].split('\r\n\r\n').slice(1).join('\r\n\r\n').replace(/\r\n$/, ''), 'latin1');
-      const id = `id${++n}`;
-      files.set(id, { ...meta, bytes: new Uint8Array(body) });
-      return ok({ id, md5Checksum: md5(body) });
-    }
-    const id = u.pathname.split('/').pop();
-    if (method === 'PATCH' && u.pathname.startsWith('/upload/')) {
-      files.get(id).bytes = new Uint8Array(init.body);
-      return ok({ id, md5Checksum: md5(init.body) });
-    }
-    if (method === 'PATCH') {
-      Object.assign(files.get(id), JSON.parse(init.body));
-      return ok({ id });
-    }
-    if (method === 'GET' && u.searchParams.get('alt') === 'media') return ok(files.get(id).bytes);
-    throw new Error(`requête inattendue ${method} ${url}`);
-  };
-  return { files, fetchImpl, calls };
-}
-
-test('Google Drive : dossier créé une fois, fichiers créés puis mis à jour, suppression en corbeille', async () => {
-  const { GDriveRemote } = await import('../src/storage/gdrive.js');
-  const drive = fakeDrive();
-  const remote = () => new GDriveRemote(async () => 'jeton', { fetchImpl: drive.fetchImpl });
-  const libs = [await mkLib(), await mkLib()];
-  const states = [{}, {}];
-  const sync = async (i) => {
-    const r = await syncLibrary(libs[i], remote(), states[i]);
-    states[i] = r.state;
-    return r;
-  };
-  const s = newSet({ title: 'Drive', cards: [card('a')] });
-  await libs[0].saveSet(s);
-  await sync(0);
-  assert.equal([...drive.files.values()].filter((f) => f.mimeType?.includes('folder')).length, 1);
-  assert.equal((await sync(1)).pulled, 1);
-  assert.equal((await libs[1].loadSet(s.id)).title, 'Drive');
-  // mise à jour : même fichier Drive, nouveau contenu
-  const s1 = await libs[1].loadSet(s.id);
-  s1.title = 'Drive modifié';
-  await libs[1].saveSet(s1);
-  await sync(1);
-  assert.equal([...drive.files.values()].filter((f) => f.name === `sets/${s.id}.json`).length, 1);
-  await sync(0);
-  assert.equal((await libs[0].loadSet(s.id)).title, 'Drive modifié');
-  // suppression : mise à la corbeille, plus listée
-  await libs[0].deleteSet(s.id);
-  await sync(0);
-  assert.equal([...drive.files.values()].find((f) => f.name === `sets/${s.id}.json`).trashed, true);
-  await sync(1);
-  assert.equal(await libs[1].loadSet(s.id), null);
-});
-
-/** Faux Microsoft Graph (dossier d'application) : requêtes utilisées par OneDriveRemote. */
-function fakeGraph() {
-  const items = new Map(); // id → { name, parent, folder, bytes, cTag }
-  let n = 0;
-  const ok = (body) => ({
-    ok: true,
-    status: 200,
-    json: async () => body,
-    arrayBuffer: async () => body.buffer,
-    text: async () => '',
-  });
-  const notFound = { ok: false, status: 404, json: async () => ({}), text: async () => 'itemNotFound' };
-  const byPath = (path) => {
-    const [dir, name] = path.split('/');
-    const folder = [...items].find(([, i]) => i.folder && i.name === dir)?.[0];
-    if (!name) return folder;
-    return [...items].find(([, i]) => i.parent === folder && i.name === name)?.[0];
-  };
-  const sessions = new Map();
-  const fetchImpl = async (url, init = {}) => {
-    const u = new URL(url);
-    const method = init.method || 'GET';
-    if (u.host === 'download.example') return ok(items.get(u.pathname.slice(1)).bytes);
-    if (u.host === 'upload.example') {
-      const s = sessions.get(u.pathname.slice(1));
-      const [, a, , total] = init.headers['Content-Range'].match(/bytes (\d+)-(\d+)\/(\d+)/);
-      s.bytes.set(init.body, Number(a));
-      if (Number(a) + init.body.length < Number(total)) return { ok: true, status: 202, json: async () => ({}) };
-      return ok(put(s.path, s.bytes));
-    }
-    assert.match(init.headers.Authorization, /^Bearer jeton$/);
-    const m = u.pathname.match(/approot:\/(.+?):\/(children|content|createUploadSession)$/);
-    if (method === 'GET' && m?.[2] === 'children') {
-      const folder = byPath(m[1]);
-      if (!folder) return notFound;
-      const value = [...items]
-        .filter(([, i]) => i.parent === folder)
-        .map(([id, i]) => ({ id, name: i.name, cTag: i.cTag, file: {} }));
-      return ok({ value });
-    }
-    if (method === 'POST' && u.pathname.endsWith('/approot/children')) {
-      const { name } = JSON.parse(init.body);
-      if (byPath(name)) return { ok: false, status: 409, text: async () => 'nameAlreadyExists' };
-      items.set(`f${++n}`, { name, folder: true });
-      return ok({});
-    }
-    if (method === 'PUT' && m?.[2] === 'content') return ok(put(m[1], new Uint8Array(init.body)));
-    if (method === 'POST' && m?.[2] === 'createUploadSession') {
-      const total = 5 * 1024 * 1024 + 7;
-      sessions.set(`s${++n}`, { path: m[1], bytes: new Uint8Array(total) });
-      return ok({ uploadUrl: `https://upload.example/s${n}` });
-    }
-    const id = u.pathname.split('/').pop();
-    if (method === 'GET' && u.searchParams.get('$select')?.includes('downloadUrl'))
-      return ok({ id, '@microsoft.graph.downloadUrl': `https://download.example/${id}` });
-    if (method === 'DELETE') {
-      items.delete(id);
-      return ok({});
-    }
-    throw new Error(`requête inattendue ${method} ${url}`);
-  };
-  function put(path, bytes) {
-    const [dir, name] = path.split('/');
-    const folder = byPath(dir);
-    assert.ok(folder, `dossier ${dir} créé avant l'écriture`);
-    const id = byPath(path) || `i${++n}`;
-    items.set(id, { name, parent: folder, bytes, cTag: `c${++n}` });
-    return { id, cTag: items.get(id).cTag };
-  }
-  return { items, fetchImpl };
-}
-
-test('OneDrive : sous-dossiers créés, synchronisation entre deux appareils, gros fichier par morceaux', async () => {
-  const { OneDriveRemote } = await import('../src/storage/onedrive.js');
-  const graph = fakeGraph();
-  const remote = () => new OneDriveRemote(async () => 'jeton', { fetchImpl: graph.fetchImpl });
-  const libs = [await mkLib(), await mkLib()];
-  const states = [{}, {}];
-  const sync = async (i) => {
-    const r = await syncLibrary(libs[i], remote(), states[i]);
-    states[i] = r.state;
-    return r;
-  };
-  const big = new Uint8Array(5 * 1024 * 1024 + 7).map((_, i) => i % 251);
-  const audio = await libs[0].putMedia(big, 'mp3');
-  const s = newSet({ title: 'OneDrive', cards: [{ ...card('a'), audio }] });
-  await libs[0].saveSet(s);
-  assert.equal((await sync(0)).pushed, 2);
-  assert.equal((await sync(1)).pulled, 2);
-  assert.equal((await libs[1].loadSet(s.id)).title, 'OneDrive');
-  assert.deepEqual((await libs[1].readMedia(audio)).slice(0, 5), big.slice(0, 5));
-  assert.equal((await libs[1].readMedia(audio)).length, big.length);
-  await libs[1].deleteSet(s.id);
-  await sync(1);
-  await sync(0);
-  assert.equal(await libs[0].loadSet(s.id), null);
-});
-
 test("PKCE : défi S256 conforme à l'exemple de la RFC 7636", async () => {
   const { pkceChallenge } = await import('../src/ui/pkce.js');
   assert.equal(
@@ -393,6 +199,14 @@ function fakeDropbox() {
     assert.match(init.headers.Authorization, /^Bearer jeton$/);
     const u = new URL(url);
     const args = init.headers['Dropbox-API-Arg'] && JSON.parse(init.headers['Dropbox-API-Arg']);
+    if (u.pathname === '/2/files/list_folder' && !JSON.parse(init.body).recursive) {
+      // premier niveau : dossiers et fichiers à la racine
+      const top = new Set([...files.keys()].map((p) => p.split('/').slice(0, 2).join('/')));
+      return ok({
+        entries: [...top].map((p) => ({ '.tag': files.has(p) ? 'file' : 'folder', path_display: p })),
+        has_more: false,
+      });
+    }
     if (u.pathname === '/2/files/list_folder') {
       // deux pages, pour la pagination
       const all = [...files].map(([p, f]) => ({ '.tag': 'file', path_display: p, rev: f.rev }));
@@ -409,7 +223,8 @@ function fakeDropbox() {
     }
     if (u.pathname === '/2/files/download') return ok(files.get(args.path).bytes);
     if (u.pathname === '/2/files/delete_v2') {
-      files.delete(JSON.parse(init.body).path);
+      const path = JSON.parse(init.body).path; // fichier, ou dossier et son contenu
+      for (const p of [...files.keys()]) if (p === path || p.startsWith(path + '/')) files.delete(p);
       return ok({});
     }
     throw new Error(`requête inattendue ${url}`);
@@ -439,4 +254,130 @@ test('Dropbox : synchronisation entre deux appareils, liste paginée, suppressio
   await sync(1);
   await sync(0);
   assert.equal(await libs[0].loadSet(s.id), null);
+});
+
+test('stockage en ligne : nettoyage des fichiers étrangers, purge complète (Dropbox compris)', async () => {
+  const { remote, libs, sync } = await devices();
+  await libs[0].saveSet(newSet({ title: 'Gardé', cards: [card('a')] }));
+  await sync(0);
+  await remote.write('sets/notes.txt', new Uint8Array([1]));
+  await remote.write('sets/01ABC (copie en conflit).json', new Uint8Array([1]));
+  assert.equal(await removeStrayFiles(remote), 2);
+  assert.deepEqual(
+    (await remote.list()).map((f) => f.path.split('/')[0]),
+    ['sets'],
+    'seuls les fichiers de la bibliothèque restent',
+  );
+  await sync(1);
+  assert.equal(await clearRemote(remote), 1);
+  assert.deepEqual(
+    (await remote.list()).map((f) => f.path),
+    [PURGED],
+  );
+  assert.equal((await libs[0].listSets()).sets.length, 1, 'la bibliothèque locale est intacte');
+  // un autre appareil encore relié ne prend pas le dossier purgé pour des suppressions
+  await assert.rejects(sync(1), { code: 'syncRemoteEmpty' });
+  assert.equal((await libs[1].listSets()).sets.length, 1);
+  // reconnecté (état oublié) : sa bibliothèque est renvoyée ; la marque survit au nettoyage
+  const r = await syncLibrary(libs[1], remote, {});
+  assert.equal(r.pushed, 1);
+  assert.equal(await removeStrayFiles(remote), 0);
+
+  const { DropboxRemote } = await import('../src/storage/dropbox.js');
+  const dbx = fakeDropbox();
+  const dr = new DropboxRemote(async () => 'jeton', { fetchImpl: dbx.fetchImpl });
+  for (const p of ['sets/a.json', 'media/b.png', 'progress/c.json', 'reste.txt'])
+    await dr.write(p, new Uint8Array([1]));
+  assert.equal(await clearRemote(dr), 4);
+  assert.deepEqual([...dbx.files.keys()], ['/' + PURGED]);
+});
+
+test("sync : un jeu archivé sur un appareil l'est aussi sur l'autre (archive à part)", async () => {
+  const { remote, libs, sync } = await devices();
+  const s = newSet({ title: 'À ranger', cards: [card('a')] });
+  await libs[0].saveSet(s);
+  await sync(0);
+  await sync(1);
+  await libs[0].archiveSet(s.id);
+  await sync(0);
+  assert.ok((await remote.list()).some((f) => f.path === `archive/${s.id}.flashcard.zip`));
+  await sync(1);
+  assert.equal(await libs[1].loadSet(s.id), null);
+  assert.equal((await libs[1].listArchives())[0].title, 'À ranger');
+  // restauré sur le second : de retour partout, archive supprimée
+  await libs[1].restoreArchive(s.id);
+  await sync(1);
+  await sync(0);
+  assert.equal((await libs[0].loadSet(s.id)).title, 'À ranger');
+  assert.equal((await libs[0].listArchives()).length, 0);
+});
+
+test("sync : réglages d'étude partagés, apparence des cartes et thème propres à chaque appareil", async () => {
+  const { remote, libs, sync } = await devices();
+  // A règle l'étude, son apparence des cartes et son thème
+  await libs[0].saveSettings({
+    ...libs[0].settings,
+    newPerDay: 35,
+    retention: 0.85,
+    cardStyle: { paper: 'dots' },
+    theme: 'sepia',
+  });
+  // B : première ouverture (langues par défaut, non datées), puis change seulement la lecture à voix haute
+  await libs[1].saveSettings({ ...libs[1].settings, language: { term: 'en', definition: 'en' } }, { initial: true });
+  await libs[1].saveSettings({ ...libs[1].settings, tts: false });
+  await sync(0);
+  await sync(1);
+  await sync(0);
+  for (const lib of libs) {
+    const s = await lib.loadSettings();
+    assert.equal(s.newPerDay, 35);
+    assert.equal(s.retention, 0.85);
+    assert.equal(s.tts, false, 'changement de B arrivé sur A, sans écraser ceux de A');
+  }
+  const [a, b] = await Promise.all(libs.map((l) => l.loadSettings()));
+  assert.deepEqual(a.cardStyle, { paper: 'dots' });
+  assert.deepEqual(b.cardStyle, {}, "l'apparence des cartes reste sur A");
+  assert.equal(b.theme, 'auto', 'le thème reste sur A');
+  assert.ok((await remote.list()).some((f) => f.path === 'shared/settings.json'));
+});
+
+test('réglages partagés : fusion par réglage, la modification la plus récente gagne, indépendante de l’ordre', async () => {
+  const { mergeSharedSettings } = await import('../src/core/merge.js');
+  const f = (values, changed) => ({ format: 'flashcard.sharedSettings', version: 1, values, changed });
+  const a = f({ newPerDay: 10, tts: true }, { newPerDay: '2026-01-02', tts: '2026-01-01' });
+  const b = f({ newPerDay: 50, tts: false }, { newPerDay: '2026-01-01', tts: '2026-01-03' });
+  const m = mergeSharedSettings(a, b);
+  assert.deepEqual(m.values, { newPerDay: 10, tts: false });
+  assert.deepEqual(mergeSharedSettings(b, a), m);
+  // non datée (valeur par défaut d'un nouvel appareil) : ne remplace pas une valeur choisie
+  assert.equal(mergeSharedSettings(f({ newPerDay: 20 }, { newPerDay: '' }), a).values.newPerDay, 10);
+});
+
+test('sync : après une vérification complète, seuls les fichiers écrits depuis sont relus', async () => {
+  const { remote, libs } = await devices();
+  const lib = libs[0];
+  const sets = [];
+  for (let i = 0; i < 5; i++) {
+    const s = newSet({ title: 'Jeu ' + i, cards: [card('a' + i)] });
+    await lib.saveSet(s);
+    sets.push(s);
+  }
+  const written = new Set();
+  lib.onWrite((p) => written.add(p));
+  let r = await syncLibrary(lib, remote, {}); // vérification complète
+  const reads = [];
+  const readFile = lib.readFile.bind(lib);
+  lib.readFile = (p) => (reads.push(p), readFile(p));
+  written.clear();
+  sets[2].title = 'Modifié';
+  await lib.saveSet(sets[2]);
+  r = await syncLibrary(lib, remote, r.state, { unchanged: (p) => !written.has(p) });
+  assert.deepEqual(reads, [`sets/${sets[2].id}.json`, `sets/${sets[2].id}.json`], 'relu pour l’empreinte puis envoyé');
+  assert.equal(r.pushed, 1);
+  // rien d'écrit : rien de relu
+  reads.length = 0;
+  written.clear();
+  r = await syncLibrary(lib, remote, r.state, { unchanged: (p) => !written.has(p) });
+  assert.deepEqual(reads, []);
+  assert.equal(r.pushed + r.pulled, 0);
 });

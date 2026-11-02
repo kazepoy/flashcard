@@ -1,18 +1,29 @@
 // Internationalisation : clés identifiantes « espace.nom » et un dictionnaire par langue (locales/*.js).
 // Une valeur est un texte, ou { one, other } pour un pluriel (catégories CLDR via Intl.PluralRules).
 // Variables : {nom}, remplacées par t(clé, { nom }) ; tn(clé, n) fournit {n}.
-import en from './locales/en.js';
+// Le français (référence et repli) est dans le script principal ; les autres langues sont chargées à la demande.
 import fr from './locales/fr.js';
 
-const DICTS = { fr, en };
 const SOURCE = 'fr'; // langue de référence : repli si une clé manque dans une traduction
+const DICTS = { fr };
+const LOADERS = { en: () => import('./locales/en.js') };
 
 let lang = SOURCE;
 const listeners = new Set();
 const plurals = {};
 
-export function setLang(l) {
-  lang = l in DICTS ? l : SOURCE;
+/** Change la langue de l'interface, en chargeant son dictionnaire si besoin (hors ligne et jamais chargé : français). */
+export async function setLang(l) {
+  let next = l in LOADERS ? l : SOURCE;
+  if (!DICTS[next]) {
+    try {
+      DICTS[next] = (await LOADERS[next]()).default;
+    } catch (e) {
+      console.warn(`Langue « ${next} » indisponible`, e);
+      next = SOURCE;
+    }
+  }
+  lang = next;
   if (typeof document !== 'undefined') document.documentElement.lang = lang;
   listeners.forEach((f) => f(lang));
 }
@@ -56,6 +67,18 @@ export function errorText(e) {
 }
 
 export const locale = () => (lang === 'en' ? 'en-US' : 'fr-FR');
+
+/** « il y a 3 minutes » dans la langue de l'interface. */
+export function ago(iso, now = Date.now()) {
+  const s = Math.round((new Date(iso).getTime() - now) / 1000);
+  const rtf = new Intl.RelativeTimeFormat(locale(), { numeric: 'auto' });
+  if (Math.abs(s) < 60) return rtf.format(s, 'second');
+  if (Math.abs(s) < 3600) return rtf.format(Math.round(s / 60), 'minute');
+  if (Math.abs(s) < 86400) return rtf.format(Math.round(s / 3600), 'hour');
+  if (Math.abs(s) < 86400 * 45) return rtf.format(Math.round(s / 86400), 'day');
+  if (Math.abs(s) < 86400 * 365) return rtf.format(Math.round(s / (86400 * 30.44)), 'month');
+  return rtf.format(Math.round(s / (86400 * 365.25)), 'year');
+}
 
 /** Pourcentage typographié selon la langue : « 90 % » / « 90% ». */
 export const percent = (n) => (lang === 'en' ? `${n}%` : `${n} %`);

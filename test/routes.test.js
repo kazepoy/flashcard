@@ -13,4 +13,6 @@ test('routes : adresse → page nommée', () => {
   assert.deepEqual(r('#/browse/tag%3Averbe/x'), { page: 'browse', query: 'tag:verbe/x' });
   assert.deepEqual(r('#/stats'), { page: 'stats', setId: null });
   assert.deepEqual(r('#/help'), { page: 'help' });
+  assert.deepEqual(r('#/settings'), { page: 'settings', section: null });
+  assert.deepEqual(r('#/settings/sync'), { page: 'settings', section: 'sync' });
 });

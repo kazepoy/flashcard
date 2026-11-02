@@ -1,12 +1,14 @@
 // Édition d'une carte (terme / définition, texte à trous, image masquée).
+import { memo } from 'preact/compat';
 import { useEffect, useRef, useState } from 'preact/hooks';
-import { parseCloze } from '../core/text.js';
-import { sanitizeStyle } from '../core/style.js';
-import { Icon, IndexCard, Md } from './components.jsx';
+import { parseCloze, renderCloze } from '../core/text.js';
+import { mergeStyle } from '../core/style.js';
+import { Fold, Icon, Md, TagsInput } from './components.jsx';
 import { t, tn } from './i18n.js';
 import { OcclusionEditor } from './occlusion.jsx';
 import { MediaField } from './media-field.jsx';
-import { StylePanel } from './style-panel.jsx';
+import { CardPreviewDialog } from './card-preview.jsx';
+import { AppearanceSection } from './style-panel.jsx';
 
 // ------------------------------------------------------------------ carte
 
@@ -18,10 +20,9 @@ function wrapCloze(ta, card, same) {
   return value.slice(0, a) + `{{c${n}::${value.slice(a, b)}}}` + value.slice(b);
 }
 
-export function CardEditor({ card, index, total, set, update, move, remove, duplicate, autofocus }) {
+function CardEditorView({ card, index, total, set, baseStyle, update, move, remove, duplicate, autofocus }) {
   const termRef = useRef();
-  const [open, setOpen] = useState(false); // détails : indice, exemple, médias
-  const [styleOpen, setStyleOpen] = useState(false);
+  const [preview, setPreview] = useState(false);
   useEffect(() => {
     if (autofocus) termRef.current?.focus();
   }, [autofocus]);
@@ -32,7 +33,6 @@ export function CardEditor({ card, index, total, set, update, move, remove, dupl
     if (out !== null) update({ term: out });
   };
   const nClozes = cloze ? parseCloze(card.term).length : 0;
-  const eff = { ...sanitizeStyle(set.style), ...sanitizeStyle(card.style) };
 
   return (
     <li class="ed-card" data-card={card.id}>
@@ -65,6 +65,15 @@ export function CardEditor({ card, index, total, set, update, move, remove, dupl
           </button>
         </div>
         <span class="spacer" />
+        <button
+          type="button"
+          class="icon-btn"
+          aria-label={t('preview.action')}
+          title={t('preview.action')}
+          onClick={() => setPreview(true)}
+        >
+          <Icon name="eye" />
+        </button>
         <button
           type="button"
           class="icon-btn"
@@ -159,17 +168,21 @@ export function CardEditor({ card, index, total, set, update, move, remove, dupl
           <span class="muted">{nClozes > 0 ? tn('editor.blanksStudyCards', nClozes) : t('editor.noBlanksYet')}</span>
         </div>
       )}
-      <div class="ed-toggles">
-        <button type="button" class="link-btn" aria-expanded={open} onClick={() => setOpen(!open)}>
-          {occ ? t('editor.hintAudioTags') : t('editor.hintExampleImagesAudio')}
-          {(card.hint || card.example || (!occ && card.image) || card.termImage || card.audio) && ' •'}
-        </button>
-        <button type="button" class="link-btn" aria-expanded={styleOpen} onClick={() => setStyleOpen(!styleOpen)}>
-          {t('editor.appearance')}
-          {Object.keys(sanitizeStyle(card.style)).length > 0 && ' •'}
-        </button>
-      </div>
-      {open && (
+      {/* replié comme « Apparence de cette carte » ; un point signale un champ rempli */}
+      <Fold
+        class="appearance card-more"
+        summary={
+          <>
+            {occ ? t('editor.hintAudioTags') : t('editor.hintExampleImagesAudio')}
+            {(card.hint ||
+              card.example ||
+              (!occ && card.image) ||
+              card.termImage ||
+              card.audio ||
+              card.tags.length > 0) && <span class="appearance-dot" title={t('editor.filledIn')} />}
+          </>
+        }
+      >
         <div class="ed-more">
           <div class="grid-2">
             <label class="field">
@@ -207,40 +220,48 @@ export function CardEditor({ card, index, total, set, update, move, remove, dupl
           </div>
           <label class="field">
             <span>{t('editor.tagsSeparatedSpaces')}</span>
-            <input
-              value={card.tags.join(' ')}
-              onInput={(e) => update({ tags: e.currentTarget.value.split(/\s+/).filter(Boolean) })}
-            />
+            <TagsInput tags={card.tags} onChange={(tags) => update({ tags })} />
           </label>
         </div>
-      )}
-      {styleOpen && (
-        <StylePanel
-          inherit
-          style={card.style}
-          onChange={(s) => update({ style: s })}
-          preview={() => (
-            <div class="mini-pair">
-              <IndexCard class="mini" style={eff} side="prompt">
-                <div class="face-content">
-                  <Md
-                    text={
-                      cloze
-                        ? card.term.replace(/\{\{c\d+::(.*?)(::.*?)?\}\}/g, '[…]')
-                        : card.term || t('browse.sort.term')
-                    }
-                  />
-                </div>
-              </IndexCard>
-              <IndexCard class="mini" style={eff} side="answer">
-                <div class="face-content">
-                  <Md text={card.definition || t('browse.sort.def')} />
-                </div>
-              </IndexCard>
-            </div>
-          )}
-        />
-      )}
+      </Fold>
+      <AppearanceSection
+        level="card"
+        style={card.style}
+        base={mergeStyle(baseStyle, set.style)}
+        onChange={(st) => update({ style: st })}
+        sample={{
+          prompt: (
+            <Md
+              text={
+                cloze ? card.term.replace(/\{\{c\d+::(.*?)(::.*?)?\}\}/g, '[…]') : card.term || t('browse.sort.term')
+              }
+            />
+          ),
+          // texte à trous : premier trou révélé, comme à l'étude (couleur des mots révélés)
+          answer:
+            cloze && nClozes > 0 ? (
+              <Md text={renderCloze(card.term, parseCloze(card.term)[0].n, 'reveal')} />
+            ) : (
+              <Md text={card.definition || t('browse.sort.def')} />
+            ),
+        }}
+      />
+      {preview && <CardPreviewDialog card={card} set={set} onClose={() => setPreview(false)} />}
     </li>
   );
 }
+
+/**
+ * Une carte n'est redessinée que si elle-même, sa place ou ce dont elle hérite change : taper dans une carte
+ * ne redessine pas les centaines d'autres. Les fonctions (update, move…) agissent par position sur le jeu
+ * en cours d'édition : celles du rendu précédent restent valables tant que la position est la même.
+ */
+const same = (a, b) =>
+  a.card === b.card &&
+  a.index === b.index &&
+  a.total === b.total &&
+  a.autofocus === b.autofocus &&
+  a.baseStyle === b.baseStyle &&
+  a.set.style === b.set.style &&
+  a.set.language === b.set.language;
+export const CardEditor = memo(CardEditorView, same);

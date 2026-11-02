@@ -11,6 +11,9 @@ import { Dialog, Empty, Icon, MediaImage, Md, downloadBlob, fileDate, fileSlug, 
 import { go, href, useApp } from './ctx.js';
 import { errorText, locale, percent, t, tn } from './i18n.js';
 import { useSetData } from './useSet.js';
+import { CardPreviewDialog } from './card-preview.jsx';
+import { archiveReasonText } from './archive-suggest.jsx';
+import { archiveSuggestion } from '../core/archive.js';
 
 export const MODES = [
   { id: 'review', label: 'mode.review', desc: 'mode.reviewDesc', primary: true },
@@ -24,11 +27,12 @@ export const MODES = [
 ];
 
 export function SetPage({ setId }) {
-  const { lib, settings, toast } = useApp();
+  const { lib, settings, toast, refresh } = useApp();
   const { loading, set, progress, error, update } = useSetData(setId);
   const [exportOpen, setExportOpen] = useState(false);
   const [shareOpen, setShareOpen] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [previewCard, setPreviewCard] = useState(null);
   const scheduler = useMemo(() => new Scheduler({ retention: settings.retention }), [settings.retention]);
   // journal du jeu, relu quand la progression change (réponses d'un autre appareil après synchronisation)
   const [logs, setLogs] = useState([]);
@@ -55,7 +59,23 @@ export function SetPage({ setId }) {
     );
   }
 
-  const items = activeItems(expandSet(set, 'term'), progress);
+  const all = expandSet(set, 'term');
+  const items = activeItems(all, progress);
+  const archiveHint = archiveSuggestion(set, all, progress);
+  // archivé : hors de la bibliothèque, restaurable depuis Réglages › Sauvegarde et restauration
+  const archive = async () => {
+    try {
+      await lib.archiveSet(set.id);
+    } catch (e) {
+      toast(errorText(e), 'bad');
+      return;
+    }
+    go('');
+    toast(t('set.archived', { title: set.title }), '', {
+      label: t('common.cancel'),
+      run: () => lib.restoreArchive(set.id).then(refresh),
+    });
+  };
   const stats = computeStats(items, progress, scheduler, new Date(), logs);
   const plan = examPlan(items, progress, progress.exam?.date); // panneau « Examen »
   const queue = todayQueue(items, progress, settings);
@@ -97,11 +117,23 @@ export function SetPage({ setId }) {
           <a class="btn" href={href(`set/${set.id}/print`)}>
             <Icon name="print" /> {t('set.print')}
           </a>
+          <button class="btn" onClick={archive}>
+            <Icon name="archive" /> {t('set.archive')}
+          </button>
           <button class="btn bad-outline" onClick={() => setConfirmDelete(true)}>
             <Icon name="trash" /> {t('set.delete')}
           </button>
         </div>
       </header>
+
+      {archiveHint && (
+        <p class="notice small archive-suggest" role="note">
+          <Icon name="archive" /> {t('set.archiveHint', { reason: archiveReasonText(archiveHint, set.created) })}{' '}
+          <button class="btn small" onClick={archive}>
+            {t('set.archive')}
+          </button>
+        </p>
+      )}
 
       {set.cards.length === 0 ? (
         <Empty title={t('set.setEmpty')}>
@@ -216,6 +248,14 @@ export function SetPage({ setId }) {
                 <li key={c.id} class={isSuspended(progress, c.id) ? 'suspended' : undefined}>
                   <div class="card-tools">
                     <button
+                      class="icon-btn"
+                      aria-label={t('preview.action')}
+                      title={t('preview.action')}
+                      onClick={() => setPreviewCard(c)}
+                    >
+                      <Icon name="eye" />
+                    </button>
+                    <button
                       class={'icon-btn star' + (progress.starred[c.id] ? ' on' : '')}
                       aria-pressed={!!progress.starred[c.id]}
                       aria-label={t('common.star')}
@@ -262,6 +302,7 @@ export function SetPage({ setId }) {
         </>
       )}
 
+      {previewCard && <CardPreviewDialog card={previewCard} set={set} onClose={() => setPreviewCard(null)} />}
       {shareOpen && <ShareDialog set={set} onClose={() => setShareOpen(false)} />}
       {exportOpen && <ExportDialog set={set} progress={progress} onClose={() => setExportOpen(false)} />}
       {confirmDelete && (

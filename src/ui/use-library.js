@@ -1,6 +1,7 @@
 // Cycle de vie de la bibliothèque : ouverture (dossier mémorisé ou navigateur), première ouverture,
 // fusion des copies en conflit, relecture au retour au premier plan, réglages.
 import { useCallback, useEffect, useState } from 'preact/hooks';
+import { SHARED_PATH } from '../storage/library.js';
 import { openLibrary } from './boot.js';
 import { firstRun } from './first-run.js';
 import { getLang, setLang } from './i18n.js';
@@ -18,13 +19,15 @@ export function useLibrary() {
     async (opened) => {
       setLib(opened.lib);
       setMeta({ kind: opened.kind, folderName: opened.folderName, needsPermission: opened.needsPermission });
+      // stockage du navigateur : demander qu'il soit gardé (sinon Safari peut l'effacer après 7 jours sans visite)
+      if (opened.kind === 'idb') navigator.storage?.persist?.().catch(() => {});
       try {
         await firstRun(opened.lib);
       } catch (e) {
         console.warn("Jeux d'exemple non importés (nouvel essai à la prochaine ouverture)", e);
       }
+      await setLang(opened.lib.settings.lang); // dictionnaire chargé avant le premier affichage
       setSettings(opened.lib.settings);
-      setLang(opened.lib.settings.lang);
       try {
         await opened.lib.resolveConflicts();
       } catch (e) {
@@ -54,10 +57,20 @@ export function useLibrary() {
     return () => document.removeEventListener('visibilitychange', onVisible);
   }, [lib, refresh]);
 
+  // réglages partagés apportés par la synchronisation : relus et appliqués
+  useEffect(() => {
+    if (!lib) return;
+    return lib.onExternalChange(async (path) => {
+      if (path !== SHARED_PATH) return;
+      lib.settings = await lib.loadSettings();
+      setSettings(lib.settings);
+    });
+  }, [lib]);
+
   const saveSettings = useCallback(
     async (next) => {
       setSettings(next);
-      if (next.lang !== getLang()) setLang(next.lang);
+      if (next.lang !== getLang()) await setLang(next.lang);
       await lib.saveSettings(next);
     },
     [lib],

@@ -43,18 +43,18 @@ test('i18n : toute clé utilisée existe, toute clé existante est utilisée', a
 
 test('i18n : pluriels selon la langue (CLDR)', async () => {
   const { setLang, tn, t } = await import('../src/ui/i18n.js');
-  setLang('fr');
+  await setLang('fr');
   assert.deepEqual(
     [0, 1, 2].map((n) => tn('common.nCards', n)),
     ['0 carte', '1 carte', '2 cartes'],
   );
-  setLang('en');
+  await setLang('en');
   assert.deepEqual(
     [0, 1, 2].map((n) => tn('common.nCards', n)),
     ['0 cards', '1 card', '2 cards'],
   );
   assert.equal(t('set.exportTitle', { title: 'X' }), 'Export “X”');
-  setLang('fr');
+  await setLang('fr');
 });
 
 test("i18n : chaque code d'erreur (AppError, avertissement) a sa traduction", async () => {
@@ -64,11 +64,11 @@ test("i18n : chaque code d'erreur (AppError, avertissement) a sa traduction", as
   for (const c of codes) assert.ok(`error.${c}` in fr, `error.${c} manquant`);
   const { errorText, setLang } = await import('../src/ui/i18n.js');
   const { AppError } = await import('../src/core/errors.js');
-  setLang('en');
+  await setLang('en');
   assert.equal(
     errorText(new AppError('formatUnsupported', 'Format non pris en charge : .xyz', { ext: 'xyz' })),
     'Unsupported format: .xyz',
   );
   assert.equal(errorText(new Error('brut')), 'brut');
-  setLang('fr');
+  await setLang('fr');
 });

@@ -22,6 +22,7 @@ export function AiDialog({ onClose, onDone }) {
   const ok = aiConfigured(cfg);
   // sans clé d'API : copier-coller avec un assistant en ligne (compte gratuit suffisant)
   const [mode, setMode] = useState(ok ? 'api' : 'chat');
+  const blocked = mode === 'api' && !ok; // onglet « clé d'API » sans fournisseur : seulement l'explication
   const [text, setText] = useState('');
   const [count, setCount] = useState(20);
   const [kind, setKind] = useState('mixed');
@@ -118,12 +119,16 @@ export function AiDialog({ onClose, onDone }) {
         {t('library.createSetCards', { n: nPicked })}
       </button>
     </>
+  ) : blocked ? (
+    <button class="btn" onClick={onClose}>
+      {t('common.close')}
+    </button>
   ) : mode === 'api' ? (
     <>
       <button class="btn" onClick={onClose}>
         {t('common.cancel')}
       </button>
-      <button class="btn primary" disabled={!ok || !text.trim() || !!busy} onClick={run}>
+      <button class="btn primary" disabled={!text.trim() || !!busy} onClick={run}>
         {busy || t('library.generate')}
       </button>
     </>
@@ -157,143 +162,156 @@ export function AiDialog({ onClose, onDone }) {
               </button>
             ))}
           </div>
-          <label class="field">
-            <span>{t('library.setTitle')}</span>
-            <input value={title} onInput={(e) => setTitle(e.currentTarget.value)} />
-          </label>
-          {mode === 'chat' && (
-            <label class="check attach-check">
-              <input type="checkbox" checked={attached} onChange={(e) => setAttached(e.currentTarget.checked)} />
-              <span>
-                {t('library.aiAttachInAssistant')}
-                <span class="muted small check-help">{t('library.aiAttachHelp')}</span>
-              </span>
-            </label>
-          )}
-          <label class="field">
-            <span>{attach ? t('library.aiAttachComplement') : t('library.topicNotesTextLearn')}</span>
-            <textarea
-              class="bulk"
-              rows={attach ? 3 : 7}
-              value={text}
-              onInput={(e) => setText(e.currentTarget.value)}
-              placeholder={t('library.aiTopicPlaceholder')}
-            />
-          </label>
-          {!attach && (
-            <div class="actions">
-              <input
-                ref={fileInput}
-                type="file"
-                hidden
-                accept=".txt,.md,.markdown,.pdf,text/plain"
-                onChange={(e) => (readFile(e.currentTarget.files[0]), (e.currentTarget.value = ''))}
-              />
-              <button class="btn" onClick={() => fileInput.current.click()}>
-                <Icon name="upload" /> {t('library.addFilePdfText')}
-              </button>
-            </div>
-          )}
-          <div class="grid-2">
-            <label class="field">
-              <span>{t('library.numberCards', { n: count })}</span>
-              <input
-                type="range"
-                min="5"
-                max="60"
-                step="5"
-                value={count}
-                onInput={(e) => setCount(Number(e.currentTarget.value))}
-              />
-            </label>
-            <label class="field">
-              <span>{t('library.type')}</span>
-              <select value={kind} onChange={(e) => setKind(e.currentTarget.value)}>
-                <option value="mixed">{t('library.mixed')}</option>
-                <option value="basic">{t('common.cardTypeBasic')}</option>
-                <option value="cloze">{t('common.cardTypeCloze')}</option>
-              </select>
-            </label>
-          </div>
-          <div class="grid-2">
-            {[
-              ['term', 'editor.termLanguage'],
-              ['definition', 'editor.definitionLanguage'],
-            ].map(([k, label]) => (
-              <label key={k} class="field">
-                <span>{t(label)}</span>
-                <select
-                  value={languages[k] || ''}
-                  onChange={(e) => setLanguages({ ...languages, [k]: e.currentTarget.value || null })}
-                >
-                  {LANGS.map(([c, n]) => (
-                    <option key={c} value={c}>
-                      {t(n)}
-                    </option>
-                  ))}
-                </select>
-              </label>
-            ))}
-          </div>
-          <label class="field">
-            <span>{t('library.aiNotes')}</span>
-            <input
-              value={notes}
-              onInput={(e) => setNotes(e.currentTarget.value)}
-              placeholder={t('library.aiNotesPlaceholder')}
-            />
-          </label>
-          {mode === 'api' ? (
-            <>
-              {!ok && (
-                <p class="notice">
-                  {t('library.noAiProviderConfigured')}{' '}
-                  <a href={href('settings')} onClick={onClose}>
-                    {t('library.openSettings')}
-                  </a>
-                </p>
-              )}
-              <p class="muted small">{t('library.textSentProviderConfigured', { p: cfg.baseUrl || cfg.provider })}</p>
-            </>
-          ) : (
-            <div class="chat-steps">
-              <h3>{t('library.aiStep1')}</h3>
-              <div class="actions">
-                {CHATBOTS.map((b) => (
-                  <button key={b.id} class="btn" disabled={!hasSource} onClick={() => copyPrompt(b)}>
-                    {b.name} <Icon name="external" />
-                  </button>
-                ))}
-                <button class="btn" disabled={!hasSource} onClick={() => copyPrompt(null)}>
-                  {t('library.copyOnly')}
+          {blocked ? (
+            <div class="notice">
+              <p>
+                {t('library.noAiProviderConfigured')}{' '}
+                <a href={href('settings/ai')} onClick={onClose}>
+                  {t('library.openSettings')}
+                </a>
+              </p>
+              <p class="small">
+                {t('library.aiNoKeyUseChat')}{' '}
+                <button class="link-btn" onClick={() => setMode('chat')}>
+                  {t('library.aiModeChat')}
                 </button>
-              </div>
-              {copied && (
-                <p class="muted small" role="status">
-                  {attach ? t('library.promptCopiedAttach') : t('library.promptCopiedPasteAssistant')}
-                </p>
+              </p>
+            </div>
+          ) : (
+            <>
+              <label class="field">
+                <span>{t('library.setTitle')}</span>
+                <input value={title} onInput={(e) => setTitle(e.currentTarget.value)} />
+              </label>
+              {mode === 'chat' && (
+                <label class="check attach-check">
+                  <input type="checkbox" checked={attached} onChange={(e) => setAttached(e.currentTarget.checked)} />
+                  <span>
+                    {t('library.aiAttachInAssistant')}
+                    <span class="muted small check-help">{t('library.aiAttachHelp')}</span>
+                  </span>
+                </label>
               )}
-              <details>
-                <summary class="muted small">{t('library.showPrompt')}</summary>
+              <label class="field">
+                <span>{attach ? t('library.aiAttachComplement') : t('library.topicNotesTextLearn')}</span>
                 <textarea
                   class="bulk"
-                  rows="6"
-                  readOnly
-                  value={hasSource ? chatPrompt(request) : ''}
-                  onFocus={(e) => e.currentTarget.select()}
+                  rows={attach ? 3 : 7}
+                  value={text}
+                  onInput={(e) => setText(e.currentTarget.value)}
+                  placeholder={t('library.aiTopicPlaceholder')}
                 />
-              </details>
-              <h3>{t('library.aiStep2')}</h3>
-              <textarea
-                class="bulk"
-                rows="6"
-                value={reply}
-                onInput={(e) => setReply(e.currentTarget.value)}
-                placeholder='[{"type":"basic","term":"…","definition":"…"}, …]'
-                aria-label={t('library.assistantsAnswer')}
-              />
-              <p class="muted small">{t('library.noKeySignFlashcard')}</p>
-            </div>
+              </label>
+              {!attach && (
+                <div class="actions">
+                  <input
+                    ref={fileInput}
+                    type="file"
+                    hidden
+                    accept=".txt,.md,.markdown,.pdf,text/plain"
+                    onChange={(e) => (readFile(e.currentTarget.files[0]), (e.currentTarget.value = ''))}
+                  />
+                  <button class="btn" onClick={() => fileInput.current.click()}>
+                    <Icon name="upload" /> {t('library.addFilePdfText')}
+                  </button>
+                </div>
+              )}
+              <div class="grid-2">
+                <label class="field">
+                  <span>{t('library.numberCards', { n: count })}</span>
+                  <input
+                    type="range"
+                    min="5"
+                    max="60"
+                    step="5"
+                    value={count}
+                    onInput={(e) => setCount(Number(e.currentTarget.value))}
+                  />
+                </label>
+                <label class="field">
+                  <span>{t('library.type')}</span>
+                  <select value={kind} onChange={(e) => setKind(e.currentTarget.value)}>
+                    <option value="mixed">{t('library.mixed')}</option>
+                    <option value="basic">{t('common.cardTypeBasic')}</option>
+                    <option value="cloze">{t('common.cardTypeCloze')}</option>
+                  </select>
+                </label>
+              </div>
+              <div class="grid-2">
+                {[
+                  ['term', 'editor.termLanguage'],
+                  ['definition', 'editor.definitionLanguage'],
+                ].map(([k, label]) => (
+                  <label key={k} class="field">
+                    <span>{t(label)}</span>
+                    <select
+                      value={languages[k] || ''}
+                      onChange={(e) => setLanguages({ ...languages, [k]: e.currentTarget.value || null })}
+                    >
+                      {LANGS.map(([c, n]) => (
+                        <option key={c} value={c}>
+                          {t(n)}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                ))}
+              </div>
+              <label class="field">
+                <span>{t('library.aiNotes')}</span>
+                <input
+                  value={notes}
+                  onInput={(e) => setNotes(e.currentTarget.value)}
+                  placeholder={t('library.aiNotesPlaceholder')}
+                />
+              </label>
+              {mode === 'api' ? (
+                <>
+                  <p class="muted small">
+                    {t('library.textSentProviderConfigured', { p: cfg.baseUrl || cfg.provider })}
+                  </p>
+                </>
+              ) : (
+                <div class="chat-steps">
+                  <h3>{t('library.aiStep1')}</h3>
+                  <div class="actions">
+                    {CHATBOTS.map((b) => (
+                      <button key={b.id} class="btn" disabled={!hasSource} onClick={() => copyPrompt(b)}>
+                        {b.name} <Icon name="external" />
+                      </button>
+                    ))}
+                    <button class="btn" disabled={!hasSource} onClick={() => copyPrompt(null)}>
+                      {t('library.copyOnly')}
+                    </button>
+                  </div>
+                  {copied && (
+                    <p class="muted small" role="status">
+                      {attach ? t('library.promptCopiedAttach') : t('library.promptCopiedPasteAssistant')}
+                    </p>
+                  )}
+                  <details>
+                    <summary class="muted small">{t('library.showPrompt')}</summary>
+                    <textarea
+                      class="bulk"
+                      rows="6"
+                      readOnly
+                      value={hasSource ? chatPrompt(request) : ''}
+                      onFocus={(e) => e.currentTarget.select()}
+                    />
+                  </details>
+                  <h3>{t('library.aiStep2')}</h3>
+                  <textarea
+                    class="bulk"
+                    rows="6"
+                    value={reply}
+                    onInput={(e) => setReply(e.currentTarget.value)}
+                    placeholder='[{"type":"basic","term":"…","definition":"…"}, …]'
+                    aria-label={t('library.assistantsAnswer')}
+                  />
+                  <p class="muted small">{t('library.noKeySignFlashcard')}</p>
+                </div>
+              )}
+            </>
           )}
         </>
       ) : (

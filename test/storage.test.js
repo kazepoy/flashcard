@@ -352,3 +352,57 @@ test('copySet : copie indépendante (nouveaux identifiants), titre choisi, sans 
   await lib.addSets([s, c]);
   assert.equal((await lib.listSets()).sets.length, 2);
 });
+
+test('archives : un jeu archivé quitte la bibliothèque, se restaure avec sa progression, part dans la sauvegarde', async () => {
+  const lib = await new Library(new MemoryStore()).init();
+  const media = await lib.putMedia(new Uint8Array([1, 2, 3]), 'png');
+  const s = newSet({ title: 'Ancien', cards: [newCard({ term: 'a', definition: 'b', image: media })] });
+  await lib.saveSet(s);
+  const p = newProgress(s.id);
+  p.starred[s.cards[0].id] = true;
+  await lib.saveProgress(p);
+  await lib.archiveSet(s.id);
+  assert.equal((await lib.listSets()).sets.length, 0);
+  assert.deepEqual(
+    (await lib.listArchives()).map((a) => [a.id, a.title, a.count]),
+    [[s.id, 'Ancien', 1]],
+  );
+  // ses médias sont dans l'archive : le nettoyage peut les retirer de media/
+  assert.equal(await lib.gcMedia(), 1);
+
+  // sauvegarde complète : l'archive y figure et revient telle quelle dans une autre bibliothèque
+  const bundle = await lib.exportBundleBytes([], { withArchives: true });
+  const other = await new Library(new MemoryStore()).init();
+  await other.importBundleBytes(bundle);
+  assert.equal((await other.listArchives()).length, 1);
+  assert.equal((await other.listSets()).sets.length, 0);
+
+  assert.deepEqual(await lib.restoreArchive(s.id), [s.id]);
+  assert.equal((await lib.listArchives()).length, 0);
+  assert.equal((await lib.loadSet(s.id)).title, 'Ancien');
+  assert.equal((await lib.loadProgress(s.id)).starred[s.cards[0].id], true);
+  assert.ok(await lib.readMedia(media), 'média restauré');
+
+  await other.deleteArchive(s.id);
+  assert.equal((await other.listArchives()).length, 0);
+});
+
+test('réglages : modification gardée même si la page se ferme avant l’écriture du fichier partagé', async () => {
+  const store = new MemoryStore();
+  const lib = await new Library(store).init();
+  await lib.saveSettings({ ...lib.settings, newPerDay: 20 }, { initial: true });
+  const before = await store.readText('shared/settings.json');
+  await lib.saveSettings({ ...lib.settings, newPerDay: 0 });
+  // page fermée entre les deux écritures : seul settings.json a été enregistré
+  await store.writeText('shared/settings.json', before);
+  const again = await new Library(store).init();
+  assert.equal(again.settings.newPerDay, 0, 'la copie locale, plus récente, l’emporte');
+  const shared = JSON.parse(await store.readText('shared/settings.json'));
+  assert.equal(shared.values.newPerDay, 0, 'fichier partagé réparé à l’ouverture');
+  assert.ok(shared.changed.newPerDay > '', 'avec la date de la modification');
+  // un autre appareil plus récent garde la priorité
+  shared.values.newPerDay = 35;
+  shared.changed.newPerDay = new Date(Date.now() + 60000).toISOString();
+  await store.writeText('shared/settings.json', JSON.stringify(shared));
+  assert.equal((await new Library(store).init()).settings.newPerDay, 35);
+});

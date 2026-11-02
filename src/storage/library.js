@@ -1,16 +1,18 @@
 // Bibliothèque : couche haut niveau au-dessus d'un magasin de fichiers (voir docs/SPEC.md).
 import {
   DEFAULT_SETTINGS,
+  SHARED_SETTINGS,
   collectMedia,
   newManifest,
   newProgress,
   normalizeProgress,
   normalizeSet,
   normalizeSettings,
+  normalizeSharedSettings,
   nowIso,
 } from '../core/format.js';
 import { sha256Hex } from '../core/ids.js';
-import { mergeLogs, mergeProgress, mergeSets } from '../core/merge.js';
+import { mergeLogs, mergeProgress, mergeSets, mergeSharedSettings } from '../core/merge.js';
 import { exportBundle, importBundle } from '../io/bundle.js';
 import { AppError } from '../core/errors.js';
 
@@ -27,6 +29,20 @@ export const MIME = {
   wav: 'audio/wav',
   webm: 'audio/webm',
 };
+/** Partie partagée de réglages (format de shared/settings.json), avec les dates de `sharedChanged`. */
+const sharedOf = (settings) => ({
+  format: 'flashcard.sharedSettings',
+  version: 1,
+  values: Object.fromEntries(SHARED_SETTINGS.map((k) => [k, settings[k]])),
+  changed: Object.fromEntries(SHARED_SETTINGS.map((k) => [k, settings.sharedChanged?.[k] || ''])),
+});
+
+/** Réglages partagés entre appareils (voir core/format.js : SHARED_SETTINGS). */
+export const SHARED_PATH = 'shared/settings.json';
+
+/** Nom d'un jeu archivé : archive/<id>.flashcard.zip. */
+const ARCHIVE = /^([0-9A-Z]{26})\.flashcard\.zip$/;
+
 export const extOf = (name = '') => (name.match(/\.([a-z0-9]{1,6})$/i)?.[1] || 'bin').toLowerCase();
 
 export class Library {
@@ -114,17 +130,55 @@ export class Library {
       throw new AppError('libraryVersion', `Bibliothèque de version ${m.version} non prise en charge`, {
         v: m.version,
       });
-    this.settings = await this.loadSettings();
+    const { settings, repair } = await this._readSettings();
+    this.settings = settings;
+    if (repair) await this._mergeShared(repair);
     return this;
   }
 
-  // ---- paramètres
-  async loadSettings() {
-    return normalizeSettings(await this._readJson('settings.json'));
+  // ---- paramètres : settings.json (propres à l'appareil) et shared/settings.json (synchronisés). La copie
+  // locale garde aussi les réglages partagés et la date de leur dernière modification (`sharedChanged`) : si
+  // l'écriture du fichier partagé n'a pas abouti (page fermée ou rechargée entre les deux écritures), la version
+  // la plus récente des deux l'emporte au chargement, et le fichier partagé est réparé à l'ouverture.
+
+  /** Réglages effectifs, et fichier partagé à réécrire s'il est en retard sur la copie locale (sinon null). */
+  async _readSettings() {
+    const local = normalizeSettings(await this._readJson('settings.json'));
+    const file = normalizeSharedSettings(await this._readJson(SHARED_PATH).catch(() => null));
+    const merged = mergeSharedSettings(file, sharedOf(local));
+    const settings = { ...local, ...merged.values, sharedChanged: merged.changed };
+    // à réparer seulement si la copie locale a une modification plus récente que le fichier partagé
+    const behind = SHARED_SETTINGS.some((k) => (local.sharedChanged?.[k] || '') > (file.changed[k] || ''));
+    return { settings, repair: behind ? merged : null };
   }
-  async saveSettings(s) {
-    this.settings = { ...DEFAULT_SETTINGS, ...s };
-    await this._writeJson('settings.json', this.settings);
+  async loadSettings() {
+    return (await this._readSettings()).settings;
+  }
+
+  /**
+   * Enregistre les réglages. Les réglages partagés modifiés sont datés : la synchronisation garde, pour chacun,
+   * la valeur la plus récente. `initial` (première ouverture) : valeurs par défaut de l'appareil, non datées,
+   * qui ne remplacent pas celles déjà choisies sur un autre appareil.
+   */
+  async saveSettings(s, { initial = false } = {}) {
+    const prev = this.settings || normalizeSettings(null);
+    const now = new Date().toISOString();
+    const stamps = { ...prev.sharedChanged };
+    for (const k of SHARED_SETTINGS) if (!initial && JSON.stringify(s[k]) !== JSON.stringify(prev[k])) stamps[k] = now;
+    const next = { ...DEFAULT_SETTINGS, ...s, sharedChanged: stamps };
+    this.settings = next;
+    await this._writeJson('settings.json', next); // d'abord la copie locale, datée
+    await this._mergeShared(sharedOf(next));
+  }
+
+  /** Fusionne `shared` dans shared/settings.json (le plus récent gagne, réglage par réglage). */
+  _mergeShared(shared) {
+    return this._enqueue(SHARED_PATH, async () => {
+      const file = normalizeSharedSettings(JSON.parse((await this.store.readText(SHARED_PATH)) ?? 'null'));
+      const merged = mergeSharedSettings(file, shared);
+      if (JSON.stringify(merged) !== JSON.stringify(file))
+        await this.store.writeText(SHARED_PATH, JSON.stringify(merged, null, 2) + '\n');
+    });
   }
 
   // ---- jeux
@@ -142,9 +196,11 @@ export class Library {
           folder: s.folder,
           count: s.cards.length,
           updated: s.updated,
+          created: s.created,
           tags: s.tags,
           language: s.language,
           color: s.color,
+          styled: Object.keys(s.style).length > 0, // apparence propre au jeu (remplace celle des réglages)
         });
       } catch (e) {
         errors.push({ file: f, message: e.message });
@@ -168,7 +224,7 @@ export class Library {
     set.updated = nowIso();
     const path = `sets/${set.id}.json`;
     await this._enqueue(path, async () => {
-      let disk = null;
+      let disk;
       try {
         disk = JSON.parse((await this.store.readText(path)) ?? 'null');
       } catch {
@@ -185,13 +241,56 @@ export class Library {
       await this._enqueue(p, () => this.store.remove(p));
   }
 
+  // ---- archives : un jeu archivé est une archive d'échange (jeu, progression, journal, médias) rangée dans
+  // archive/<id>.flashcard.zip, synchronisée comme le reste ; il disparaît de la bibliothèque jusqu'à sa restauration.
+  /** Archive un jeu puis le retire de la bibliothèque. */
+  async archiveSet(id) {
+    const path = `archive/${id}.flashcard.zip`;
+    const bytes = await this.exportBundleBytes([id]);
+    await this._enqueue(path, () => this.store.writeBytes(path, bytes));
+    await this.deleteSet(id);
+  }
+
+  /** Jeux archivés (résumés), du plus récemment modifié au plus ancien ; les archives illisibles sont ignorées. */
+  async listArchives() {
+    const out = [];
+    for (const f of await this.store.list('archive')) {
+      const m = f.match(ARCHIVE);
+      if (!m) continue;
+      try {
+        const { sets } = await importBundle(await this.readFile(`archive/${f}`));
+        const s = sets.find((x) => x.id === m[1]) || sets[0];
+        if (s) out.push({ id: m[1], title: s.title, folder: s.folder, count: s.cards.length, updated: s.updated });
+      } catch {
+        /* archive illisible : ignorée */
+      }
+    }
+    return out.sort((a, b) => (b.updated || '').localeCompare(a.updated || ''));
+  }
+
+  /** Remet un jeu archivé dans la bibliothèque (fusionné s'il y existe déjà) et supprime l'archive. */
+  async restoreArchive(id) {
+    const path = `archive/${id}.flashcard.zip`;
+    const bytes = await this.readFile(path);
+    if (!bytes) return [];
+    const ids = await this.importBundleBytes(bytes);
+    await this._enqueue(path, () => this.store.remove(path));
+    return ids;
+  }
+
+  /** Supprime définitivement un jeu archivé. */
+  async deleteArchive(id) {
+    const path = `archive/${id}.flashcard.zip`;
+    await this._enqueue(path, () => this.store.remove(path));
+  }
+
   /** Remise à zéro : jeux, progression, historique, médias et réglages supprimés ; le dossier reste une bibliothèque. */
   async wipe() {
-    for (const dir of ['sets', 'progress', 'logs', 'media']) {
+    for (const dir of ['sets', 'progress', 'logs', 'media', 'archive']) {
       for (const f of await this.store.list(dir))
         await this._enqueue(`${dir}/${f}`, () => this.store.remove(`${dir}/${f}`));
     }
-    await this._enqueue('settings.json', () => this.store.remove('settings.json'));
+    for (const p of ['settings.json', SHARED_PATH]) await this._enqueue(p, () => this.store.remove(p));
     this.settings = normalizeSettings(null);
   }
 
@@ -286,12 +385,16 @@ export class Library {
     return ids;
   }
 
+  /** Importe une archive d'échange ; ses jeux archivés absents d'ici rejoignent les archives. */
   async importBundleBytes(bytes) {
     const b = await importBundle(bytes);
+    for (const [p, a] of b.archives)
+      if (!(await this.store.exists(p))) await this._enqueue(p, () => this.store.writeBytes(p, a));
     return this.addSets(b.sets, b.media, { progress: b.progress, logs: b.logs });
   }
 
-  async exportBundleBytes(setIds, { withProgress = true } = {}) {
+  /** `withArchives` : joint les jeux archivés (sauvegarde complète de la bibliothèque). */
+  async exportBundleBytes(setIds, { withProgress = true, withArchives = false } = {}) {
     const sets = [];
     const progress = {};
     const logs = {};
@@ -305,7 +408,11 @@ export class Library {
         if (l) logs[id] = l;
       }
     }
-    return exportBundle({ sets, progress, logs, getMedia: (p) => this.readMedia(p) });
+    const archives = new Map();
+    if (withArchives)
+      for (const f of await this.store.list('archive'))
+        if (ARCHIVE.test(f)) archives.set(`archive/${f}`, await this.readFile(`archive/${f}`));
+    return exportBundle({ sets, progress, logs, getMedia: (p) => this.readMedia(p), archives });
   }
 
   /**
@@ -325,9 +432,10 @@ export class Library {
         const mainPath = `${dir}/${id}.${ext}`;
         try {
           if (dir === 'logs') {
-            const a = (await this.store.readText(mainPath)) || '';
             const b = (await this.store.readText(cpath)) || '';
-            await this.store.writeText(mainPath, mergeLogs(a, b));
+            await this._enqueue(mainPath, async () =>
+              this.store.writeText(mainPath, mergeLogs((await this.store.readText(mainPath)) || '', b)),
+            );
           } else if (dir === 'progress') {
             const a = await this._readJson(mainPath);
             const b = await this._readJson(cpath);

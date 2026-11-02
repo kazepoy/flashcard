@@ -1,14 +1,11 @@
-// Synchronisation automatique de la bibliothèque avec un stockage en ligne (Google Drive, OneDrive, Dropbox) :
-// à l'ouverture, au retour au premier plan, quelques secondes après chaque modification, toutes les 5 minutes.
+// Synchronisation automatique de la bibliothèque avec un stockage en ligne (Dropbox) : à l'ouverture, au
+// retour au premier plan, quelques secondes après chaque modification, toutes les 5 minutes.
+// Google Drive et OneDrive ont été retirés (connexions qui expirent sans serveur : 1 h, ~24 h) ; leur code
+// est dans l'historique git (version 0.2.7), voir docs/SYNC.md.
 import { useCallback, useEffect, useMemo, useRef, useState } from 'preact/hooks';
-import { AppError } from '../core/errors.js';
-import { GDriveRemote } from '../storage/gdrive.js';
 import { DropboxRemote } from '../storage/dropbox.js';
-import { OneDriveRemote } from '../storage/onedrive.js';
-import { syncLibrary } from '../storage/sync.js';
-import { cachedToken, forgetToken, googleClientId, requestToken } from './google-auth.js';
+import { clearRemote, removeStrayFiles, syncLibrary } from '../storage/sync.js';
 import { dropboxAppKey, dropboxToken, forgetDropbox } from './dropbox-auth.js';
-import { forgetMs, msClientId, msToken } from './microsoft-auth.js';
 
 const KEY = 'flashcard.sync';
 const AFTER_WRITE_MS = 4000;
@@ -23,27 +20,6 @@ export const PROVIDERS = {
     signIn: () => dropboxToken({ interactive: true, force: true }),
     remote: (getToken) => new DropboxRemote(getToken),
     forget: forgetDropbox,
-  },
-  gdrive: {
-    name: 'Google Drive',
-    available: () => !!googleClientId(),
-    token: async ({ interactive }) => {
-      const token = cachedToken();
-      if (token) return token;
-      if (interactive) return requestToken();
-      throw new AppError('syncAuth', 'Connexion à Google Drive à renouveler');
-    },
-    signIn: () => requestToken({ consent: true }),
-    remote: (getToken, cfg) => new GDriveRemote(getToken, { folderId: cfg.folderId ?? null }),
-    forget: forgetToken,
-  },
-  onedrive: {
-    name: 'OneDrive',
-    available: () => !!msClientId(),
-    token: ({ interactive }) => msToken({ interactive }),
-    signIn: () => msToken({ interactive: true, force: true }),
-    remote: (getToken) => new OneDriveRemote(getToken),
-    forget: forgetMs,
   },
 };
 
@@ -76,6 +52,22 @@ export function useSync(lib, refresh) {
     error: null,
   }));
   const running = useRef(null);
+  // fichiers écrits ici depuis la dernière synchronisation ; `verified` : une vérification complète a eu lieu
+  // depuis l'ouverture ou le dernier retour au premier plan (un autre onglet ou logiciel a pu écrire entre-temps)
+  const dirty = useRef(new Set());
+  const verified = useRef(false);
+  useEffect(() => {
+    dirty.current = new Set();
+    verified.current = false;
+    if (!lib) return;
+    const off = lib.onWrite((path) => dirty.current.add(path));
+    const onVisible = () => document.visibilityState === 'visible' && (verified.current = false);
+    document.addEventListener('visibilitychange', onVisible);
+    return () => {
+      off();
+      document.removeEventListener('visibilitychange', onVisible);
+    };
+  }, [lib]);
 
   const update = useCallback((patch) => {
     cfg.current = { ...cfg.current, ...patch };
@@ -88,29 +80,70 @@ export function useSync(lib, refresh) {
     }));
   }, []);
 
-  /** Une synchronisation (une seule à la fois) ; `interactive` : appelée d'un clic, peut ouvrir la connexion. */
-  const run = useCallback(
-    ({ interactive = false } = {}) => {
-      const provider = PROVIDERS[cfg.current.provider];
-      if (!lib || !provider) return Promise.resolve();
-      if (running.current) return running.current;
-      setView((v) => ({ ...v, status: 'syncing', error: null }));
-      running.current = (async () => {
-        try {
-          const remote = provider.remote(() => provider.token({ interactive }), cfg.current);
-          const r = await syncLibrary(lib, remote, { files: cfg.current.files });
-          update({ files: r.state.files, folderId: remote.folderId ?? null, lastSync: new Date().toISOString() });
-          if (r.pulled || r.merged || r.removed) refresh();
-          setView((v) => ({ ...v, status: 'idle' }));
-        } catch (e) {
-          setView((v) => ({ ...v, status: e.code === 'syncAuth' ? 'paused' : 'error', error: e }));
-        } finally {
-          running.current = null;
-        }
-      })();
-      return running.current;
+  /**
+   * Une synchronisation : recopie, fusion et suppressions dans les deux sens. Après une vérification complète,
+   * seuls les fichiers écrits depuis sont relus (les autres gardent leur empreinte de la fois précédente).
+   */
+  const syncWith = useCallback(
+    async (remote) => {
+      const written = dirty.current;
+      dirty.current = new Set();
+      const full = !verified.current;
+      let r;
+      try {
+        r = await syncLibrary(
+          lib,
+          remote,
+          { files: cfg.current.files },
+          { unchanged: full ? null : (p) => !written.has(p) },
+        );
+      } catch (e) {
+        for (const p of written) dirty.current.add(p); // à relire à la prochaine
+        throw e;
+      }
+      verified.current = true;
+      update({ files: r.state.files, lastSync: new Date().toISOString() });
+      if (r.pulled || r.merged || r.removed) refresh();
     },
     [lib, refresh, update],
+  );
+
+  /**
+   * Une opération sur le dossier distant, une seule à la fois (une synchronisation en cours est attendue) ;
+   * `interactive` : appelée d'un clic, peut ouvrir la connexion. Renvoie le résultat de `fn` ; une erreur
+   * est affichée dans l'état et relancée si `rethrow`.
+   */
+  const exclusive = useCallback(async (fn, { interactive = false, rethrow = false } = {}) => {
+    while (running.current) await running.current.catch(() => {});
+    const provider = PROVIDERS[cfg.current.provider];
+    if (!provider) return undefined;
+    setView((v) => ({ ...v, status: 'syncing', error: null }));
+    const op = (async () => {
+      const remote = provider.remote(() => provider.token({ interactive }));
+      return fn(remote);
+    })();
+    running.current = op;
+    try {
+      const out = await op;
+      setView((v) => ({ ...v, status: 'idle' }));
+      return out;
+    } catch (e) {
+      setView((v) => ({ ...v, status: e.code === 'syncAuth' ? 'paused' : 'error', error: e }));
+      if (rethrow) throw e;
+      return undefined;
+    } finally {
+      running.current = null;
+    }
+  }, []);
+
+  /** Une synchronisation (une seule à la fois ; un appel pendant une synchronisation la rejoint). */
+  const run = useCallback(
+    ({ interactive = false } = {}) => {
+      if (!lib || !PROVIDERS[cfg.current.provider]) return Promise.resolve();
+      if (running.current) return running.current.catch(() => {});
+      return exclusive(syncWith, { interactive });
+    },
+    [lib, exclusive, syncWith],
   );
 
   // déclencheurs automatiques
@@ -138,7 +171,7 @@ export function useSync(lib, refresh) {
   const connect = useCallback(
     async (id) => {
       await PROVIDERS[id].signIn();
-      update({ provider: id, files: {}, folderId: null });
+      update({ provider: id, files: {} });
       setView((v) => ({ ...v, status: 'idle' }));
       await run({ interactive: true });
     },
@@ -148,9 +181,45 @@ export function useSync(lib, refresh) {
   /** Déconnexion : les données restent ici et en ligne ; seul le lien entre les deux est oublié. */
   const disconnect = useCallback(() => {
     PROVIDERS[cfg.current.provider]?.forget();
-    update({ provider: null, files: {}, folderId: null, lastSync: null });
+    update({ provider: null, files: {}, lastSync: null });
     setView((v) => ({ ...v, status: 'off', error: null }));
   }, [update]);
+
+  /**
+   * Arrêt avant d'effacer la bibliothèque de cet appareil : déconnexion, puis fin de la synchronisation en cours.
+   * Aucune synchronisation ne peut ensuite prendre les fichiers effacés pour des suppressions à propager.
+   */
+  const halt = useCallback(async () => {
+    disconnect();
+    while (running.current) await running.current.catch(() => {});
+  }, [disconnect]);
+
+  /**
+   * Nettoyage du stockage en ligne : médias inutilisés supprimés ici puis, par la synchronisation, en ligne ;
+   * fichiers distants étrangers à la bibliothèque supprimés. Renvoie `{ media, stray }` (nombres de fichiers).
+   */
+  const clean = useCallback(
+    () =>
+      exclusive(
+        async (remote) => {
+          const media = await lib.gcMedia();
+          await syncWith(remote);
+          return { media, stray: await removeStrayFiles(remote) };
+        },
+        { interactive: true, rethrow: true },
+      ),
+    [lib, exclusive, syncWith],
+  );
+
+  /**
+   * Purge : vide le dossier en ligne puis déconnecte (une synchronisation suivante prendrait ce dossier vide
+   * pour des suppressions à propager ici). La bibliothèque de cet appareil n'est pas touchée.
+   */
+  const purge = useCallback(async () => {
+    const n = await exclusive(clearRemote, { interactive: true, rethrow: true });
+    disconnect();
+    return n;
+  }, [exclusive, disconnect]);
 
   return useMemo(
     () => ({
@@ -160,7 +229,10 @@ export function useSync(lib, refresh) {
       setAuto: (auto) => update({ auto }),
       connect,
       disconnect,
+      clean,
+      purge,
+      halt,
     }),
-    [view, run, update, connect, disconnect],
+    [view, run, update, connect, disconnect, clean, purge, halt],
   );
 }

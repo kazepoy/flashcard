@@ -1,10 +1,12 @@
-// Jeu d'exemple « Visite guidée » : `node scripts/gen-examples.mjs` → examples/<langue>/*.flashcard.zip + index.json.
-// Importés à la première ouverture d'une bibliothèque vide (ui/first-run.js), ou à la main avec « Importer ».
+// Jeux d'exemple : `node scripts/gen-examples.mjs` → examples/<langue>/*.flashcard.zip, index.json, catalog.json.
+// Visite guidée importée à la première ouverture d'une bibliothèque vide (ui/first-run.js, index.json) ;
+// catalogue (scripts/catalog.mjs, catalog.json) proposé dans Importer › Jeux d'exemple.
 // Identifiants fixes : réimporter un exemple met le jeu à jour au lieu de le dupliquer.
 import { createHash } from 'node:crypto';
 import { mkdir, writeFile } from 'node:fs/promises';
 import { newCard, newSet } from '../src/core/format.js';
 import { exportBundle } from '../src/io/bundle.js';
+import { buildCatalog } from './catalog.mjs';
 
 const DATE = '2026-10-31T00:00:00.000Z';
 const id = (set, n = 0) => '01JZ' + String(set * 1000 + n).padStart(22, '0');
@@ -21,169 +23,12 @@ const makeSet = (n, fields, cards) => ({
   cards: cards.map((c, i) => ({ ...newCard(c), id: id(n, i + 1) })),
 });
 
-// ------------------------------------------------------------------ drapeaux (SVG 300 × 200)
+// ------------------------------------------------------------------ illustrations (SVG 300 × 200)
 
 const W = 300;
 const H = 200;
 const svg = (body, w = W, h = H) =>
   `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${w} ${h}" width="${w}" height="${h}">${body}<rect x="0.5" y="0.5" width="${w - 1}" height="${h - 1}" fill="none" stroke="#9aa6b5"/></svg>`;
-const rect = (x, y, w, h, fill) => `<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="${fill}"/>`;
-/** Bandes verticales ou horizontales ; [couleur, poids] ou couleur (poids 1). */
-const bands = (dir, ...list) => {
-  const parts = list.map((b) => (Array.isArray(b) ? b : [b, 1]));
-  const total = parts.reduce((s, [, w]) => s + w, 0);
-  let at = 0;
-  return parts
-    .map(([c, w]) => {
-      const size = ((dir === 'v' ? W : H) * w) / total;
-      const r = dir === 'v' ? rect(at, 0, size + 0.5, H, c) : rect(0, at, W, size + 0.5, c);
-      at += size;
-      return r;
-    })
-    .join('');
-};
-const vflag = (...c) => svg(bands('v', ...c));
-
-const disc = (bg, color, r, cx = W / 2) =>
-  svg(rect(0, 0, W, H, bg) + `<circle cx="${cx}" cy="${H / 2}" r="${r}" fill="${color}"/>`);
-
-// Quelques drapeaux : recto en image seule, indices pour la paire facile à confondre.
-const FLAGS = {
-  France: vflag('#0055A4', '#FFFFFF', '#EF4135'),
-  Irlande: vflag('#169B62', '#FFFFFF', '#FF883E'),
-  "Côte d'Ivoire": vflag('#F77F00', '#FFFFFF', '#009E60'),
-  Japon: disc('#FFFFFF', '#BC002D', H * 0.3),
-  Suisse: svg(
-    rect(0, 0, 200, 200, '#DA291C') + rect(80, 40, 40, 120, '#FFFFFF') + rect(40, 80, 120, 40, '#FFFFFF'),
-    200,
-    200,
-  ),
-};
-const flag = (key, definition, example, hint = '', tag = 'drapeaux') => ({
-  term: '',
-  termImage: addSvg(FLAGS[key]),
-  definition,
-  hint,
-  example,
-  tags: [tag],
-});
-
-// Cartes « en situation » ajoutées à la visite guidée : drapeaux, langue, culture, expressions.
-const EXTRAS_FR = [
-  flag('France', 'France', 'Capitale : Paris'),
-  flag('Irlande', 'Irlande', 'Capitale : Dublin', "Vert côté mât ; la Côte d'Ivoire commence par l'orange"),
-  flag(
-    "Côte d'Ivoire",
-    "Côte d'Ivoire",
-    'Capitale : Yamoussoukro (politique), Abidjan (économique)',
-    "Orange côté mât, l'inverse de l'Irlande",
-  ),
-  flag('Japon', 'Japon', 'Capitale : Tokyo'),
-  flag('Suisse', 'Suisse', 'Capitale : Berne', "L'un des deux seuls drapeaux nationaux carrés"),
-  {
-    term: 'Vorrei…',
-    definition: 'Je voudrais… (italien)',
-    hint: 'conditionnel de volere',
-    example: 'Vorrei un caffè, per favore.',
-    tags: ['langue'],
-  },
-  { term: 'il conto', definition: "l'addition (italien)", example: 'Il conto, per favore.', tags: ['langue'] },
-  { term: 'Quanto costa?', definition: 'Combien ça coûte ? (italien)', tags: ['langue'] },
-  { term: 'Buon appetito!', definition: 'Bon appétit ! (italien)', tags: ['langue'] },
-  {
-    term: "Quel pays a remporté l'Eurovision 2025, à Bâle ?",
-    definition: "L'**Autriche**, avec JJ et « Wasted Love »",
-    tags: ['culture'],
-  },
-  {
-    term: 'Quelle console Nintendo est sortie le 5 juin 2025 ?',
-    definition: 'La **Nintendo Switch 2**',
-    tags: ['culture'],
-  },
-  { term: "Qui a remporté le Ballon d'or 2025 ?", definition: '**Ousmane Dembélé** (PSG)', tags: ['culture'] },
-  {
-    term: "Où se sont déroulés les Jeux olympiques d'hiver 2026 ?",
-    definition: "À **Milan** et **Cortina d'Ampezzo** (Italie)",
-    tags: ['culture'],
-  },
-  { type: 'cloze', term: 'Il pleut des {{c1::cordes}}.', definition: 'Il pleut très fort.', tags: ['expressions'] },
-  {
-    type: 'cloze',
-    term: 'Coûter les {{c1::yeux}} de la {{c2::tête}}.',
-    definition: 'Coûter très cher.',
-    tags: ['expressions'],
-  },
-  {
-    type: 'cloze',
-    term: 'Avoir la {{c1::pêche::un fruit}}.',
-    definition: 'Être en pleine forme.',
-    tags: ['expressions'],
-  },
-  {
-    type: 'cloze',
-    term: 'Appeler un {{c1::chat}} un {{c1::chat}}.',
-    definition: 'Dire les choses franchement.',
-    tags: ['expressions'],
-  },
-];
-const EXTRAS_EN = [
-  flag('France', 'France', 'Capital: Paris', '', 'flags'),
-  flag('Irlande', 'Ireland', 'Capital: Dublin', "Green at the hoist; Côte d'Ivoire starts with orange", 'flags'),
-  flag(
-    "Côte d'Ivoire",
-    "Côte d'Ivoire",
-    'Capital: Yamoussoukro (political), Abidjan (economic)',
-    'Orange at the hoist, the reverse of Ireland',
-    'flags',
-  ),
-  flag('Japon', 'Japan', 'Capital: Tokyo', '', 'flags'),
-  flag('Suisse', 'Switzerland', 'Capital: Bern', 'One of only two square national flags', 'flags'),
-  {
-    term: 'Quisiera…',
-    definition: 'I would like… (Spanish)',
-    hint: 'polite form of querer',
-    example: 'Quisiera un café con leche.',
-    tags: ['language'],
-  },
-  { term: 'la cuenta', definition: 'the bill (Spanish)', example: 'La cuenta, por favor.', tags: ['language'] },
-  { term: '¿Cuánto cuesta?', definition: 'How much is it? (Spanish)', tags: ['language'] },
-  { term: '¡Buen provecho!', definition: 'Enjoy your meal! (Spanish)', tags: ['language'] },
-  {
-    term: 'Which country won Eurovision 2025, in Basel?',
-    definition: '**Austria**, with JJ and “Wasted Love”',
-    tags: ['culture'],
-  },
-  {
-    term: 'Which Nintendo console was released on 5 June 2025?',
-    definition: 'The **Nintendo Switch 2**',
-    tags: ['culture'],
-  },
-  { term: "Who won the 2025 Ballon d'Or?", definition: '**Ousmane Dembélé** (PSG)', tags: ['culture'] },
-  {
-    term: 'Where were the 2026 Winter Olympics held?',
-    definition: "In **Milan** and **Cortina d'Ampezzo** (Italy)",
-    tags: ['culture'],
-  },
-  {
-    type: 'cloze',
-    term: "It's raining {{c1::cats}} and {{c2::dogs}}.",
-    definition: "It's raining very heavily.",
-    tags: ['idioms'],
-  },
-  { type: 'cloze', term: "It's a piece of {{c1::cake}}.", definition: "It's very easy.", tags: ['idioms'] },
-  {
-    type: 'cloze',
-    term: 'Break a {{c1::leg}}!',
-    definition: 'Good luck! (said before a performance)',
-    tags: ['idioms'],
-  },
-  {
-    type: 'cloze',
-    term: 'Easy {{c1::come}}, easy {{c1::go}}.',
-    definition: 'What is gained easily is lost easily.',
-    tags: ['idioms'],
-  },
-];
 
 // ------------------------------------------------------------------ visite guidée (prise en main)
 
@@ -204,7 +49,7 @@ const PATTERN = addSvg(
 );
 
 /** Planètes telluriques : noms masqués (« masquer tout, deviner un », réponses écrites). */
-function planetsCard(names, term, definition) {
+function planetsCard(names, term, definition, tag) {
   const P = [
     [170, 10, '#a8a29e'],
     [280, 18, '#fcd34d'],
@@ -227,12 +72,12 @@ function planetsCard(names, term, definition) {
     h: 32 / 260,
     label: names[i],
   }));
-  return { type: 'occlusion', image, term, definition, occlusion: 'all', masks, tags: ['image-masquee'] };
+  return { type: 'occlusion', image, term, definition, occlusion: 'all', masks, tags: [tag] };
 }
 
 /** Cercle chromatique : primaires = un groupe chacune (nom caché, réponse écrite) ;
  *  secondaires = un seul groupe de trois ellipses, sans réponse écrite (« masquer un, deviner un »). */
-function colorWheelCard(names, term, definition) {
+function colorWheelCard(names, term, definition, tag) {
   const C = [
     ['#dc2626', '#fff'],
     ['#f97316', '#111'],
@@ -274,228 +119,295 @@ function colorWheelCard(names, term, definition) {
       h: 86 / 350,
     }),
   );
-  return { type: 'occlusion', image, term, definition, occlusion: 'one', masks, tags: ['image-masquee'] };
+  return { type: 'occlusion', image, term, definition, occlusion: 'one', masks, tags: [tag] };
 }
 
 const SUN_IMG = addSvg(SUN);
 const EARTH_IMG = addSvg(EARTH);
 
-const TOUR_DATE = '2026-10-31T00:00:05.000Z';
+const TOUR_DATE = '2026-11-02T00:00:05.000Z';
+
+/**
+ * Visite guidée en questions-réponses : chaque carte répond à une question qu'on se pose en découvrant
+ * Flashcard, et montre la fonction sur elle-même (la carte sur l'indice a un indice, celle sur les trous est
+ * un texte à trous…). Étiquettes : bases, étude, contenu, apparence, trous, image-masquee, organisation, données.
+ */
+function tourCards(L) {
+  const F = L === 'fr';
+  const t = (fr, en) => (F ? fr : en);
+  const c = (term, definition, tag, more = {}) => ({ term, definition, tags: [tag], ...more });
+  return [
+    c(
+      t('Comment utiliser une fiche ?', 'How do I use a card?'),
+      t(
+        'Lisez la **question**, cherchez la réponse de tête, puis **retournez** la fiche (clic ou Espace). C’est cet effort de mémoire, plus que la relecture, qui fait retenir.',
+        'Read the **question**, try to recall the answer, then **flip** the card (click or Space). This effort of recall, more than re-reading, is what makes things stick.',
+      ),
+      t('bases', 'basics'),
+    ),
+    c(
+      t(
+        'Que se passe-t-il quand je réponds « Je sais » ou « À revoir » ?',
+        'What happens when I answer “I know” or “Again”?',
+      ),
+      t(
+        'En mode **Fiches**, une carte « à revoir » revient plus loin dans la séance. En **Révision**, votre note (À revoir, Difficile, Correct, Facile) fixe la date de la prochaine révision.',
+        'In **Flashcards** mode, a card marked “again” comes back later in the session. In **Review**, your rating (Again, Hard, Good, Easy) sets the date of the next review.',
+      ),
+      t('bases', 'basics'),
+    ),
+    c(
+      t('Qu’est-ce que la révision espacée ?', 'What is spaced repetition?'),
+      t(
+        'Revoir une carte **juste avant de l’oublier**. Flashcard calcule ce moment pour chaque carte (algorithme FSRS) : un peu de révision chaque jour, et les cartes connues reviennent de plus en plus rarement.',
+        'Reviewing a card **just before you forget it**. Flashcard works out that moment for each card (FSRS algorithm): a little review every day, and known cards come back less and less often.',
+      ),
+      t('étude', 'study'),
+      {
+        example: t(
+          'Le nombre de cartes du jour est sur la bibliothèque ; les limites se règlent dans Réglages › Étude.',
+          'The number of cards due today is on the library; limits are in Settings › Study.',
+        ),
+      },
+    ),
+    c(
+      t('Quels autres modes d’étude existent ?', 'Which other study modes are there?'),
+      t(
+        '- **Apprendre** : choix multiple, puis réponse écrite\n- **Écrire** : taper la réponse\n- **Test** : un examen noté\n- **Association** et **Gravité** : des jeux contre la montre',
+        '- **Learn**: multiple choice, then typed answers\n- **Write**: type the answer\n- **Test**: a graded exam\n- **Match** and **Gravity**: games against the clock',
+      ),
+      t('étude', 'study'),
+    ),
+    c(
+      t('À quoi sert le bouton « Indice » ?', 'What is the “Hint” button for?'),
+      t(
+        'À afficher un **indice** facultatif avant la réponse, comme celui de cette carte. Il se saisit dans « Indice, exemple, images, audio », sous la carte dans l’éditeur.',
+        'To show an optional **hint** before the answer, like the one on this card. You enter it under “Hint, example, images, audio”, below the card in the editor.',
+      ),
+      t('contenu', 'content'),
+      {
+        hint: t('Un coup de pouce, sans donner la réponse.', 'A nudge, without giving the answer away.'),
+        example: t(
+          'Ceci est un **exemple** : il s’affiche avec la réponse, en bas de la fiche.',
+          'This is an **example**: it shows with the answer, at the bottom of the card.',
+        ),
+      },
+    ),
+    c(
+      t('Peut-on mettre en forme le texte ?', 'Can I format the text?'),
+      t(
+        'Oui, en Markdown : **gras** (entre deux paires d’astérisques), *italique* (entre astérisques simples), `code`, listes et [liens](https://fr.wikipedia.org/wiki/Markdown).',
+        'Yes, with Markdown: **bold** (between double asterisks), *italics* (between single asterisks), `code`, lists and [links](https://en.wikipedia.org/wiki/Markdown).',
+      ),
+      t('contenu', 'content'),
+    ),
+    c(t('Quel est cet astre ?', 'What is this star?'), t('Le Soleil.', 'The Sun.'), t('contenu', 'content'), {
+      termImage: SUN_IMG,
+      example: t(
+        'Une image peut accompagner la question, ou la remplacer : « Image du terme » dans l’éditeur.',
+        'An image can go with the question, or replace it: “Term image” in the editor.',
+      ),
+    }),
+    c(
+      t('Comment montrer une image avec la réponse ?', 'How do I show an image with the answer?'),
+      t(
+        'Avec « Image de la définition ». La voici : la Terre vue de l’espace.',
+        'With “Definition image”. Here it is: the Earth seen from space.',
+      ),
+      t('contenu', 'content'),
+      { image: EARTH_IMG },
+    ),
+    c(
+      t('Comment entendre la prononciation ?', 'How do I hear the pronunciation?'),
+      t(
+        'Le bouton **haut-parleur** lit la face à voix haute, dans la langue choisie pour le jeu (dans « Modifier »). On peut aussi joindre son propre enregistrement : « Audio (prononciation) ».',
+        'The **speaker** button reads the side aloud, in the language chosen for the set (in “Edit”). You can also attach your own recording: “Audio (pronunciation)”.',
+      ),
+      t('contenu', 'content'),
+    ),
+    c(
+      t('Puis-je changer l’apparence d’une carte ?', 'Can I change how a card looks?'),
+      t(
+        'Oui : celle-ci a son propre fond, sa police et sa taille, réglés dans « Apparence de cette carte ».',
+        'Yes: this one has its own background, font and size, set in “Appearance of this card”.',
+      ),
+      t('apparence', 'appearance'),
+      { style: { bg: '#FDE68A', font: 'hand', size: 'lg', align: 'center' } },
+    ),
+    c(
+      t('Comment l’apparence est-elle choisie ?', 'How is the appearance chosen?'),
+      t(
+        'Sur trois niveaux : les **réglages** (toutes les cartes), puis le **jeu**, puis la **carte**, chacun remplaçant le précédent. Ici, le verso a sa propre couleur, et le texte s’ajuste pour rester lisible.',
+        'On three levels: **settings** (every card), then the **set**, then the **card**, each one overriding the previous. Here, the back has its own colour, and the text adapts to stay readable.',
+      ),
+      t('apparence', 'appearance'),
+      { style: { bg: '#1E3A5F', backBg: '#E0F2FE', font: 'mono', paper: 'grid' } },
+    ),
+    c(
+      t('Et une image de fond ?', 'What about a background image?'),
+      t(
+        'Possible aussi, pour un jeu ou une carte (« Image de fond »), ici sur papier uni.',
+        'Possible too, for a set or a card (“Background image”), here on plain paper.',
+      ),
+      t('apparence', 'appearance'),
+      { style: { bgImage: PATTERN, paper: 'plain', align: 'center', font: 'sans' } },
+    ),
+    {
+      type: 'cloze',
+      term: t(
+        'Un texte à {{c1::trous}} cache un ou plusieurs mots à retrouver.',
+        'A {{c1::cloze}} text hides one or more words to recall.',
+      ),
+      definition: t(
+        'Dans l’éditeur : type « Texte à trous », sélectionnez un mot, puis « Créer un trou ».',
+        'In the editor: “Cloze” type, select a word, then “Make a blank”.',
+      ),
+      tags: [t('trous', 'cloze')],
+    },
+    {
+      type: 'cloze',
+      term: t(
+        'Un trou peut afficher un {{c1::indice::mot d’aide}} à la place de […].',
+        'A blank can show a {{c1::hint::helper word}} instead of […].',
+      ),
+      definition: t('Écrivez l’indice après « :: » dans le trou.', 'Write the hint after “::” inside the blank.'),
+      tags: [t('trous', 'cloze')],
+    },
+    {
+      type: 'cloze',
+      term: t(
+        'Le trou {{c1::numéro 1}} et le trou {{c2::numéro 2}} donnent deux cartes d’étude.',
+        'Blank {{c1::number 1}} and blank {{c2::number 2}} make two study cards.',
+      ),
+      definition: t(
+        'Chaque numéro (c1, c2…) devient une carte qui ne cache que son trou.',
+        'Each number (c1, c2…) becomes a card that hides only its own blank.',
+      ),
+      tags: [t('trous', 'cloze')],
+    },
+    {
+      type: 'cloze',
+      term: t(
+        'Des trous de même numéro sont {{c1::cachés}} et {{c1::révélés}} ensemble.',
+        'Blanks with the same number are {{c1::hidden}} and {{c1::revealed}} together.',
+      ),
+      definition: t('Bouton « Même trou que le précédent ».', '“Same blank as previous” button.'),
+      tags: [t('trous', 'cloze')],
+    },
+    planetsCard(
+      t(['Mercure', 'Vénus', 'Terre', 'Mars'], ['Mercury', 'Venus', 'Earth', 'Mars']),
+      t('Image masquée : quelles sont les planètes rocheuses ?', 'Image occlusion: which are the rocky planets?'),
+      t(
+        'Mode « Masquer tout, deviner un » : tous les noms sont cachés, un seul est demandé à la fois. Chaque masque a une réponse écrite, donc la carte sert aussi dans Apprendre, Écrire et Test.',
+        '“Hide all, guess one” mode: every name is hidden, one is asked at a time. Each mask has a written answer, so the card also works in Learn, Write and Test.',
+      ),
+      t('image-masquee', 'image-occlusion'),
+    ),
+    colorWheelCard(
+      t(['rouge', 'orange', 'jaune', 'vert', 'bleu', 'violet'], ['red', 'orange', 'yellow', 'green', 'blue', 'purple']),
+      t('Image masquée : le cercle chromatique', 'Image occlusion: the colour wheel'),
+      t(
+        'Mode « Masquer un, deviner un » : seul le groupe demandé est caché. Les trois couleurs secondaires forment un seul groupe, révélé d’un coup.',
+        '“Hide one, guess one” mode: only the asked group is hidden. The three secondary colours form a single group, revealed at once.',
+      ),
+      t('image-masquee', 'image-occlusion'),
+    ),
+    c(
+      t('Comment retrouver une carte parmi tous mes jeux ?', 'How do I find a card across all my sets?'),
+      t(
+        'La page **Cartes** cherche partout, avec des filtres : `tag:trous`, `is:due`, `-set:anglais`… Les étiquettes de cette visite (bases, trous, apparence…) servent à ça.',
+        'The **Cards** page searches everywhere, with filters: `tag:cloze`, `is:due`, `-set:spanish`… The tags of this tour (basics, cloze, appearance…) are there for that.',
+      ),
+      t('organisation', 'organisation'),
+      { example: t('Essayez : Cartes › tag:trous', 'Try: Cards › tag:cloze') },
+    ),
+    c(
+      t('À quoi servent l’étoile et la pause ?', 'What are the star and the pause for?'),
+      t(
+        'L’**étoile** marque une carte pour l’étudier à part (« Étoilées seulement »). La **pause** suspend une carte : elle ne revient plus en révision jusqu’à ce que vous la réactiviez.',
+        'The **star** marks a card to study it separately (“Starred only”). The **pause** suspends a card: it stops coming back in reviews until you reactivate it.',
+      ),
+      t('organisation', 'organisation'),
+    ),
+    c(
+      t('Comment voir une carte avant de l’étudier ?', 'How do I see a card before studying it?'),
+      t(
+        'Avec le bouton **Aperçu** (l’œil), dans l’éditeur, sur la page du jeu et dans Cartes : la fiche s’affiche telle qu’elle sera étudiée.',
+        'With the **Preview** button (the eye), in the editor, on the set page and in Cards: the card shows exactly as it will be studied.',
+      ),
+      t('organisation', 'organisation'),
+    ),
+    c(
+      t('Comment créer des cartes rapidement ?', 'How do I create cards quickly?'),
+      t(
+        '- **Coller plusieurs cartes**, une par ligne\n- **Importer** : Anki, CSV, Quizlet, Markdown\n- **Créer avec l’IA** depuis vos notes ou un PDF, avec une clé d’API ou gratuitement par copier-coller avec ChatGPT ou Claude',
+        '- **Paste several cards**, one per line\n- **Import**: Anki, CSV, Quizlet, Markdown\n- **Create with AI** from your notes or a PDF, with an API key or for free by copy-paste with ChatGPT or Claude',
+      ),
+      t('contenu', 'content'),
+    ),
+    c(
+      t('Comment ne pas perdre mes cartes ?', 'How do I keep my cards safe?'),
+      t(
+        'Configurez la **synchronisation Dropbox** (Réglages › Synchronisation) ou **exportez** régulièrement la bibliothèque (Réglages › Sauvegarde et restauration). Installer l’application sur l’écran d’accueil aide aussi.',
+        'Set up **Dropbox sync** (Settings › Sync) or **export** the library regularly (Settings › Backup and restore). Installing the app on your home screen helps too.',
+      ),
+      t('données', 'data'),
+    ),
+    c(
+      t('Que faire d’un jeu que je n’étudie plus ?', 'What do I do with a set I no longer study?'),
+      t(
+        '**Archivez-le** (bouton Archiver de sa page) : il quitte la bibliothèque avec sa progression, et se restaure à tout moment. Flashcard le propose de lui-même après 3 mois sans étude.',
+        '**Archive it** (Archive button on its page): it leaves the library with its progress, and can be restored at any time. Flashcard suggests it after 3 months without study.',
+      ),
+      t('données', 'data'),
+    ),
+    c(
+      t('Où trouver d’autres jeux pour essayer ?', 'Where can I find more sets to try?'),
+      t(
+        'Importer › **Jeux d’exemple** : drapeaux, langues, histoire, anatomie, formules…',
+        'Import › **Example sets**: flags, languages, history, anatomy, formulas…',
+      ),
+      t('bases', 'basics'),
+    ),
+    c(
+      t('Et maintenant ?', 'What now?'),
+      t(
+        'Créez votre premier jeu avec **Nouveau jeu**. Cette visite peut être supprimée ou archivée quand vous n’en avez plus besoin.',
+        'Create your first set with **New set**. This tour can be deleted or archived once you no longer need it.',
+      ),
+      t('bases', 'basics'),
+    ),
+  ];
+}
+
 const tour = makeSet(
   5,
   {
     updated: TOUR_DATE,
-    title: 'Visite guidée : les types de cartes',
+    title: 'Visite guidée : découvrir Flashcard',
     description:
-      "Quelques cartes qui montrent ce qu'une carte peut faire. Ouvrez « Modifier » pour voir comment chacune est faite. Suivent quelques cartes en situation : drapeaux, langue, culture, expressions. Filtrez par étiquette dans « Cartes ».",
+      'Une visite en questions-réponses : chaque carte explique une fonction de Flashcard, et la montre. Étudiez-la en mode Fiches, puis ouvrez « Modifier » pour voir comment chaque carte est faite.',
     folder: 'Exemples',
     language: { term: 'fr', definition: 'fr' },
     tags: ['prise en main', 'exemple'],
     color: '#8a5cd6',
   },
-  [
-    {
-      term: 'Carte simple',
-      definition: "Un **terme** au recto, sa **définition** au verso.\n\nRetournez la fiche avec Espace, ou d'un clic.",
-      tags: ['simple'],
-    },
-    {
-      term: "Quelle est la capitale de l'Australie ?",
-      definition: 'Canberra',
-      hint: "Ce n'est pas Sydney.",
-      example:
-        "L'**indice** s'affiche avant la réponse, l'**exemple** avec elle : deux champs facultatifs, sous « Indice, exemple, images, audio ».",
-      tags: ['simple'],
-    },
-    {
-      term: 'Mise en forme',
-      definition:
-        'Le texte accepte le Markdown :\n\n- **gras** et *italique*\n- `code`\n- listes et [liens](https://fr.wikipedia.org/wiki/Markdown)',
-      tags: ['simple'],
-    },
-    {
-      term: 'Quel est cet astre ?',
-      termImage: SUN_IMG,
-      definition: 'Le Soleil',
-      example:
-        "Image ajoutée au recto avec « Image du terme ». Le recto peut même n'être qu'une image (voir le jeu des drapeaux).",
-      tags: ['simple'],
-    },
-    {
-      term: "Notre planète vue de l'espace",
-      definition: 'La Terre',
-      image: EARTH_IMG,
-      example: 'Image ajoutée au verso avec « Image de la définition ».',
-      tags: ['simple'],
-    },
-    {
-      term: 'Apparence personnalisée',
-      definition:
-        "Fond jaune, police manuscrite, grande taille, texte centré : tout se règle dans « Apparence » de la carte. Les autres cartes suivent l'apparence du jeu.",
-      style: { bg: '#fde68a', font: 'hand', size: 'lg', align: 'center' },
-      tags: ['apparence'],
-    },
-    {
-      term: 'Recto sombre, verso clair',
-      definition:
-        "« Couleur de fond du verso » colore la réponse autrement. La couleur du texte s'ajuste toute seule pour rester lisible.",
-      style: { bg: '#1e3a5f', backBg: '#e0f2fe', font: 'mono', paper: 'grid' },
-      tags: ['apparence'],
-    },
-    {
-      term: 'Image de fond',
-      definition: 'Un motif ou une photo peut servir de fond (« Image de fond »), ici sur papier uni.',
-      style: { bgImage: PATTERN, paper: 'plain', align: 'center', font: 'sans' },
-      tags: ['apparence'],
-    },
-    {
-      type: 'cloze',
-      term: 'Un texte à {{c1::trous}} cache un mot : retrouvez-le.',
-      definition: "Dans l'éditeur, sélectionnez un mot puis « Créer un trou ».",
-      tags: ['trous'],
-    },
-    {
-      type: 'cloze',
-      term: 'La Seine se jette dans la {{c1::Manche::une mer}}.',
-      definition: 'Le texte après « :: » dans un trou est un **indice**, affiché à la place de […].',
-      tags: ['trous'],
-    },
-    {
-      type: 'cloze',
-      term: "{{c1::Paris}} est la capitale de la France, {{c2::Rome}} celle de l'Italie.",
-      definition: "Deux numéros (c1, c2) donnent **deux cartes d'étude** : chacune ne cache qu'un trou.",
-      tags: ['trous'],
-    },
-    {
-      type: 'cloze',
-      term: "C'est {{c1::bonnet}} blanc et blanc {{c1::bonnet}}.",
-      definition: 'Deux trous de même numéro (« Même trou que le précédent ») sont cachés et révélés **ensemble**.',
-      tags: ['trous'],
-    },
-    planetsCard(
-      ['Mercure', 'Vénus', 'Terre', 'Mars'],
-      'Image masquée : les planètes telluriques',
-      'Mode « Masquer tout, deviner un » : tous les noms sont cachés, un seul est demandé. Chaque masque a une réponse écrite, donc la carte sert aussi dans Apprendre, Écrire et Test.',
-    ),
-    colorWheelCard(
-      ['rouge', 'orange', 'jaune', 'vert', 'bleu', 'violet'],
-      'Image masquée : le cercle chromatique',
-      "Mode « Masquer un, deviner un ». Les trois couleurs secondaires forment un seul groupe d'ellipses, révélées ensemble et sans réponse écrite (pour les fiches et la révision seulement).",
-    ),
-    ...EXTRAS_FR,
-  ],
+  tourCards('fr'),
 );
 
 const tourEn = makeSet(
   15,
   {
     updated: TOUR_DATE,
-    title: 'Guided tour: card types',
+    title: 'Guided tour: discover Flashcard',
     description:
-      'A few cards showing what a card can do. Open “Edit” to see how each one is made. Then come a few real-life cards: flags, language, culture, idioms. Filter by tag in “Cards”.',
+      'A tour in questions and answers: each card explains a Flashcard feature, and shows it. Study it in Flashcards mode, then open “Edit” to see how each card is made.',
     folder: 'Examples',
     language: { term: 'en', definition: 'en' },
     tags: ['getting started', 'example'],
     color: '#8a5cd6',
   },
-  [
-    {
-      term: 'Basic card',
-      definition:
-        'A **term** on the front, its **definition** on the back.\n\nFlip the card with Space, or with a click.',
-      tags: ['basic'],
-    },
-    {
-      term: 'What is the capital of Australia?',
-      definition: 'Canberra',
-      hint: "It isn't Sydney.",
-      example:
-        'The **hint** shows before the answer, the **example** with it: two optional fields, under “Hint, example, images, audio”.',
-      tags: ['basic'],
-    },
-    {
-      term: 'Formatting',
-      definition:
-        'Text supports Markdown:\n\n- **bold** and *italic*\n- `code`\n- lists and [links](https://en.wikipedia.org/wiki/Markdown)',
-      tags: ['basic'],
-    },
-    {
-      term: 'Which star is this?',
-      termImage: SUN_IMG,
-      definition: 'The Sun',
-      example: 'Image added to the front with “Term image”. The front can even be just an image (see the flags set).',
-      tags: ['basic'],
-    },
-    {
-      term: 'Our planet seen from space',
-      definition: 'The Earth',
-      image: EARTH_IMG,
-      example: 'Image added to the back with “Definition image”.',
-      tags: ['basic'],
-    },
-    {
-      term: 'Custom appearance',
-      definition:
-        "Yellow background, handwriting font, large size, centred text: all set in the card's “Appearance”. Other cards follow the set's appearance.",
-      style: { bg: '#fde68a', font: 'hand', size: 'lg', align: 'center' },
-      tags: ['appearance'],
-    },
-    {
-      term: 'Dark front, light back',
-      definition:
-        '“Back background colour” gives the answer a different colour. The text colour adjusts itself to stay readable.',
-      style: { bg: '#1e3a5f', backBg: '#e0f2fe', font: 'mono', paper: 'grid' },
-      tags: ['appearance'],
-    },
-    {
-      term: 'Background image',
-      definition: "A pattern or a photo can be the card's background (“Background image”), here on plain paper.",
-      style: { bgImage: PATTERN, paper: 'plain', align: 'center', font: 'sans' },
-      tags: ['appearance'],
-    },
-    {
-      type: 'cloze',
-      term: 'A fill-in-the-{{c1::blank}} card hides a word: find it.',
-      definition: 'In the editor, select a word, then “Make a blank”.',
-      tags: ['blanks'],
-    },
-    {
-      type: 'cloze',
-      term: 'The Thames flows into the {{c1::North Sea::a sea}}.',
-      definition: 'The text after “::” in a blank is a **hint**, shown instead of […].',
-      tags: ['blanks'],
-    },
-    {
-      type: 'cloze',
-      term: '{{c1::Paris}} is the capital of France, {{c2::Rome}} that of Italy.',
-      definition: 'Two numbers (c1, c2) give **two study cards**: each hides a single blank.',
-      tags: ['blanks'],
-    },
-    {
-      type: 'cloze',
-      term: 'Easy {{c1::come}}, easy {{c1::go}}.',
-      definition:
-        'Two blanks with the same number (“Same blank as the previous one”) are hidden and revealed **together**.',
-      tags: ['blanks'],
-    },
-    {
-      ...planetsCard(
-        ['Mercury', 'Venus', 'Earth', 'Mars'],
-        'Image occlusion: the rocky planets',
-        '“Hide all, guess one” mode: every name is hidden, only one is asked. Each mask has a written answer, so the card also works in Learn, Write and Test.',
-      ),
-      tags: ['image-occlusion'],
-    },
-    {
-      ...colorWheelCard(
-        ['red', 'orange', 'yellow', 'green', 'blue', 'purple'],
-        'Image occlusion: the colour wheel',
-        '“Hide one, guess one” mode. The three secondary colours form a single group of ellipses, revealed together and with no written answer (flashcards and review only).',
-      ),
-      tags: ['image-occlusion'],
-    },
-    ...EXTRAS_EN,
-  ],
+  tourCards('en'),
 );
 
 // ------------------------------------------------------------------ écriture
@@ -517,3 +429,20 @@ async function write(lang, entries) {
 
 await write('fr', [['visite-guidee', tour]]);
 await write('en', [['guided-tour', tourEn]]);
+
+// Catalogue : jeux proposés à la demande (Importer › Jeux d'exemple), décrits par catalog.json.
+async function writeCatalog(lang, entries) {
+  const dir = new URL(`../examples/${lang}/`, import.meta.url);
+  const list = [];
+  for (const [name, set, meta] of entries) {
+    const bytes = await exportBundle({ sets: [set], getMedia: async (p) => media.get(p) ?? null });
+    const file = `${name}.flashcard.zip`;
+    await writeFile(new URL(file, dir), bytes);
+    list.push({ file, id: set.id, cards: set.cards.length, color: set.color, ...meta });
+    console.log(`examples/${lang}/${file} : ${set.cards.length} cartes, ${(bytes.length / 1024).toFixed(0)} Ko`);
+  }
+  await writeFile(new URL('catalog.json', dir), JSON.stringify(list, null, 2) + '\n');
+}
+const catalog = buildCatalog({ makeSet, addSvg });
+await writeCatalog('fr', catalog.fr);
+await writeCatalog('en', catalog.en);

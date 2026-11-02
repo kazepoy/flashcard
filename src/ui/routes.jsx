@@ -10,7 +10,6 @@ import { PrintPage } from './print.jsx';
 import { SetPage } from './setpage.jsx';
 import { SettingsPage } from './settings.jsx';
 import { StatsPage } from './stats.jsx';
-import { SyncPage } from './sync-page.jsx';
 import { Flashcards } from './study/flashcards.jsx';
 import { GravityMode } from './study/gravity.jsx';
 import { Learn } from './study/learn.jsx';
@@ -60,11 +59,9 @@ function StudyPage({ setId, mode, variant }) {
 export function Routes({ route: r }) {
   switch (r.page) {
     case 'settings':
-      return <SettingsPage />;
+      return <SettingsPage section={r.section} />;
     case 'help':
       return <HelpPage />;
-    case 'sync':
-      return <SyncPage />;
     case 'stats':
       return <StatsPage key={r.setId || ''} setId={r.setId} />;
     case 'browse':

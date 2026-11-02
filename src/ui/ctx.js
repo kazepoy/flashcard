@@ -4,7 +4,7 @@ import { useContext, useEffect, useState } from 'preact/hooks';
 export const AppCtx = createContext(null);
 export const useApp = () => useContext(AppCtx);
 
-// ---- routage par hash : #/ , #/set/ID , #/set/ID/edit , #/set/ID/study/MODE , #/settings
+// ---- routage par hash : #/ , #/set/ID , #/set/ID/edit , #/set/ID/study/MODE , #/settings[/rubrique]
 export function parseRoute(hash = location.hash) {
   const parts = hash.replace(/^#\/?/, '').split('/').filter(Boolean).map(decodeURIComponent);
   return parts;
@@ -12,7 +12,7 @@ export function parseRoute(hash = location.hash) {
 /**
  * Adresse découpée (useRoute) → page nommée et ses paramètres :
  * #/set/<id>[/edit[/<carte>] | /print | /study/<mode>[/more]], #/browse[/<requête>], #/stats[/<id>],
- * #/settings, #/help ; tout le reste → bibliothèque.
+ * #/settings[/<rubrique dépliée>], #/help ; tout le reste → bibliothèque.
  */
 export function routeOf(parts) {
   const [a, b, c, d, e] = parts;
@@ -24,8 +24,8 @@ export function routeOf(parts) {
   }
   if (a === 'browse') return { page: 'browse', query: parts.slice(1).join('/') };
   if (a === 'stats') return { page: 'stats', setId: b || null };
-  if (a === 'settings' && b === 'sync') return { page: 'sync' };
-  if (a === 'settings' || a === 'help') return { page: a };
+  if (a === 'settings') return { page: 'settings', section: b || null };
+  if (a === 'help') return { page: a };
   return { page: 'library' };
 }
 

@@ -4,12 +4,19 @@ import { collectMedia, newManifest, normalizeProgress, normalizeSet } from '../c
 import { AppError } from '../core/errors.js';
 
 const SAFE =
-  /^(flashcard\.json|settings\.json|sets\/[0-9A-Za-z_-]+\.json|progress\/[0-9A-Za-z_-]+\.json|logs\/[0-9A-Za-z_-]+\.jsonl|media\/[0-9a-f]{64}\.[0-9a-z]{1,6})$/;
+  /^(flashcard\.json|settings\.json|sets\/[0-9A-Za-z_-]+\.json|progress\/[0-9A-Za-z_-]+\.json|logs\/[0-9A-Za-z_-]+\.jsonl|media\/[0-9a-f]{64}\.[0-9a-z]{1,6}|archive\/[0-9A-Z]{26}\.flashcard\.zip)$/;
 
 /**
- * @param {{sets:Array, progress?:Record<string,object>, logs?:Record<string,string>, getMedia:(p:string)=>Promise<Uint8Array|null>}} o
+ * @param {{sets:Array, progress?:Record<string,object>, logs?:Record<string,string>, getMedia:(p:string)=>Promise<Uint8Array|null>,
+ *          archives?:Map<string,Uint8Array>}} o  `archives` : jeux archivés (archive/<id>.flashcard.zip), tels quels
  */
-export async function exportBundle({ sets, progress = {}, logs = {}, getMedia = async () => null }) {
+export async function exportBundle({
+  sets,
+  progress = {},
+  logs = {},
+  getMedia = async () => null,
+  archives = new Map(),
+}) {
   const zip = new JSZip();
   zip.file('flashcard.json', JSON.stringify(newManifest(), null, 2));
   const media = new Set();
@@ -24,11 +31,13 @@ export async function exportBundle({ sets, progress = {}, logs = {}, getMedia = 
     const b = await getMedia(p);
     if (b) zip.file(p, b);
   }
+  for (const [p, b] of archives) if (SAFE.test(p)) zip.file(p, b);
   return zip.generateAsync({ type: 'uint8array', compression: 'DEFLATE' });
 }
 
 /**
- * @returns {Promise<{sets:Array, progress:Record<string,object>, logs:Record<string,string>, media:Map<string,Uint8Array>}>}
+ * @returns {Promise<{sets:Array, progress:Record<string,object>, logs:Record<string,string>, media:Map<string,Uint8Array>,
+ *                    archives:Map<string,Uint8Array>}>}
  */
 export async function importBundle(data) {
   const zip = await JSZip.loadAsync(data);
@@ -41,11 +50,13 @@ export async function importBundle(data) {
   const progress = {};
   const logs = {};
   const media = new Map();
+  const archives = new Map();
   for (const name of Object.keys(zip.files)) {
     if (zip.files[name].dir) continue;
     if (!SAFE.test(name)) continue; // ignore tout fichier hors du format (zip-slip, etc.)
     if (name.startsWith('sets/')) sets.push(normalizeSet(JSON.parse(await zip.file(name).async('string'))));
     else if (name.startsWith('media/')) media.set(name, await zip.file(name).async('uint8array'));
+    else if (name.startsWith('archive/')) archives.set(name, await zip.file(name).async('uint8array'));
   }
   for (const s of sets) {
     const p = zip.file(`progress/${s.id}.json`);
@@ -53,5 +64,5 @@ export async function importBundle(data) {
     const l = zip.file(`logs/${s.id}.jsonl`);
     if (l) logs[s.id] = await l.async('string');
   }
-  return { sets, progress, logs, media };
+  return { sets, progress, logs, media, archives };
 }

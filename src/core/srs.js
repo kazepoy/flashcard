@@ -67,7 +67,7 @@ export class Scheduler {
   /** Probabilité de rappel (0..1) à l'instant `now`. */
   retrievability(srs, now = new Date()) {
     if (!srs || srs.state === SrsState.New || !srs.last_review) return 0;
-    return this.f.get_retrievability(deserializeCard(srs), now, false);
+    return this.f.retrievability(deserializeCard(srs), now);
   }
 }
 

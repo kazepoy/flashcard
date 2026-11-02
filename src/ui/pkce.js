@@ -1,6 +1,6 @@
 // Connexion OAuth 2 sans serveur ni bibliothèque : « code d'autorisation + PKCE » (RFC 7636) dans une
-// fenêtre qui revient sur le site. Sert à OneDrive et Dropbox, qui délivrent un jeton de rafraîchissement
-// aux applications sans secret : l'accès se renouvelle ensuite sans clic.
+// fenêtre qui revient sur le site. Sert à Dropbox, qui délivre un jeton de rafraîchissement aux applications
+// sans secret : l'accès se renouvelle ensuite sans clic.
 import { AppError } from '../core/errors.js';
 
 const MESSAGE = 'flashcard-auth';

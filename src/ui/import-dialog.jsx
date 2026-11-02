@@ -2,14 +2,15 @@
 import { useMemo, useRef, useState } from 'preact/hooks';
 import { copySet } from '../core/format.js';
 import { parseImportFile, parsePastedText } from '../io/import-file.js';
+import { ExampleGallery, examplesNoticeSeen } from './examples.jsx';
 import { Dialog } from './components.jsx';
 import { go, useApp, useAsync } from './ctx.js';
 import { errorText, t, tn } from './i18n.js';
 import { shrinkImportedMedia } from './media.js';
 
-export function ImportDialog({ onClose, onDone }) {
+export function ImportDialog({ onClose, onDone, initialTab = 'file' }) {
   const { lib, toast } = useApp();
-  const [tab, setTab] = useState('file');
+  const [tab, setTab] = useState(initialTab);
   const [pending, setPending] = useState([]); // résultats d'analyse
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState('');
@@ -115,11 +116,13 @@ export function ImportDialog({ onClose, onDone }) {
       footer={
         <>
           <button class="btn" onClick={onClose}>
-            {t('common.cancel')}
+            {tab === 'examples' ? t('common.close') : t('common.cancel')}
           </button>
-          <button class="btn primary" disabled={!nCards || busy} onClick={commit}>
-            {nCards ? t('library.importCards', { n: nCards }) : t('library.import')}
-          </button>
+          {tab !== 'examples' && (
+            <button class="btn primary" disabled={!nCards || busy} onClick={commit}>
+              {nCards ? t('library.importCards', { n: nCards }) : t('library.import')}
+            </button>
+          )}
         </>
       }
     >
@@ -128,13 +131,14 @@ export function ImportDialog({ onClose, onDone }) {
           ['file', t('library.file')],
           ['paste', t('library.pastedText')],
           ['url', t('library.link')],
+          ['examples', t('examples.tab')],
         ].map(([k, l]) => (
           <button
             key={k}
             role="tab"
             aria-selected={tab === k}
             class={'tab-btn' + (tab === k ? ' on' : '')}
-            onClick={() => setTab(k)}
+            onClick={() => (setTab(k), k === 'examples' && examplesNoticeSeen())}
           >
             {l}
           </button>
@@ -204,6 +208,8 @@ export function ImportDialog({ onClose, onDone }) {
           </div>
         </div>
       )}
+
+      {tab === 'examples' && <ExampleGallery />}
 
       {tab === 'url' && (
         <form onSubmit={(e) => (e.preventDefault(), fromUrl())}>

@@ -9,8 +9,10 @@ entièrement dans le navigateur, hors ligne, sans compte ni serveur : vos cartes
 dans un format de fichiers ouvert.
 
 <p>
-  <img src="docs/screenshots/jeu.jpg" alt="Page du jeu « Visite guidée » : modes d'étude et cartes" width="49%">
-  <img src="docs/screenshots/etude.jpg" alt="Étude d'une carte « image masquée » en thème sombre" width="49%">
+  <img src="docs/screenshots/fr-bibliotheque.jpg" alt="Bibliothèque garnie de jeux d'exemple, avec les cartes du jour" width="49%">
+  <img src="docs/screenshots/fr-planche.jpg" alt="Planche d'anatomie du cœur en image masquée, thème sombre" width="49%">
+  <img src="docs/screenshots/fr-fiche.jpg" alt="Fiche retournée : drapeau, réponse et exemple en pied de fiche" width="49%">
+  <img src="docs/screenshots/fr-apprendre.jpg" alt="Mode Apprendre : vocabulaire espagnol en choix multiple" width="49%">
 </p>
 
 ## Fonctionnalités
@@ -27,9 +29,8 @@ dans un format de fichiers ouvert.
   (`tag:verbe is:due -set:anglais`), drapeaux, doublons, statistiques détaillées.
 - **Échanges** : import / export Anki `.apkg` (image masquée comprise), CSV / TSV, texte Quizlet,
   Markdown, archive `.flashcard.zip` (import en copie renommée ou en mise à jour) ; partage d'un jeu ; impression et PDF de fiches à découper.
-- **Synchronisation** (en développement) : sauvegarde automatique et synchronisation entre ordinateur, téléphone et tablette
-  via votre propre Dropbox (recommandé pour l'instant ; un compte gratuit de 2 Go suffit largement), Google Drive
-  ou OneDrive, sans compte ni serveur.
+- **Synchronisation** (bêta) : sauvegarde automatique et synchronisation entre ordinateur, téléphone et tablette
+  via votre propre Dropbox (un compte gratuit de 2 Go suffit largement), sans compte ni serveur.
 - **Confort** : 11 thèmes clairs et sombres, polices de lecture adaptées à la dyslexie (OpenDyslexic,
   Atkinson Hyperlegible, Lexend, Andika), français et anglais, mobile, installable (PWA).
 - **Prise en main** : à la première ouverture, un jeu « Visite guidée » montre chaque type de carte.

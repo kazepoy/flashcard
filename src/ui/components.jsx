@@ -9,6 +9,7 @@ const P = {
   star: 'M12 3.5l2.6 5.3 5.9.9-4.2 4.1 1 5.8L12 16.8l-5.3 2.8 1-5.8-4.2-4.1 5.9-.9z',
   speaker: 'M4 9.5v5h3.5L12 18.5v-13L7.5 9.5zM15.5 8.5a5 5 0 010 7M18 6a8.5 8.5 0 010 12',
   plus: 'M12 5v14M5 12h14',
+  archive: 'M4 5h16v4H4zM5.5 9v10h13V9M10 13h4',
   trash: 'M5 7h14M10 7V4.5h4V7M7 7l1 12.5h8L17 7M10.5 11v5.5M13.5 11v5.5',
   edit: 'M4 20l1-4.5L16.5 4a1.8 1.8 0 012.5 0l1 1a1.8 1.8 0 010 2.5L8.5 19zM14.5 6l3.5 3.5',
   check: 'M5 12.5l4.5 4.5L19 7',
@@ -24,6 +25,7 @@ const P = {
   pause: 'M9 6v12M15 6v12',
   cloud: 'M7 18h10.5a3.5 3.5 0 00.4-7A5.5 5.5 0 007.3 9.4 4.3 4.3 0 007 18z',
   lock: 'M6 11h12v9H6zM8.5 11V8a3.5 3.5 0 017 0v3',
+  eye: 'M3 12c.5-1.5 4-6 9-6s8.5 4.5 9 6c-.5 1.5-4 6-9 6s-8.5-4.5-9-6zM12 9a3 3 0 100 6 3 3 0 000-6z',
   eyeOff:
     'M3 3l18 18M10.6 6.2A9.6 9.6 0 0112 6c5 0 8.5 4.5 9 6-.3.8-1.2 2.3-2.7 3.6M6.4 7.6C4.6 8.9 3.4 10.7 3 12c.5 1.5 4 6 9 6 1.4 0 2.7-.3 3.8-.9M9.9 9.9a3 3 0 004.2 4.2',
   offline: 'M3 3l18 18M8.5 18H17a3.5 3.5 0 001.6-6.6M15.2 7.2A5 5 0 007.3 9.4 4.3 4.3 0 007 18',
@@ -189,6 +191,41 @@ export function FlipCard({ front, back, frontStyle, backStyle, flipped, onFlip, 
 }
 
 // ------------------------------------------------------------------ divers
+
+/**
+ * Bloc repliable (<details>) dont le contenu n'est construit qu'une fois déplié : un éditeur de
+ * centaines de cartes ne fabrique pas des milliers d'éléments cachés.
+ */
+export function Fold({ summary, class: cls, children }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <details class={cls} open={open} onToggle={(e) => setOpen(e.currentTarget.open)}>
+      <summary>{summary}</summary>
+      {open && children}
+    </details>
+  );
+}
+
+/**
+ * Étiquettes séparées par des espaces. Le texte saisi est gardé tel quel (espace final compris, pour taper
+ * l'étiquette suivante) ; il n'est repris des étiquettes que si elles changent d'ailleurs.
+ */
+export function TagsInput({ tags, onChange, ...rest }) {
+  const parse = (s) => s.split(/\s+/).filter(Boolean);
+  const [text, setText] = useState(tags.join(' '));
+  if (parse(text).join(' ') !== tags.join(' ')) setText(tags.join(' '));
+  return (
+    <input
+      {...rest}
+      value={text}
+      onInput={(e) => {
+        const v = e.currentTarget.value;
+        setText(v);
+        if (parse(v).join(' ') !== tags.join(' ')) onChange(parse(v));
+      }}
+    />
+  );
+}
 
 export function Dialog({ title, onClose, children, wide = false, footer }) {
   const ref = useRef();

@@ -13,12 +13,13 @@ import { mergeStyle } from './style.js';
  * @property {string} reveal    texte affiché au verso (réponse complète)
  * @property {string} extra     complément (définition d'un cloze, exemple…)
  * @property {string} hint
+ * @property {string} example   exemple de la carte (pied de fiche)
  * @property {string|null} promptImage
  * @property {string|null} answerImage
  * @property {string|null} promptAudio
  * @property {string|null} answerAudio
  * @property {boolean} reversed
- * @property {Object} style     apparence effective (style du jeu complété par celui de la carte)
+ * @property {Object} style     apparence effective (réglages, puis jeu, puis carte)
  * @property {{image:string, masks:Array, n:number, mode:'all'|'one'}} [occlusion]  image masquée : groupe actif `n`
  */
 
@@ -39,6 +40,7 @@ export function expandCard(card, direction = 'term', setStyle = {}) {
         reveal: answer,
         extra: card.definition,
         hint: card.hint,
+        example: card.example,
         promptImage: null,
         answerImage: null,
         promptAudio: null,
@@ -60,6 +62,7 @@ export function expandCard(card, direction = 'term', setStyle = {}) {
       reveal: renderCloze(card.term, c.n, 'reveal'),
       extra: card.definition,
       hint: c.hint || card.hint,
+      example: card.example,
       promptImage: card.termImage || card.image,
       answerImage: null,
       promptAudio: null,
@@ -77,6 +80,7 @@ export function expandCard(card, direction = 'term', setStyle = {}) {
     reveal: card.definition,
     extra: card.example,
     hint: card.hint,
+    example: card.example,
     promptImage: card.termImage || null,
     answerImage: card.image,
     promptAudio: card.audio,
@@ -103,8 +107,10 @@ export function expandCard(card, direction = 'term', setStyle = {}) {
   return [fwd];
 }
 
-export function expandSet(set, direction = 'term') {
-  return set.cards.flatMap((c) => expandCard(c, direction, set.style));
+/** `baseStyle` : apparence par défaut des réglages, que le style du jeu complète. */
+export function expandSet(set, direction = 'term', baseStyle = {}) {
+  const setStyle = mergeStyle(baseStyle, set.style);
+  return set.cards.flatMap((c) => expandCard(c, direction, setStyle));
 }
 
 /**

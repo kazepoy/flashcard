@@ -8,12 +8,17 @@ Dropbox, rsync…). Tous les fichiers sont en UTF-8, JSON indenté de 2 espaces.
 ```
 ma-bibliotheque/
 ├─ flashcard.json              manifeste de la bibliothèque
-├─ settings.json               préférences (sans secret)
+├─ settings.json               préférences de l'appareil (sans secret)
+├─ shared/settings.json        préférences partagées entre appareils (étude, nouveaux jeux)
 ├─ sets/<setId>.json           contenu d'un jeu de cartes
 ├─ progress/<setId>.json       état d'apprentissage (FSRS, maîtrise, étoiles…)
 ├─ logs/<setId>.jsonl          historique des révisions, une ligne JSON par révision
-└─ media/<sha256>.<ext>        images et audio (nom = SHA-256 du contenu, dédupliqué)
+├─ media/<sha256>.<ext>        images et audio (nom = SHA-256 du contenu, dédupliqué)
+└─ archive/<setId>.flashcard.zip   jeu archivé : archive d'échange (jeu, progression, journal, médias)
 ```
+
+Un **jeu archivé** quitte `sets/`, `progress/` et `logs/` : il n'est plus affiché ni étudié, mais reste
+dans `archive/` jusqu'à sa restauration (contenu remis en place, fusionné s'il existe déjà, archive supprimée).
 
 Le **contenu** (`sets/`) est séparé de la **progression** (`progress/`, `logs/`) :
 on peut partager un jeu sans partager son historique.
@@ -106,11 +111,12 @@ Objet `style` (toutes les clés sont facultatives) :
 | --------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `bg`      | couleur de fond `#RRGGBB`                                                                                                                                                                                                                                                                                                                |
 | `backBg`  | couleur de fond du verso, si différente                                                                                                                                                                                                                                                                                                  |
-| `fg`      | couleur du texte `#RRGGBB` ; le lecteur DOIT la remplacer par une couleur lisible (contraste WCAG ≥ 4,5) si elle ne l'est pas sur le fond                                                                                                                                                                                                |
+| `fg`      | couleur du texte `#RRGGBB` ; le lecteur DOIT la remplacer par une couleur lisible (contraste WCAG ≥ 3, seuil des grands caractères) si elle ne l'est pas sur le fond                                                                                                                                                                     |
 | `cloze`   | couleur `#RRGGBB` des mots révélés d'un texte à trous ; remplacée par une couleur lisible si besoin, comme `fg`                                                                                                                                                                                                                          |
 | `font`    | `default` (police par défaut du lecteur, utile sur une carte pour ne pas reprendre celle du jeu) \| `serif` \| `sans` \| `mono` \| `hand` \| `opendyslexic` \| `atkinson` (Atkinson Hyperlegible) \| `lexend` \| `andika` ; absent : comme le jeu, sinon police par défaut du lecteur (Flashcard : celle des réglages, sinon manuscrite) |
 | `size`    | `sm` \| `md` \| `lg` \| `xl`                                                                                                                                                                                                                                                                                                             |
-| `align`   | `left` \| `center`                                                                                                                                                                                                                                                                                                                       |
+| `align`   | `center` (défaut) \| `left`                                                                                                                                                                                                                                                                                                              |
+| `valign`  | `middle` (défaut) \| `top` : contenu centré verticalement, ou en haut de la fiche                                                                                                                                                                                                                                                        |
 | `paper`   | `ruled` (lignes) \| `plain` (uni) \| `grid` (quadrillé) \| `dots` (pointillé)                                                                                                                                                                                                                                                            |
 | `bgImage` | chemin `media/…` : image de fond de la carte                                                                                                                                                                                                                                                                                             |
 
@@ -249,6 +255,7 @@ directement exploitable par l'optimiseur FSRS.
   "theme": "auto",
   "readingFont": "default",
   "language": { "term": "fr", "definition": "fr" },
+  "cardStyle": { "paper": "dots", "size": "lg" },
   "initialized": true,
   "newPerDay": 20,
   "reviewsPerDay": 200,
@@ -259,6 +266,9 @@ directement exploitable par l'optimiseur FSRS.
 ```
 
 `language` : `{ "term": …, "definition": … }`, codes proposés aux nouveaux jeux (comme `language` d'un jeu).
+`cardStyle` : apparence par défaut de toutes les cartes, mêmes clés que `style` d'un jeu (sans `bgImage`,
+les réglages n'étant pas synchronisés). Trois niveaux : `cardStyle`, complété par `style` du jeu, puis par
+`style` de la carte.
 `initialized` : `true` une fois la première ouverture traitée (langue d'après le navigateur, jeux d'exemple
 importés si la bibliothèque était vide).
 `theme` : `"auto"` (clair ou sombre selon le système) ou l'identifiant d'un thème de l'interface
@@ -268,6 +278,27 @@ importés si la bibliothèque était vide).
 la manuscrite) ; une carte ou un jeu qui en choisit une la garde. Un lecteur applique `"default"` à un
 identifiant qu'il ne connaît pas.
 
+### `shared/settings.json`
+
+Réglages partagés entre appareils par la synchronisation : `language`, `newPerDay`, `reviewsPerDay`,
+`retention`, `typoTolerance`, `tts`. Ils priment sur ceux de `settings.json` (qui en garde une copie).
+Thème, langue de l'interface, police, apparence par défaut des cartes restent propres à chaque appareil.
+
+```json
+{
+  "format": "flashcard.sharedSettings",
+  "version": 1,
+  "values": { "newPerDay": 35, "retention": 0.85 },
+  "changed": { "newPerDay": "2026-11-02T10:00:00.000Z", "retention": "" }
+}
+```
+
+`changed` : date de la dernière modification de chaque réglage (`""` : valeur par défaut d'un appareil, jamais
+choisie). Fusion : pour chaque réglage, la date la plus récente l'emporte.
+`settings.json` garde une copie de ces réglages et de leurs dates (`sharedChanged`) : si l'écriture du fichier
+partagé n'a pas abouti (page fermée entre les deux écritures), la plus récente des deux versions l'emporte à la
+lecture, et le fichier partagé est réparé.
+
 La clé d'API du fournisseur d'IA n'est **jamais** écrite dans la bibliothèque
 (elle reste dans le stockage local du navigateur) : un dossier peut donc être
 partagé ou versionné sans fuite de secret.
@@ -276,7 +307,9 @@ partagé ou versionné sans fuite de secret.
 
 Zip contenant la même arborescence (partielle autorisée) : `flashcard.json`, un ou
 plusieurs `sets/*.json`, éventuellement `progress/`, `logs/`, et `media/` pour les
-fichiers référencés. Sert à partager un jeu ou à sauvegarder toute une bibliothèque.
+fichiers référencés. Sert à partager un jeu ou à sauvegarder toute une bibliothèque ; la sauvegarde
+complète joint aussi les jeux archivés (`archive/<setId>.flashcard.zip`, tels quels), qu'un import remet
+dans `archive/` s'ils n'y sont pas.
 
 ## Synchronisation multi-appareils et résolution de conflits
 

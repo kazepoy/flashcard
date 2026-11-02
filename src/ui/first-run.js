@@ -26,6 +26,10 @@ export async function firstRun(lib, { lang = browserLang(), fetchImpl = globalTh
     const b = await importBundle(new Uint8Array(await (await get(file)).arrayBuffer()));
     await lib.addSets(b.sets, b.media);
   }
-  await lib.saveSettings({ ...lib.settings, lang, language: { term: lang, definition: lang }, initialized: true });
+  // valeurs initiales de cet appareil : elles ne remplacent pas celles déjà choisies sur un autre (synchronisation)
+  await lib.saveSettings(
+    { ...lib.settings, lang, language: { term: lang, definition: lang }, initialized: true },
+    { initial: true },
+  );
   return true;
 }

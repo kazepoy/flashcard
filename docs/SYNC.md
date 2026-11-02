@@ -57,7 +57,7 @@ peut appeler un serveur d'un autre domaine que si celui-ci l'autorise (en-têtes
 aucun serveur ne fait par défaut : il faut le configurer (sur Nextcloud, une extension). Bien pour qui
 administre son serveur, pas pour le grand public. iCloud n'offre ni WebDAV ni API publique.
 
-**Dossier synchronisé.** Déjà disponible (Réglages › Stockage) : l'utilisateur choisit un dossier de son
+**Dossier synchronisé.** Déjà disponible (Réglages › Sauvegarde et restauration) : l'utilisateur choisit un dossier de son
 Google Drive, OneDrive, Dropbox ou iCloud installé sur l'ordinateur ; le client du service synchronise,
 Flashcard fusionne les copies en conflit. Aucun identifiant, mais seulement sur ordinateur avec un
 navigateur à base de Chromium (accès aux dossiers).
@@ -92,7 +92,10 @@ questions de droits : à traiter plus tard.
 
 ## Choix
 
-1. Google Drive : fait (portée `drive.file`, connexion d'une heure).
-2. OneDrive : fait (connexion d'environ 24 h, PKCE sans bibliothèque).
-3. Dropbox : fait (connexion durable, PKCE avec accès hors ligne).
+1. Google Drive : fait (portée `drive.file`, connexion d'une heure), puis **retiré** : la connexion qui
+   expire toutes les heures sans serveur était inutilisable au quotidien.
+2. OneDrive : fait (connexion d'environ 24 h, PKCE sans bibliothèque), puis **retiré** pour la même raison.
+   Le code des deux (`storage/gdrive.js`, `storage/onedrive.js`, `ui/google-auth.js`, `ui/microsoft-auth.js`)
+   et leurs tests sont récupérables dans l'historique git (version 0.2.7).
+3. Dropbox : fait (connexion durable, PKCE avec accès hors ligne) ; seul service proposé.
 4. WebDAV : possible plus tard pour les serveurs personnels, avec une notice de configuration CORS.

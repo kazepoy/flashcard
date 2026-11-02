@@ -7,16 +7,14 @@ import { Icon, Toasts, useToasts } from './components.jsx';
 import { AppCtx, href, routeOf, useRoute } from './ctx.js';
 import { errorText, getLang, onLang, t } from './i18n.js';
 import { Routes } from './routes.jsx';
-import { StorageNotice } from './storage-notice.jsx';
 import { applyReadingFont, applyTheme } from './themes.js';
 import { useLibrary } from './use-library.js';
 import { useSync } from './use-sync.js';
 
 function TopBar({ route }) {
-  const current = (page) =>
-    route.page === page || (page === 'settings' && route.page === 'sync') ? 'page' : undefined;
+  const current = (page) => (route.page === page ? 'page' : undefined);
   return (
-    <header class={'topbar' + (route.page === 'browse' ? ' wide' : '')}>
+    <header class="topbar">
       <a class="brand" href={href('')} aria-label="Flashcard">
         <span class="brand-card" aria-hidden="true" />
         <span class="brand-name">Flashcard</span>
@@ -99,8 +97,7 @@ function Root() {
           </button>
         </div>
       )}
-      {meta.kind === 'idb' && !meta.needsPermission && !sync.provider && !studying && <StorageNotice />}
-      <div class={'page' + (studying ? ' studying' : '') + (route.page === 'browse' ? ' wide' : '')}>
+      <div class={'page' + (studying ? ' studying' : '')}>
         <Routes route={route} />
       </div>
       <Toasts items={toasts} onDismiss={dismiss} />
