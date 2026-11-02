@@ -707,7 +707,7 @@ export default {
   'srs.rating.hard': 'Difficile',
   'srs.state.learn': 'En apprentissage',
   'srs.state.new': 'Nouvelle',
-  'srs.state.relearn': 'Réapprentissage',
+  'srs.state.relearn': 'Oubliée, à reprendre',
   'srs.state.review': 'En révision',
 
   'stats.activityOverYearAll': "Activité sur un an (toutes les méthodes d'étude)",
@@ -724,8 +724,8 @@ export default {
   'stats.hourRange': '{h} h – {h2} h',
   'stats.includingOverdue': 'dont {n} en retard',
   'stats.intervalsDays': 'Intervalles (jours)',
-  'stats.learning': 'Apprentissage',
-  'stats.mature': 'Matures',
+  'stats.learning': 'En apprentissage',
+  'stats.mature': 'Acquises',
   'stats.minutes': { one: '{n} minute', other: '{n} minutes' },
   'stats.noSpacedRepetitionDuring': 'Aucune révision espacée sur la période',
   'stats.noStatistics': 'Aucune statistique',
@@ -745,7 +745,7 @@ export default {
   'stats.range.365d': '1 an',
   'stats.range.90d': '3 mois',
   'stats.ratingsGivenLast30': 'Notes données (30 derniers jours)',
-  'stats.relearning': 'Réapprentissage',
+  'stats.relearning': 'Oubliées',
   'stats.reviewsHourLast30': 'Révisions par heure (30 derniers jours)',
   'stats.reviewsPerDay': 'Révisions par jour',
   'stats.reviewsPerWeek': 'Révisions par semaine',
@@ -759,8 +759,9 @@ export default {
   'stats.upcoming': 'À venir',
   'stats.week': 'Semaine du {d}',
   'stats.wholeLibrary': 'Toute la bibliothèque',
-  'stats.young': 'Jeunes',
-  'stats.youngIntervalUnder21': 'Jeune : intervalle de moins de 21 jours. Mature : 21 jours ou plus.',
+  'stats.young': 'À consolider',
+  'stats.youngIntervalUnder21':
+    'En apprentissage : vue récemment, revient dans la journée. À consolider : prochaine révision dans moins de 21 jours. Acquises : 21 jours ou plus. Oubliées : ratées en révision, à réapprendre.',
 
   'study.addCardsTermDefinition':
     'Ajoutez des cartes avec un terme et une définition, ou retirez le filtre « étoilées ».',

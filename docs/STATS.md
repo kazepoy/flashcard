@@ -32,17 +32,17 @@ sont exclues).
 
 Calculée par [core/analytics.js](../src/core/analytics.js), pour un jeu ou pour toute la bibliothèque.
 
-| Vue                                            | Source      | Ce qui est compté                                                                      |
-| ---------------------------------------------- | ----------- | -------------------------------------------------------------------------------------- |
-| Calendrier d'activité, série                   | les deux    | réponses par jour, tous modes (voir « Synchronisation »)                               |
-| Révisions espacées par jour                    | journal     | réponses en révision espacée, par catégorie : apprentissage, jeunes, matures, oubliées |
-| Rétention réelle                               | journal     | part des révisions réussies (toute note sauf « À revoir »), jeunes et matures à part   |
-| Heures de la journée, notes données            | journal     | révisions espacées des 30 derniers jours                                               |
-| À venir                                        | progression | échéances des 30 prochains jours                                                       |
-| Cartes (nouvelles, en cours, jeunes, matures)  | progression | état actuel de chaque carte                                                            |
-| Intervalles, difficulté, probabilité de rappel | progression | état FSRS actuel des cartes vues                                                       |
+| Vue                                                          | Source      | Ce qui est compté                                                                                |
+| ------------------------------------------------------------ | ----------- | ------------------------------------------------------------------------------------------------ |
+| Calendrier d'activité, série                                 | les deux    | réponses par jour, tous modes (voir « Synchronisation »)                                         |
+| Révisions espacées par jour                                  | journal     | réponses en révision espacée, par catégorie : en apprentissage, à consolider, acquises, oubliées |
+| Rétention réelle                                             | journal     | part des révisions réussies (toute note sauf « À revoir »), à consolider et acquises à part      |
+| Heures de la journée, notes données                          | journal     | révisions espacées des 30 derniers jours                                                         |
+| À venir                                                      | progression | échéances des 30 prochains jours                                                                 |
+| Cartes (nouvelles, en apprentissage, à consolider, acquises) | progression | état actuel de chaque carte                                                                      |
+| Intervalles, difficulté, probabilité de rappel               | progression | état FSRS actuel des cartes vues                                                                 |
 
-Une carte est **mature** à partir de 21 jours d'intervalle (même seuil qu'Anki). Les catégories du journal utilisent
+Une carte est **acquise** à partir de 21 jours d'intervalle, **à consolider** en deçà (ce sont les cartes « mature » et « young » d'Anki, même seuil). Les catégories du journal utilisent
 l'état de la carte **avant** la réponse.
 
 ## Synchronisation

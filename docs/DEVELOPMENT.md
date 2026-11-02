@@ -192,9 +192,10 @@ partie du préchargement hors ligne.
 
 ## Déploiement
 
-`dist/` se publie sur n'importe quel hébergement statique. `.github/workflows/pages.yml` teste,
-construit et publie sur GitHub Pages à chaque push sur `main` (à activer une fois : Settings → Pages
-→ Source « GitHub Actions » ; Pages exige un dépôt public ou une offre payante).
+`dist/` se publie sur n'importe quel hébergement statique. `.github/workflows/pages.yml` teste, construit et
+publie sur GitHub Pages à chaque **tag de version** poussé (`v*`), pas à un simple push sur `main` : pousser
+`main`, puis `git tag -a v0.3.1 -m v0.3.1 && git push origin v0.3.1`. À activer une fois : Settings → Pages →
+Source « GitHub Actions » (Pages exige un dépôt public ou une offre payante).
 
 ## Dépendances
 

@@ -691,7 +691,7 @@ export default {
   'srs.rating.hard': 'Hard',
   'srs.state.learn': 'Learning',
   'srs.state.new': 'New',
-  'srs.state.relearn': 'Relearning',
+  'srs.state.relearn': 'Forgotten, relearning',
   'srs.state.review': 'In review',
 
   'stats.activityOverYearAll': 'Activity over a year (all study modes)',
@@ -709,7 +709,7 @@ export default {
   'stats.includingOverdue': 'including {n} overdue',
   'stats.intervalsDays': 'Intervals (days)',
   'stats.learning': 'Learning',
-  'stats.mature': 'Mature',
+  'stats.mature': 'Well known',
   'stats.minutes': { one: '{n} minute', other: '{n} minutes' },
   'stats.noSpacedRepetitionDuring': 'No spaced repetition during this period',
   'stats.noStatistics': 'No statistics',
@@ -729,7 +729,7 @@ export default {
   'stats.range.365d': '1 year',
   'stats.range.90d': '3 months',
   'stats.ratingsGivenLast30': 'Ratings given (last 30 days)',
-  'stats.relearning': 'Relearning',
+  'stats.relearning': 'Forgotten',
   'stats.reviewsHourLast30': 'Reviews by hour (last 30 days)',
   'stats.reviewsPerDay': 'Reviews per day',
   'stats.reviewsPerWeek': 'Reviews per week',
@@ -743,8 +743,9 @@ export default {
   'stats.upcoming': 'Upcoming',
   'stats.week': 'Week of {d}',
   'stats.wholeLibrary': 'Whole library',
-  'stats.young': 'Young',
-  'stats.youngIntervalUnder21': 'Young: interval under 21 days. Mature: 21 days or more.',
+  'stats.young': 'Consolidating',
+  'stats.youngIntervalUnder21':
+    'Learning: seen recently, comes back the same day. Consolidating: next review in under 21 days. Well known: 21 days or more. Forgotten: missed in review, to be relearned.',
 
   'study.addCardsTermDefinition': 'Add cards with a term and a definition, or remove the “starred” filter.',
   'study.almostExpectedAnswer': 'Almost! The expected answer is',
