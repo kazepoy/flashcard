@@ -16,15 +16,15 @@ import {
 import { expandSet } from '../core/items.js';
 import { Scheduler } from '../core/srs.js';
 import { Calendar, Columns, SplitBar } from './charts.jsx';
-import { Empty } from './components.jsx';
+import { Empty, InfoTip } from './components.jsx';
 import { go, href, useApp, useAsync } from './ctx.js';
 import { errorText, locale, percent, t, tn } from './i18n.js';
 
 const KIND_SERIES = () => [
-  { key: 'learn', label: t('stats.learning'), color: 'var(--s1)' },
-  { key: 'young', label: t('stats.young'), color: 'var(--s2)' },
-  { key: 'mature', label: t('stats.mature'), color: 'var(--s3)' },
-  { key: 'relearn', label: t('stats.relearning'), color: 'var(--s4)' },
+  { key: 'learn', label: t('stats.learning'), help: t('stats.help.learn'), color: 'var(--s1)' },
+  { key: 'young', label: t('stats.young'), help: t('stats.help.young'), color: 'var(--s2)' },
+  { key: 'mature', label: t('stats.mature'), help: t('stats.help.mature'), color: 'var(--s3)' },
+  { key: 'relearn', label: t('stats.relearning'), help: t('stats.help.relearn'), color: 'var(--s4)' },
 ];
 const RANGES = [
   [30, 'stats.range.30d'],
@@ -164,7 +164,7 @@ export function StatsPage({ setId = null }) {
       </section>
 
       <section class="panel">
-        <Calendar title={t('stats.activityOverYearAll')} days={stats.activity} />
+        <Calendar title={t('stats.activityOverYearAll')} help={t('stats.help.activity')} days={stats.activity} />
       </section>
 
       <section class="panel">
@@ -185,6 +185,7 @@ export function StatsPage({ setId = null }) {
         </div>
         <Columns
           title={range === 365 ? t('stats.reviewsPerWeek') : t('stats.reviewsPerDay')}
+          help={t('stats.help.reviews')}
           data={reviews}
           series={series}
           labelEvery={range === 30 ? 5 : range === 90 ? 15 : 8}
@@ -197,6 +198,7 @@ export function StatsPage({ setId = null }) {
           <h2>{t('stats.upcoming')}</h2>
           <Columns
             title={t('stats.cardsDueNext30')}
+            help={t('stats.help.due')}
             data={stats.due.perDay.map((n, i) => {
               const d = new Date(now);
               d.setDate(d.getDate() + i);
@@ -219,27 +221,57 @@ export function StatsPage({ setId = null }) {
           <h2>{t('common.cards')}</h2>
           <SplitBar
             title={t('stats.breakdownStudyItems')}
+            help={t('stats.help.breakdown')}
             parts={[
-              { key: 'new', label: t('common.new'), n: stats.counts.new, color: 'var(--s-neutral)' },
-              { key: 'learn', label: t('stats.learning'), n: stats.counts.learn, color: 'var(--s1)' },
-              { key: 'young', label: t('stats.young'), n: stats.counts.young, color: 'var(--s2)' },
-              { key: 'mature', label: t('stats.mature'), n: stats.counts.mature, color: 'var(--s3)' },
+              {
+                key: 'new',
+                label: t('common.new'),
+                help: t('stats.help.new'),
+                n: stats.counts.new,
+                color: 'var(--s-neutral)',
+              },
+              {
+                key: 'learn',
+                label: t('stats.learning'),
+                help: t('stats.help.learn'),
+                n: stats.counts.learn,
+                color: 'var(--s1)',
+              },
+              {
+                key: 'young',
+                label: t('stats.young'),
+                help: t('stats.help.young'),
+                n: stats.counts.young,
+                color: 'var(--s2)',
+              },
+              {
+                key: 'mature',
+                label: t('stats.mature'),
+                help: t('stats.help.mature'),
+                n: stats.counts.mature,
+                color: 'var(--s3)',
+              },
             ]}
           />
-          <p class="muted small">{t('stats.youngIntervalUnder21')}</p>
         </section>
       </div>
 
       <section class="panel">
-        <h2>{t('stats.trueRetention')}</h2>
+        <h2>
+          {t('stats.trueRetention')} <InfoTip text={t('stats.help.retention')} />
+        </h2>
         <p class="muted small">{t('stats.shareSuccessfulReviewsAny', { p: pct(settings.retention) })}</p>
         <div class="table-scroll">
           <table class="mini-table ret-table">
             <thead>
               <tr>
                 <th>{t('common.period')}</th>
-                <th>{t('stats.young')}</th>
-                <th>{t('stats.mature')}</th>
+                <th>
+                  {t('stats.young')} <InfoTip text={t('stats.help.young')} />
+                </th>
+                <th>
+                  {t('stats.mature')} <InfoTip text={t('stats.help.mature')} />
+                </th>
                 <th>{t('common.total')}</th>
                 <th>{t('browse.sort.reps')}</th>
               </tr>
@@ -265,6 +297,7 @@ export function StatsPage({ setId = null }) {
         <section class="panel">
           <Columns
             title={t('stats.intervalsDays')}
+            help={t('stats.help.intervals')}
             data={stats.intervals.map((b) => ({
               label:
                 b.hi === Infinity
@@ -283,6 +316,7 @@ export function StatsPage({ setId = null }) {
         <section class="panel">
           <Columns
             title={t('stats.fsrsDifficulty1Easy')}
+            help={t('stats.help.difficulty')}
             data={stats.difficulty.map((b) => ({
               label: b.hi === Infinity ? '9–10' : `${b.lo}–${b.hi}`,
               short: String(b.lo),
@@ -296,6 +330,7 @@ export function StatsPage({ setId = null }) {
         <section class="panel">
           <Columns
             title={t('stats.currentRecallProbability')}
+            help={t('stats.help.recall')}
             data={stats.recall.map((b) => ({
               label: percent(`${b.lo}–${b.hi === Infinity ? 100 : b.hi}`),
               short: `${b.lo}`,
@@ -312,6 +347,7 @@ export function StatsPage({ setId = null }) {
         <section class="panel">
           <Columns
             title={t('stats.reviewsHourLast30')}
+            help={t('stats.help.hours')}
             data={stats.hours.map((h) => ({
               label: t('stats.hourRange', { h: h.hour, h2: h.hour + 1 }),
               short: String(h.hour),
@@ -324,7 +360,9 @@ export function StatsPage({ setId = null }) {
           />
         </section>
         <section class="panel">
-          <h2 class="chart-title">{t('stats.ratingsGivenLast30')}</h2>
+          <h2 class="chart-title">
+            {t('stats.ratingsGivenLast30')} <InfoTip text={t('stats.help.ratings')} />
+          </h2>
           <div class="table-scroll">
             <table class="mini-table">
               <thead>
@@ -343,7 +381,8 @@ export function StatsPage({ setId = null }) {
                   return (
                     <tr key={s.key}>
                       <td>
-                        <span class="key" style={{ background: s.color }} /> {s.label}
+                        <span class="key" style={{ background: s.color }} /> {s.label}{' '}
+                        {s.help && <InfoTip text={s.help} />}
                       </td>
                       <td>{p(b[1])}</td>
                       <td>{p(b[2])}</td>

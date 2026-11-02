@@ -2553,6 +2553,47 @@ details.search-help table {
   align-items: center;
   gap: 0.35rem;
 }
+/* aide d'un terme : ⓘ et bulle, au survol ou au focus (toucher, clavier) */
+.info-tip {
+  position: relative;
+  display: inline-grid;
+  place-items: center;
+  padding: 0;
+  margin-left: 0.1rem;
+  border: 0;
+  background: none;
+  color: var(--muted);
+  cursor: help;
+  vertical-align: middle;
+}
+.info-tip:hover,
+.info-tip:focus-visible {
+  color: var(--accent);
+}
+.info-tip .tip {
+  position: absolute;
+  z-index: 20;
+  bottom: calc(100% + 0.45rem);
+  left: 50%;
+  transform: translateX(-50%);
+  width: max-content;
+  max-width: min(17rem, 80vw);
+  padding: 0.45rem 0.6rem;
+  border-radius: 6px;
+  background: var(--ink);
+  color: var(--surface);
+  font: 400 0.8rem/1.35 var(--font-ui);
+  text-align: left;
+  white-space: normal;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.18);
+  pointer-events: none;
+  /* fermée : hors de la mise en page (une bulle cachée près du bord ferait défiler la page sur mobile) */
+  display: none;
+}
+.info-tip:hover .tip,
+.info-tip:focus .tip {
+  display: block;
+}
 .legend.values {
   margin-top: 0.6rem;
 }

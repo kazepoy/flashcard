@@ -113,6 +113,7 @@ test/          tests unitaires (node:test) et e2e.mjs
 
 Choix et comparaison des services (Dropbox ; Google Drive et OneDrive retirés ; WebDAV…) : [SYNC.md](SYNC.md).
 Calcul des statistiques et effet de la synchronisation sur elles : [STATS.md](STATS.md).
+Fonctionnement de la révision espacée (états, réponses, délais, séance) : [REVISION.md](REVISION.md).
 Fonction IA (consignes, fournisseurs, réponse attendue) : [IA.md](IA.md).
 
 `storage/sync.js` compare chaque fichier (`sets/`, `progress/`, `logs/`, `media/`, `archive/`, `shared/`) à

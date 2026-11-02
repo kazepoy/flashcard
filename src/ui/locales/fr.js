@@ -721,6 +721,33 @@ export default {
   'stats.daysRange': '{a} à {b} j',
   'stats.dueNow': 'À réviser maintenant',
   'stats.fsrsDifficulty1Easy': 'Difficulté FSRS (1 = facile, 10 = difficile)',
+  'stats.help.activity':
+    "Nombre de réponses données chaque jour, tous modes d'étude confondus. Plus la case est foncée, plus vous avez étudié ce jour-là.",
+  'stats.help.breakdown':
+    "Où en sont vos cartes : chaque élément d'étude (un sens d'une carte, un trou, un groupe de masques) est compté selon son état actuel.",
+  'stats.help.difficulty':
+    "Difficulté de chaque carte estimée par FSRS d'après vos réponses, de 1 (facile) à 10 (difficile). Les cartes difficiles reviennent plus souvent.",
+  'stats.help.due':
+    "Nombre de cartes dont la prochaine révision tombe chaque jour. Aujourd'hui inclut les cartes en retard.",
+  'stats.help.hours':
+    'Heure de vos révisions espacées sur les 30 derniers jours, avec le taux de réussite par heure : pour repérer vos meilleurs moments.',
+  'stats.help.intervals':
+    'Délai actuel entre deux révisions, pour chaque carte en révision. Plus les barres sont à droite, plus vos cartes sont ancrées.',
+  'stats.help.learn':
+    'En apprentissage : vues récemment ; elles reviennent dans la journée, par étapes (1 min, puis 10 min).',
+  'stats.help.mature': 'Acquises : bien ancrées ; prochaine révision dans 21 jours ou plus.',
+  'stats.help.new': 'Nouvelles : jamais étudiées en révision espacée.',
+  'stats.help.ratings':
+    "Répartition de vos réponses en révision espacée sur 30 jours, selon l'état de la carte. Beaucoup de « Facile » : des intervalles peut-être trop prudents ; beaucoup de « À revoir » : des cartes à reformuler.",
+  'stats.help.recall':
+    'Probabilité, estimée par FSRS, de vous souvenir de chaque carte maintenant. Elle baisse avec le temps et remonte à chaque révision réussie.',
+  'stats.help.relearn':
+    'Oubliées : ratées en révision (« À revoir ») ; elles sont réapprises, avec une étape de 10 min.',
+  'stats.help.retention':
+    'Part des révisions réussies (toute réponse sauf « À revoir ») sur des cartes en révision. Nettement sous la rétention visée des réglages : vous oubliez plus que prévu.',
+  'stats.help.reviews':
+    "Réponses données en révision espacée, par jour (ou par semaine sur un an), classées selon l'état de la carte au moment de la réponse.",
+  'stats.help.young': 'À consolider : connues, mais encore fragiles ; prochaine révision dans moins de 21 jours.',
   'stats.hourRange': '{h} h – {h2} h',
   'stats.includingOverdue': 'dont {n} en retard',
   'stats.intervalsDays': 'Intervalles (jours)',
@@ -760,8 +787,6 @@ export default {
   'stats.week': 'Semaine du {d}',
   'stats.wholeLibrary': 'Toute la bibliothèque',
   'stats.young': 'À consolider',
-  'stats.youngIntervalUnder21':
-    'En apprentissage : vue récemment, revient dans la journée. À consolider : prochaine révision dans moins de 21 jours. Acquises : 21 jours ou plus. Oubliées : ratées en révision, à réapprendre.',
 
   'study.addCardsTermDefinition':
     'Ajoutez des cartes avec un terme et une définition, ou retirez le filtre « étoilées ».',

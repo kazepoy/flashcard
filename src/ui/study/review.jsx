@@ -70,16 +70,20 @@ function ReviewRun({ set, progress, update, log, items, options, settings, boost
     setShown(false);
   }, [item?.id, turn]);
 
+  // Instant de référence, figé à l'affichage de la réponse : la durée affichée sur chaque bouton et celle
+  // enregistrée viennent du même calcul (l'écart aléatoire de FSRS dépend de l'heure exacte).
+  // dépendances : déclencheurs (nouvelle carte, nouveau tour, réponse affichée), pas des valeurs lues
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const at = useMemo(() => new Date(), [item?.id, turn, shown]);
   // état de la séance (une carte en réapprentissage revient avec son nouvel état)
-  const preview = item ? scheduler.preview(session.srs[item.id] ?? null, new Date()) : null;
+  const preview = item ? scheduler.preview(session.srs[item.id] ?? null, at) : null;
 
   const grade = (g) => {
     if (!item || !shown) return;
     try {
-      const now = new Date();
-      const ms = now - started.current;
-      const res = session.answer(item.id, g, now, ms);
-      update((p) => applySrsResult(p, res, now, ms));
+      const ms = Date.now() - started.current;
+      const res = session.answer(item.id, g, at, ms);
+      update((p) => applySrsResult(p, res, at, ms));
       log(res.log);
       setItem(session.current());
       setTurn((n) => n + 1);
@@ -173,7 +177,7 @@ function ReviewRun({ set, progress, update, log, items, options, settings, boost
             [Grade.Again, Grade.Hard, Grade.Good, Grade.Easy].map((g) => (
               <button key={g} class={'btn grade g' + g} onClick={() => grade(g)}>
                 <span>{labels[g]}</span>
-                <small>{intervalText(new Date(), preview[g], lang)}</small>
+                <small>{intervalText(at, preview[g], lang)}</small>
                 <kbd>{g}</kbd>
               </button>
             ))

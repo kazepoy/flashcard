@@ -569,3 +569,15 @@ test('archivage proposé : plus étudié depuis 3 mois, jamais étudié, ou term
   // une carte jamais vue : pas terminé
   assert.equal(archiveSuggestion(s, items, p([[items[0].id, st(-2, 300)]]), now), null);
 });
+
+test('révision : la durée annoncée sur chaque bouton est celle enregistrée (même instant, même écart aléatoire)', async () => {
+  const s = new Scheduler({ retention: 0.9 }); // écart aléatoire activé, comme dans l'application
+  let srs = null;
+  let at = new Date('2026-11-03T10:00:00Z');
+  for (const g of [3, 3, 3, 3]) {
+    const shown = s.preview(srs, at);
+    for (const k of [1, 2, 3, 4]) assert.equal(s.review(srs, k, at).srs.due, shown[k].toISOString());
+    srs = s.review(srs, g, at).srs;
+    at = new Date(srs.due);
+  }
+});

@@ -25,6 +25,7 @@ const P = {
   pause: 'M9 6v12M15 6v12',
   cloud: 'M7 18h10.5a3.5 3.5 0 00.4-7A5.5 5.5 0 007.3 9.4 4.3 4.3 0 007 18z',
   lock: 'M6 11h12v9H6zM8.5 11V8a3.5 3.5 0 017 0v3',
+  info: 'M12 21a9 9 0 100-18 9 9 0 000 18zM12 11v5M12 8h.01',
   eye: 'M3 12c.5-1.5 4-6 9-6s8.5 4.5 9 6c-.5 1.5-4 6-9 6s-8.5-4.5-9-6zM12 9a3 3 0 100 6 3 3 0 000-6z',
   eyeOff:
     'M3 3l18 18M10.6 6.2A9.6 9.6 0 0112 6c5 0 8.5 4.5 9 6-.3.8-1.2 2.3-2.7 3.6M6.4 7.6C4.6 8.9 3.4 10.7 3 12c.5 1.5 4 6 9 6 1.4 0 2.7-.3 3.8-.9M9.9 9.9a3 3 0 004.2 4.2',
@@ -191,6 +192,21 @@ export function FlipCard({ front, back, frontStyle, backStyle, flipped, onFlip, 
 }
 
 // ------------------------------------------------------------------ divers
+
+/**
+ * Petite icône ⓘ et sa bulle d'explication : au survol, et au toucher ou au clavier (focus), pour les
+ * appareils sans survol. Le texte sert aussi de nom accessible.
+ */
+export function InfoTip({ text }) {
+  return (
+    <button type="button" class="info-tip" aria-label={text} onClick={(e) => e.currentTarget.focus()}>
+      <Icon name="info" size={14} />
+      <span class="tip" role="tooltip" aria-hidden="true">
+        {text}
+      </span>
+    </button>
+  );
+}
 
 /**
  * Bloc repliable (<details>) dont le contenu n'est construit qu'une fois déplié : un éditeur de

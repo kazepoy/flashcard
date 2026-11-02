@@ -705,6 +705,30 @@ export default {
   'stats.daysRange': '{a} to {b} d',
   'stats.dueNow': 'Due now',
   'stats.fsrsDifficulty1Easy': 'FSRS difficulty (1 = easy, 10 = hard)',
+  'stats.help.activity':
+    'Number of answers given each day, across all study modes. The darker the square, the more you studied that day.',
+  'stats.help.breakdown':
+    'Where your cards stand: each study item (one direction of a card, a blank, a mask group) is counted by its current state.',
+  'stats.help.difficulty':
+    'Difficulty of each card estimated by FSRS from your answers, from 1 (easy) to 10 (hard). Hard cards come back more often.',
+  'stats.help.due': 'Number of cards whose next review falls on each day. Today includes overdue cards.',
+  'stats.help.hours':
+    'Time of day of your spaced repetition reviews over the last 30 days, with the success rate per hour: to spot your best moments.',
+  'stats.help.intervals':
+    'Current gap between two reviews, for each card in review. The further right the bars, the better anchored your cards.',
+  'stats.help.learn': 'Learning: seen recently; they come back the same day, in steps (1 min, then 10 min).',
+  'stats.help.mature': 'Well known: firmly anchored; next review in 21 days or more.',
+  'stats.help.new': 'New: never studied in spaced repetition.',
+  'stats.help.ratings':
+    'Breakdown of your spaced repetition answers over 30 days, by card state. Many “Easy”: intervals may be too cautious; many “Again”: cards worth rewording.',
+  'stats.help.recall':
+    'Probability, estimated by FSRS, that you remember each card right now. It drops over time and goes back up with each successful review.',
+  'stats.help.relearn': 'Forgotten: missed in review (“Again”); they are relearned, with a 10-minute step.',
+  'stats.help.retention':
+    'Share of successful reviews (any answer but “Again”) on cards in review. Well below the target retention in settings: you forget more than expected.',
+  'stats.help.reviews':
+    "Answers given in spaced repetition, per day (or per week over a year), grouped by the card's state at the time of the answer.",
+  'stats.help.young': 'Consolidating: known but still fragile; next review in under 21 days.',
   'stats.hourRange': '{h}:00 – {h2}:00',
   'stats.includingOverdue': 'including {n} overdue',
   'stats.intervalsDays': 'Intervals (days)',
@@ -744,8 +768,6 @@ export default {
   'stats.week': 'Week of {d}',
   'stats.wholeLibrary': 'Whole library',
   'stats.young': 'Consolidating',
-  'stats.youngIntervalUnder21':
-    'Learning: seen recently, comes back the same day. Consolidating: next review in under 21 days. Well known: 21 days or more. Forgotten: missed in review, to be relearned.',
 
   'study.addCardsTermDefinition': 'Add cards with a term and a definition, or remove the “starred” filter.',
   'study.almostExpectedAnswer': 'Almost! The expected answer is',

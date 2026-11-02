@@ -1,6 +1,7 @@
 // Petits graphiques SVG sans dépendance : colonnes (empilées ou non), barre de répartition,
 // calendrier d'activité. Chaque graphique a une info-bulle au survol et une vue tableau.
 import { useEffect, useRef, useState } from 'preact/hooks';
+import { InfoTip } from './components.jsx';
 import { locale, percent, t } from './i18n.js';
 
 const nf = () => new Intl.NumberFormat(locale());
@@ -43,6 +44,7 @@ export function Legend({ series }) {
         <li key={s.key}>
           <span class="key" style={{ background: s.color }} />
           {s.label}
+          {s.help && <InfoTip text={s.help} />}
         </li>
       ))}
     </ul>
@@ -82,7 +84,7 @@ function DataTable({ head, rows }) {
  * @param {{data: Array<{label:string, short?:string, values:Record<string,number>}>, series: Array<{key,label,color}>,
  *          title:string, labelEvery?:number, height?:number, highlightLast?:boolean, format?:(n)=>string}} p
  */
-export function Columns({ data, series, title, labelEvery = 1, height = 160, format, empty }) {
+export function Columns({ data, series, title, help, labelEvery = 1, height = 160, format, empty }) {
   const [hover, setHover] = useState(null);
   const wrap = useRef();
   const fmt = format || ((n) => nf().format(n));
@@ -108,7 +110,10 @@ export function Columns({ data, series, title, labelEvery = 1, height = 160, for
 
   return (
     <figure class="chart">
-      <figcaption class="chart-title">{title}</figcaption>
+      <figcaption class="chart-title">
+        {title}
+        {help && <InfoTip text={help} />}
+      </figcaption>
       <Legend series={series} />
       <div class="chart-wrap" ref={wrap} onPointerLeave={() => setHover(null)}>
         <svg width={W} height={height} viewBox={`0 0 ${W} ${height}`} role="img" aria-label={title} class="chart-svg">
@@ -193,13 +198,16 @@ export function Columns({ data, series, title, labelEvery = 1, height = 160, for
 }
 
 /** Barre de répartition (100 %) avec légende chiffrée. */
-export function SplitBar({ title, parts }) {
+export function SplitBar({ title, help, parts }) {
   const total = parts.reduce((n, p) => n + p.n, 0);
   const pct = (n) => (total ? Math.round((n / total) * 100) : 0);
   const f = nf();
   return (
     <figure class="chart">
-      <figcaption class="chart-title">{title}</figcaption>
+      <figcaption class="chart-title">
+        {title}
+        {help && <InfoTip text={help} />}
+      </figcaption>
       {total === 0 ? (
         <p class="muted">{t('charts.noDataYet')}</p>
       ) : (
@@ -220,6 +228,7 @@ export function SplitBar({ title, parts }) {
           <li key={p.key}>
             <span class="key" style={{ background: p.color }} />
             {p.label}
+            {p.help && <InfoTip text={p.help} />}
             <b>{f.format(p.n)}</b>
             <span class="muted">{percent(pct(p.n))}</span>
           </li>
@@ -230,7 +239,7 @@ export function SplitBar({ title, parts }) {
 }
 
 /** Calendrier d'activité : colonnes = semaines (lundi en haut), intensité = nombre de réponses. */
-export function Calendar({ title, days }) {
+export function Calendar({ title, help, days }) {
   const [hover, setHover] = useState(null);
   const grid = useRef();
   // sur petit écran, montrer d'abord les semaines les plus récentes
@@ -246,7 +255,10 @@ export function Calendar({ title, days }) {
   const active = days.filter((d) => d.n > 0).length;
   return (
     <figure class="chart">
-      <figcaption class="chart-title">{title}</figcaption>
+      <figcaption class="chart-title">
+        {title}
+        {help && <InfoTip text={help} />}
+      </figcaption>
       <div
         class="calendar"
         ref={grid}
