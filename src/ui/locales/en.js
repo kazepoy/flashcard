@@ -473,20 +473,34 @@ export default {
 
   'mode.flashcards': 'Flashcards',
   'mode.flashcardsDesc': 'Flip the cards, sort what you know.',
+  'mode.flashcardsHelp':
+    'You see the front, flip the card, and say whether you knew it. Nothing is scheduled: ideal to discover a set or skim it before a test. Works with every set, images and image occlusion included.',
   'mode.gravity': 'Gravity',
   'mode.gravityDesc': 'Destroy the asteroids by typing the answer.',
+  'mode.gravityHelp':
+    'Asteroids carrying a question fall: type the answer before they hit the ground. To practise answering fast. Needs text on both sides and short answers.',
   'mode.learn': 'Learn',
   'mode.learnDesc': 'Adaptive rounds: multiple choice, then written.',
+  'mode.learnHelp':
+    'Rounds of 7 cards: multiple choice first, then, once right, the answer to type. To memorise a new set in one session. Keeps only cards with a written answer, and needs several of them to offer choices.',
   'mode.match': 'Match',
   'mode.matchDesc': 'Match the pairs as fast as you can.',
+  'mode.matchHelp':
+    'Match each term to its definition, 6 pairs at a time, as fast as you can. To review while playing. Needs text on both sides: image-only cards and image occlusion are left out.',
   'mode.review': 'Spaced repetition',
   'mode.reviewDesc': "Today's queue, scheduled by FSRS.",
   'mode.spell': 'Spell',
   'mode.spellDesc': 'Listen to the word and write it.',
+  'mode.spellHelp':
+    'The term is read aloud in the term language, and you write it. For spelling in a foreign language: choose the term language in “Edit”. Of little use for a set that is not about a language.',
   'mode.test': 'Test',
   'mode.testDesc': 'A quiz generated from the set.',
+  'mode.testHelp':
+    'A graded test drawn from the set: multiple choice, true or false, written answer, matching. To take stock before an exam. Keeps only cards with a written answer.',
   'mode.write': 'Write',
   'mode.writeDesc': 'Type the answer, no safety net.',
+  'mode.writeHelp':
+    'You type the answer, with no choices offered; a likely typo is flagged rather than counted wrong (Settings › Study). The most demanding, to check you really know. For short answers: vocabulary, dates, formulas.',
 
   'occlusion.addImageFirst': 'Add an image first.',
   'occlusion.answerOptional': 'Answer (optional)',
@@ -537,6 +551,7 @@ export default {
   'set.allColumnsOpensSpreadsheet': 'All columns, opens in a spreadsheet.',
   'set.archive': 'Archive',
   'set.archiveHint': 'This set seems no longer in use ({reason}): you can archive it to lighten the library.',
+  'set.archiveInstead': 'Archive instead',
   'set.archived': '“{title}” archived: restore it from Settings › Backup and restore',
   'set.cardsDueNext14': 'Cards due in the next 14 days: {l}',
   'set.cardsMediaAnkiProgress': 'Cards and media, for Anki. Progress is not exported.',
@@ -546,10 +561,17 @@ export default {
   'set.datePassed': 'This date has passed.',
   'set.daysNeverSeenItems': '{d} days and {u} never-seen items left: introduce {p} per day to be ready in time.',
   'set.delete': 'Delete',
+  'set.deleteArchiveInstead':
+    'No longer studying it? Archive it instead: it leaves the library, its progress is kept, and you can restore it from Settings › Backup and restore.',
+  'set.deleteBrowser': 'The set will be deleted from this browser.',
   'set.deleteConfirm': 'Delete this set?',
+  'set.deleteEverywhere':
+    'Sync is on: the set will also be deleted from your {service} and from all your synced devices.',
+  'set.deleteFolder':
+    'The set will be deleted from the “{folder}” folder, and from the devices where other software (Dropbox, iCloud…) syncs that folder.',
   'set.deletePermanently': 'Delete permanently',
   'set.deleteWarning':
-    '“{title}” and its progress will be removed from the library. This cannot be undone; consider exporting the set first.',
+    '“{title}”, its cards and its progress will be deleted. This cannot be undone in Flashcard; export it first if you want to keep a copy.',
   'set.detailedStatistics': 'Detailed statistics',
   'set.downloadFile': 'Download the file',
   'set.exam': 'Exam',
@@ -562,6 +584,9 @@ export default {
   'set.includeMyProgressMy': 'Include my progress (for my other devices)',
   'set.masks': { one: '{n} mask', other: '{n} masks' },
   'set.memoryScore': 'Memory score',
+  'set.modeAllCards': { one: 'Its card', other: 'All {n} cards' },
+  'set.modeNoCards': 'No card in this set suits it',
+  'set.modeSomeCards': '{n} of {total} cards',
   'set.nativeLosslessFormatCards': 'Native lossless format: cards, styles, media and, optionally, progress.',
   'set.newLearningReview': '{a} new · {b} learning · {c} to review',
   'set.print': 'Print',
@@ -579,7 +604,7 @@ export default {
   'set.shareFile': 'Share the file',
   'set.shareTitle': 'Share “{title}”',
   'set.study': 'Study',
-  'set.studyAnyway': 'Study anyway',
+  'set.studyAnyway': 'Review anyway',
   'set.termDefinitionOneCard': "Term⇥definition, one card per line: to paste into Quizlet's import.",
   'set.upcomingReviews14Days': 'Upcoming reviews (14 days)',
   'set.views': 'Views',

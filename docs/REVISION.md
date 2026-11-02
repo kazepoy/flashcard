@@ -77,7 +77,7 @@ Les limites s'appliquent **par jeu** et comptent les réponses de révision espa
 journée sur ce jeu (`progress.daily`). Une date d'examen (page du jeu) impose son propre rythme de nouvelles cartes. Les cartes
 suspendues (bouton pause) sont exclues.
 
-Une fois la file vide, **« Étudier quand même »** propose, selon ce qui reste : 10 nouvelles cartes de plus,
+Une fois la file vide, **« Réviser quand même »** (page du jeu) ou les boutons de fin de séance proposent, selon ce qui reste : 10 nouvelles cartes de plus,
 50 révisions de plus, ou les révisions des 7 prochains jours en avance.
 
 ### Ordre de présentation
@@ -102,7 +102,7 @@ révision quitte donc toujours la séance, sauf avec « À revoir ».
   les cartes **terminées** (sorties de la séance). Légende : « 1 terminée · 4 vues sur 5 ».
 - **Compteurs** au-dessus de la carte, pour ce qui reste dans la séance : **nouvelles**, **en
   apprentissage** (reviendront sous peu), **à réviser** (comme les nombres bleu, rouge et vert d'Anki).
-- **Fin de séance** : nombre de cartes révisées, délai de la prochaine révision, et « Étudier quand même ».
+- **Fin de séance** : nombre de cartes révisées, délai de la prochaine révision, et de quoi réviser plus (nouvelles cartes, révisions, avance).
 
 ## Écart aléatoire
 

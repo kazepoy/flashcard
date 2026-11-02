@@ -89,6 +89,11 @@ try {
   await step('page du jeu', async () => {
     await page.getByRole('link', { name: 'Terminer' }).first().click();
     await page.getByText("7 cartes pour aujourd'hui").waitFor();
+    // chaque mode indique combien de cartes du jeu il peut utiliser (ici, des cartes texte : toutes)
+    assert.equal(
+      await page.locator('.modes li', { hasText: 'Association' }).locator('.mode-count').innerText(),
+      'Les 7 cartes',
+    );
     await shot('03-jeu');
   });
 
@@ -778,7 +783,7 @@ try {
     await p.getByLabel('Langue des définitions').waitFor();
     assert.equal(await p.getByLabel('Langue des définitions').inputValue(), 'fr');
     assert.equal(await p.getByLabel('Langue des termes').inputValue(), 'fr');
-    // limite du jour à 0 nouvelle carte : « Étudier quand même » ajoute 10 nouvelles cartes
+    // limite du jour à 0 nouvelle carte : « Réviser quand même » ajoute 10 nouvelles cartes
     await p.goto(base + '#/settings/study');
     await p.getByLabel(/Nouvelles cartes par jour/).evaluate((el) => {
       el.value = '0';
@@ -788,7 +793,7 @@ try {
     await p.goto(base);
     await p.locator('.set-row', { hasText: 'Visite guidée' }).click();
     await p.getByText(/Limite du jour atteinte : \d+ nouvelles/).waitFor();
-    await p.getByRole('link', { name: 'Étudier quand même' }).click();
+    await p.getByRole('link', { name: 'Réviser quand même' }).click();
     await p.locator('.flip').waitFor();
     assert.equal(await p.locator('.counts .pill.new').innerText(), '10 nouvelles');
     // remise à zéro : le jeu créé disparaît, les exemples reviennent
@@ -1003,6 +1008,16 @@ try {
     // B reçoit le réglage d'étude de A, appliqué sans recharger la page
     await b.p.goto(base + '#/settings/study');
     await b.p.getByText('Nouvelles cartes par jour : 35').waitFor();
+    // supprimer un jeu, synchronisation active : l'avertissement dit qu'il disparaîtra partout, et propose d'archiver
+    await b.p.goto(base);
+    await b.p.getByText('Jeu Dropbox de A', { exact: true }).click();
+    await b.p.getByRole('button', { name: 'Supprimer' }).click();
+    await b.p
+      .getByRole('dialog')
+      .getByText(/supprimé de votre Dropbox et de tous vos appareils synchronisés/)
+      .waitFor();
+    await b.p.getByRole('dialog').getByRole('button', { name: 'Archiver plutôt' }).waitFor();
+    await b.p.getByRole('dialog').getByRole('button', { name: 'Annuler' }).click();
     // « Tout supprimer » sur A : seule la bibliothèque de A est effacée, la copie Dropbox reste ;
     // reconnecté, A retrouve ses jeux
     const before = [...files.keys()].filter((k) => k.startsWith('/sets/')).sort();

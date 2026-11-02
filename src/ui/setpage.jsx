@@ -3,11 +3,22 @@ import { todayMore, todayQueue } from '../core/daily.js';
 import { Scheduler, defaultBoost } from '../core/srs.js';
 import { computeStats, examPlan } from '../core/stats.js';
 import { toggleStar, isSuspended, setSuspended } from '../core/progress.js';
-import { expandSet, activeItems } from '../core/items.js';
+import { expandSet, activeItems, usableFor } from '../core/items.js';
 import { exportApkg } from '../io/apkg-export.js';
 import { exportDelimited, exportQuizletText } from '../io/csv.js';
 import { exportMarkdown } from '../io/markdown.js';
-import { Dialog, Empty, Icon, MediaImage, Md, downloadBlob, fileDate, fileSlug, shareFile } from './components.jsx';
+import {
+  Dialog,
+  Empty,
+  Icon,
+  MediaImage,
+  Md,
+  downloadBlob,
+  fileDate,
+  fileSlug,
+  shareFile,
+  InfoTip,
+} from './components.jsx';
 import { go, href, useApp } from './ctx.js';
 import { errorText, locale, percent, t, tn } from './i18n.js';
 import { useSetData } from './useSet.js';
@@ -15,19 +26,25 @@ import { CardPreviewDialog } from './card-preview.jsx';
 import { archiveReasonText } from './archive-suggest.jsx';
 import { archiveSuggestion } from '../core/archive.js';
 
+// `need` et `direction` : les cartes que chaque mode retient (comme ses propres useItems ; voir usableFor)
 export const MODES = [
   { id: 'review', label: 'mode.review', desc: 'mode.reviewDesc', primary: true },
-  { id: 'flashcards', label: 'mode.flashcards', desc: 'mode.flashcardsDesc' },
-  { id: 'learn', label: 'mode.learn', desc: 'mode.learnDesc' },
-  { id: 'write', label: 'mode.write', desc: 'mode.writeDesc' },
-  { id: 'spell', label: 'mode.spell', desc: 'mode.spellDesc' },
-  { id: 'test', label: 'mode.test', desc: 'mode.testDesc' },
-  { id: 'match', label: 'mode.match', desc: 'mode.matchDesc' },
-  { id: 'gravity', label: 'mode.gravity', desc: 'mode.gravityDesc' },
+  { id: 'flashcards', label: 'mode.flashcards', desc: 'mode.flashcardsDesc', need: null },
+  { id: 'learn', label: 'mode.learn', desc: 'mode.learnDesc', need: 'text' },
+  { id: 'write', label: 'mode.write', desc: 'mode.writeDesc', need: 'text' },
+  { id: 'spell', label: 'mode.spell', desc: 'mode.spellDesc', need: 'plain', direction: 'def' },
+  { id: 'test', label: 'mode.test', desc: 'mode.testDesc', need: 'text' },
+  { id: 'match', label: 'mode.match', desc: 'mode.matchDesc', need: 'plain' },
+  { id: 'gravity', label: 'mode.gravity', desc: 'mode.gravityDesc', need: 'plain' },
 ];
 
+/** Nombre de cartes (non suspendues) qu'un mode peut utiliser dans ce jeu. */
+const usableCards = (set, progress, mode) =>
+  new Set(usableFor(activeItems(expandSet(set, mode.direction || 'term'), progress), mode.need).map((i) => i.cardId))
+    .size;
+
 export function SetPage({ setId }) {
-  const { lib, settings, toast, refresh } = useApp();
+  const { lib, settings, toast, refresh, sync, kind, folderName } = useApp();
   const { loading, set, progress, error, update } = useSetData(setId);
   const [exportOpen, setExportOpen] = useState(false);
   const [shareOpen, setShareOpen] = useState(false);
@@ -173,14 +190,39 @@ export function SetPage({ setId }) {
           <section aria-labelledby="modes-h">
             <h2 id="modes-h">{t('set.study')}</h2>
             <ul class="modes">
-              {MODES.filter((m) => !m.primary).map((m) => (
-                <li key={m.id}>
-                  <a class="mode" href={href(`set/${set.id}/study/${m.id}`)}>
-                    <strong>{t(m.label)}</strong>
-                    <span>{t(m.desc)}</span>
-                  </a>
-                </li>
-              ))}
+              {MODES.filter((m) => !m.primary).map((m) => {
+                const n = usableCards(set, progress, m);
+                const total = usableCards(set, progress, MODES[1]); // toutes les cartes non suspendues
+                const count = (
+                  <small class="mode-count">
+                    {n === total
+                      ? tn('set.modeAllCards', total)
+                      : n
+                        ? t('set.modeSomeCards', { n, total })
+                        : t('set.modeNoCards')}
+                  </small>
+                );
+                return (
+                  <li key={m.id}>
+                    {n ? (
+                      <a class="mode" href={href(`set/${set.id}/study/${m.id}`)}>
+                        <strong>{t(m.label)}</strong>
+                        <span>{t(m.desc)}</span>
+                        {count}
+                      </a>
+                    ) : (
+                      // aucune carte utilisable : mode grisé, pas de lien vers un écran vide
+                      <div class="mode disabled" aria-disabled="true">
+                        <strong>{t(m.label)}</strong>
+                        <span>{t(m.desc)}</span>
+                        {count}
+                      </div>
+                    )}
+                    {/* hors du lien : toucher ⓘ explique le mode sans l'ouvrir */}
+                    <InfoTip text={t(`mode.${m.id}Help`)} />
+                  </li>
+                );
+              })}
             </ul>
           </section>
 
@@ -328,6 +370,20 @@ export function SetPage({ setId }) {
           }
         >
           <p>{t('set.deleteWarning', { title: set.title })}</p>
+          {/* où la suppression s'applique : la synchronisation la propage partout */}
+          <p class="notice bad">
+            {sync.provider
+              ? t('set.deleteEverywhere', { service: sync.service })
+              : kind === 'fsa'
+                ? t('set.deleteFolder', { folder: folderName })
+                : t('set.deleteBrowser')}
+          </p>
+          <div class="notice">
+            <p>{t('set.deleteArchiveInstead')}</p>
+            <button class="btn" onClick={() => (setConfirmDelete(false), archive())}>
+              <Icon name="archive" /> {t('set.archiveInstead')}
+            </button>
+          </div>
         </Dialog>
       )}
     </article>

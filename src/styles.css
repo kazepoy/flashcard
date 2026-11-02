@@ -849,6 +849,26 @@ summary {
 .mode strong {
   font: 700 1.1rem var(--font-card);
 }
+.mode .mode-count {
+  color: var(--muted);
+  font-size: 0.8rem;
+}
+.mode.disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+/* bulle d'explication d'un mode : à côté du lien (pas dedans), en haut à droite */
+.modes li {
+  position: relative;
+}
+.modes li > .info-tip {
+  position: absolute;
+  top: 0.85rem;
+  right: 0.2rem;
+}
+.modes li > .mode {
+  padding-right: 1.8rem;
+}
 .mode span {
   color: var(--muted);
   font-size: 0.9rem;

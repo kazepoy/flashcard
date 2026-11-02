@@ -482,20 +482,34 @@ export default {
 
   'mode.flashcards': 'Fiches',
   'mode.flashcardsDesc': 'Retournez les fiches, triez ce que vous savez.',
+  'mode.flashcardsHelp':
+    "Vous voyez le recto, vous retournez la fiche, vous dites si vous saviez. Rien n'est planifié : idéal pour découvrir un jeu ou le survoler avant un contrôle. Convient à tous les jeux, images et images masquées comprises.",
   'mode.gravity': 'Gravité',
   'mode.gravityDesc': 'Détruisez les astéroïdes en tapant la réponse.',
+  'mode.gravityHelp':
+    "Des astéroïdes portant une question tombent : tapez la réponse avant qu'ils touchent le sol. Pour s'entraîner à répondre vite. Il faut du texte des deux côtés et des réponses courtes.",
   'mode.learn': 'Apprendre',
   'mode.learnDesc': 'Manches adaptatives : choix multiple puis écrit.',
+  'mode.learnHelp':
+    "Des manches de 7 cartes : d'abord un choix multiple, puis, une fois réussi, la réponse à taper. Pour mémoriser un jeu nouveau en une séance. Ne garde que les cartes qui ont une réponse écrite, et il en faut plusieurs pour proposer des choix.",
   'mode.match': 'Association',
   'mode.matchDesc': 'Reliez les paires le plus vite possible.',
+  'mode.matchHelp':
+    'Reliez chaque terme à sa définition, 6 paires à la fois, le plus vite possible. Pour réviser en jouant. Il faut du texte des deux côtés : les cartes à image seule et les images masquées sont écartées.',
   'mode.review': 'Révision espacée',
   'mode.reviewDesc': 'La file du jour, planifiée par FSRS.',
   'mode.spell': 'Épeler',
   'mode.spellDesc': 'Écoutez le mot et écrivez-le.',
+  'mode.spellHelp':
+    "Le terme est lu à voix haute dans la langue des termes, vous l'écrivez. Pour l'orthographe d'une langue étrangère : choisissez la langue des termes dans « Modifier ». Peu utile pour un jeu qui n'est pas de langue.",
   'mode.test': 'Test',
   'mode.testDesc': 'Un contrôle généré à partir du jeu.',
+  'mode.testHelp':
+    'Un contrôle noté, tiré du jeu : choix multiple, vrai ou faux, réponse écrite, association. Pour faire le point avant un examen. Ne garde que les cartes qui ont une réponse écrite.',
   'mode.write': 'Écrire',
   'mode.writeDesc': 'Tapez la réponse, sans filet.',
+  'mode.writeHelp':
+    "Vous tapez la réponse, sans choix proposé ; une faute de frappe probable est signalée plutôt que comptée fausse (Réglages › Étude). Le plus exigeant, pour vérifier qu'on sait vraiment. Pour les réponses courtes : vocabulaire, dates, formules.",
 
   'occlusion.addImageFirst': "Ajoutez d'abord une image.",
   'occlusion.answerOptional': 'Réponse (facultative)',
@@ -548,6 +562,7 @@ export default {
   'set.allColumnsOpensSpreadsheet': 'Toutes les colonnes, ouvrable dans un tableur.',
   'set.archive': 'Archiver',
   'set.archiveHint': "Ce jeu semble ne plus servir ({reason}) : vous pouvez l'archiver pour alléger la bibliothèque.",
+  'set.archiveInstead': 'Archiver plutôt',
   'set.archived': '« {title} » archivé : restaurable depuis Réglages › Sauvegarde et restauration',
   'set.cardsDueNext14': 'Cartes à réviser dans les 14 prochains jours : {l}',
   'set.cardsMediaAnkiProgress': "Cartes et médias, pour Anki. La progression n'est pas exportée.",
@@ -558,10 +573,17 @@ export default {
   'set.daysNeverSeenItems':
     'Il reste {d} jours et {u} éléments jamais vus : introduisez-en {p} par jour pour être prêt à temps.',
   'set.delete': 'Supprimer',
+  'set.deleteArchiveInstead':
+    "Vous ne l'étudiez plus ? Archivez-le plutôt : il quitte la bibliothèque, sa progression est gardée, et vous pourrez le restaurer depuis Réglages › Sauvegarde et restauration.",
+  'set.deleteBrowser': 'Le jeu sera supprimé de ce navigateur.',
   'set.deleteConfirm': 'Supprimer ce jeu ?',
+  'set.deleteEverywhere':
+    'La synchronisation est active : le jeu sera aussi supprimé de votre {service} et de tous vos appareils synchronisés.',
+  'set.deleteFolder':
+    'Le jeu sera supprimé du dossier « {folder} », et des appareils où un autre logiciel (Dropbox, iCloud…) synchronise ce dossier.',
   'set.deletePermanently': 'Supprimer définitivement',
   'set.deleteWarning':
-    '« {title} » et sa progression seront supprimés de la bibliothèque. Cette action est irréversible ; pensez à exporter le jeu avant.',
+    "« {title} », ses cartes et sa progression seront supprimés. C'est irréversible dans Flashcard ; pensez à l'exporter avant si vous voulez en garder une copie.",
   'set.detailedStatistics': 'Statistiques détaillées',
   'set.downloadFile': 'Télécharger le fichier',
   'set.exam': 'Examen',
@@ -575,6 +597,9 @@ export default {
   'set.includeMyProgressMy': 'Inclure ma progression (pour mes autres appareils)',
   'set.masks': { one: '{n} masque', other: '{n} masques' },
   'set.memoryScore': 'Score mémoire',
+  'set.modeAllCards': { one: 'Sa carte', other: 'Les {n} cartes' },
+  'set.modeNoCards': "Aucune carte de ce jeu ne s'y prête",
+  'set.modeSomeCards': '{n} cartes sur {total}',
   'set.nativeLosslessFormatCards': 'Format natif sans perte : cartes, styles, médias et, au choix, progression.',
   'set.newLearningReview': '{a} nouvelles · {b} en apprentissage · {c} à réviser',
   'set.print': 'Imprimer',
@@ -593,7 +618,7 @@ export default {
   'set.shareFile': 'Partager le fichier',
   'set.shareTitle': 'Partager « {title} »',
   'set.study': 'Étudier',
-  'set.studyAnyway': 'Étudier quand même',
+  'set.studyAnyway': 'Réviser quand même',
   'set.termDefinitionOneCard': "Terme⇥définition, une carte par ligne : à coller dans l'import de Quizlet.",
   'set.upcomingReviews14Days': 'Révisions à venir (14 jours)',
   'set.views': 'Vues',
