@@ -1,6 +1,7 @@
 // Statistiques détaillées : toute la bibliothèque ou un jeu (#/stats, #/stats/<setId>).
 import { useMemo, useState } from 'preact/hooks';
 import {
+  activeProgress,
   answerButtons,
   dailyActivity,
   difficultyHistogram,
@@ -12,20 +13,23 @@ import {
   reviewsPerDay,
   streak,
   trueRetention,
+  KINDS,
 } from '../core/analytics.js';
-import { expandSet } from '../core/items.js';
 import { Scheduler } from '../core/srs.js';
 import { Calendar, Columns, SplitBar } from './charts.jsx';
 import { Empty, InfoTip } from './components.jsx';
 import { go, href, useApp, useAsync } from './ctx.js';
 import { errorText, locale, percent, t, tn } from './i18n.js';
 
-const KIND_SERIES = () => [
-  { key: 'learn', label: t('stats.learning'), help: t('stats.help.learn'), color: 'var(--s1)' },
-  { key: 'young', label: t('stats.young'), help: t('stats.help.young'), color: 'var(--s2)' },
-  { key: 'mature', label: t('stats.mature'), help: t('stats.help.mature'), color: 'var(--s3)' },
-  { key: 'relearn', label: t('stats.relearning'), help: t('stats.help.relearn'), color: 'var(--s4)' },
-];
+// un état = un nom, une explication, une couleur, partout ; ordre : du souvenir le moins solide au plus solide
+const STATE = () => ({
+  new: { label: t('common.new'), help: t('stats.help.new'), color: 'var(--s-neutral)' },
+  learn: { label: t('stats.learning'), help: t('stats.help.learn'), color: 'var(--s1)' },
+  relearn: { label: t('stats.relearning'), help: t('stats.help.relearn'), color: 'var(--s4)' },
+  young: { label: t('stats.young'), help: t('stats.help.young'), color: 'var(--s2)' },
+  mature: { label: t('stats.mature'), help: t('stats.help.mature'), color: 'var(--s3)' },
+});
+const KIND_SERIES = () => KINDS.map((key) => ({ key, ...STATE()[key] }));
 const RANGES = [
   [30, 'stats.range.30d'],
   [90, 'stats.range.90d'],
@@ -52,14 +56,12 @@ export function StatsPage({ setId = null }) {
   const [now] = useState(() => new Date()); // instant de référence de la page
   const stats = useMemo(() => {
     if (!scoped.length) return null;
-    const progresses = scoped.map((x) => x.progress);
+    // état actuel : seulement les cartes qui existent et ne sont pas suspendues ; l'historique (logs) reste entier
+    const active = scoped.map((x) => activeProgress(x.set, x.progress));
+    const progresses = active.map((a) => a.progress);
+    const totalItems = active.reduce((n, a) => n + a.totalItems, 0);
+    const suspendedCards = active.reduce((n, a) => n + a.suspendedCards, 0);
     const logs = scoped.flatMap((x) => x.log);
-    let totalItems = 0;
-    for (const { set, progress } of scoped) {
-      const ids = new Set(expandSet(set, 'term').map((i) => i.id));
-      for (const [id, it] of Object.entries(progress.items)) if (it.srs) ids.add(id);
-      totalItems += ids.size;
-    }
     const activity = dailyActivity(progresses, 365, now, logs);
     const today = activity[activity.length - 1];
     const due = futureDue(progresses, 30, now);
@@ -72,6 +74,7 @@ export function StatsPage({ setId = null }) {
       due,
       retention,
       counts: itemCounts(progresses, totalItems),
+      suspendedCards,
       intervals: intervalHistogram(progresses),
       difficulty: difficultyHistogram(progresses),
       recall: retrievabilityHistogram(progresses, (s, n) => scheduler.retrievability(s, n), now),
@@ -222,37 +225,11 @@ export function StatsPage({ setId = null }) {
           <SplitBar
             title={t('stats.breakdownStudyItems')}
             help={t('stats.help.breakdown')}
-            parts={[
-              {
-                key: 'new',
-                label: t('common.new'),
-                help: t('stats.help.new'),
-                n: stats.counts.new,
-                color: 'var(--s-neutral)',
-              },
-              {
-                key: 'learn',
-                label: t('stats.learning'),
-                help: t('stats.help.learn'),
-                n: stats.counts.learn,
-                color: 'var(--s1)',
-              },
-              {
-                key: 'young',
-                label: t('stats.young'),
-                help: t('stats.help.young'),
-                n: stats.counts.young,
-                color: 'var(--s2)',
-              },
-              {
-                key: 'mature',
-                label: t('stats.mature'),
-                help: t('stats.help.mature'),
-                n: stats.counts.mature,
-                color: 'var(--s3)',
-              },
-            ]}
+            parts={['new', ...KINDS].map((key) => ({ key, ...STATE()[key], n: stats.counts[key] }))}
           />
+          {stats.suspendedCards > 0 && (
+            <p class="muted small">{tn('stats.suspendedNotCounted', stats.suspendedCards)}</p>
+          )}
         </section>
       </div>
 

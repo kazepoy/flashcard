@@ -691,7 +691,7 @@ export default {
   'srs.rating.hard': 'Hard',
   'srs.state.learn': 'Learning',
   'srs.state.new': 'New',
-  'srs.state.relearn': 'Forgotten, relearning',
+  'srs.state.relearn': 'Relearning',
   'srs.state.review': 'In review',
 
   'stats.activityOverYearAll': 'Activity over a year (all study modes)',
@@ -716,14 +716,16 @@ export default {
     'Time of day of your spaced repetition reviews over the last 30 days, with the success rate per hour: to spot your best moments.',
   'stats.help.intervals':
     'Current gap between two reviews, for each card in review. The further right the bars, the better anchored your cards.',
-  'stats.help.learn': 'Learning: seen recently; they come back the same day, in steps (1 min, then 10 min).',
+  'stats.help.learn':
+    'Learning: seen recently, not yet out of learning; they come back the same day, in steps (1 min, then 10 min).',
   'stats.help.mature': 'Well known: firmly anchored; next review in 21 days or more.',
   'stats.help.new': 'New: never studied in spaced repetition.',
   'stats.help.ratings':
     'Breakdown of your spaced repetition answers over 30 days, by card state. Many “Easy”: intervals may be too cautious; many “Again”: cards worth rewording.',
   'stats.help.recall':
     'Probability, estimated by FSRS, that you remember each card right now. It drops over time and goes back up with each successful review.',
-  'stats.help.relearn': 'Forgotten: missed in review (“Again”); they are relearned, with a 10-minute step.',
+  'stats.help.relearn':
+    'Relearning: known (consolidating or well known) but missed at their last review; they come back in 10 min, then restart on a short interval.',
   'stats.help.retention':
     'Share of successful reviews (any answer but “Again”) on cards in review. Well below the target retention in settings: you forget more than expected.',
   'stats.help.reviews':
@@ -753,7 +755,7 @@ export default {
   'stats.range.365d': '1 year',
   'stats.range.90d': '3 months',
   'stats.ratingsGivenLast30': 'Ratings given (last 30 days)',
-  'stats.relearning': 'Forgotten',
+  'stats.relearning': 'Relearning',
   'stats.reviewsHourLast30': 'Reviews by hour (last 30 days)',
   'stats.reviewsPerDay': 'Reviews per day',
   'stats.reviewsPerWeek': 'Reviews per week',
@@ -762,6 +764,10 @@ export default {
     'Share of successful reviews (any rating except “Again”) among cards already in review. Target: {p}.',
   'stats.spacedReviews': 'Spaced reviews',
   'stats.successRate': '{p} success rate',
+  'stats.suspendedNotCounted': {
+    one: '{n} suspended card is not counted: it is no longer shown in reviews.',
+    other: '{n} suspended cards are not counted: they are no longer shown in reviews.',
+  },
   'stats.todayShort': 'today',
   'stats.trueRetention': 'True retention',
   'stats.upcoming': 'Upcoming',

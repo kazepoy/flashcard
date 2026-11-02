@@ -2571,10 +2571,9 @@ details.search-help table {
   color: var(--accent);
 }
 .info-tip .tip {
-  position: absolute;
-  z-index: 20;
-  bottom: calc(100% + 0.45rem);
-  left: 50%;
+  /* placée par rapport à l'écran (InfoTip) : jamais rognée par un conteneur qui défile */
+  position: fixed;
+  z-index: 50;
   transform: translateX(-50%);
   width: max-content;
   max-width: min(17rem, 80vw);
@@ -2587,12 +2586,9 @@ details.search-help table {
   white-space: normal;
   box-shadow: 0 4px 14px rgba(0, 0, 0, 0.18);
   pointer-events: none;
-  /* fermée : hors de la mise en page (une bulle cachée près du bord ferait défiler la page sur mobile) */
-  display: none;
 }
-.info-tip:hover .tip,
-.info-tip:focus .tip {
-  display: block;
+.info-tip .tip.above {
+  transform: translate(-50%, -100%);
 }
 .legend.values {
   margin-top: 0.6rem;
@@ -3129,6 +3125,14 @@ details.search-help table {
     margin: 0;
     box-shadow: none;
   }
+  /* une planche = la zone imprimable réelle (papier et marges choisis à l'impression : A4, Letter, marges
+     de Safari ou de l'imprimante) ; 276 mm, prévu pour A4 à 10 mm de marge, coupait sinon chaque planche
+     en deux pages. Bornée à 255 mm (A4 comme Letter, marges courantes) si un navigateur rapporte la fenêtre
+     plutôt que la page. */
+  .print-cards {
+    height: min(100vh, 255mm);
+    break-inside: avoid;
+  }
   .print-cards:not(:last-child) {
     break-after: page;
   }
@@ -3297,9 +3301,6 @@ details.search-help table {
 }
 
 /* ------------------------------------------------------------------ aide et crédits */
-.help {
-  max-width: 52rem;
-}
 .help-install li + li {
   margin-top: 0.3rem;
 }

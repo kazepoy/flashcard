@@ -32,18 +32,28 @@ sont exclues).
 
 Calculée par [core/analytics.js](../src/core/analytics.js), pour un jeu ou pour toute la bibliothèque.
 
-| Vue                                                          | Source      | Ce qui est compté                                                                                |
-| ------------------------------------------------------------ | ----------- | ------------------------------------------------------------------------------------------------ |
-| Calendrier d'activité, série                                 | les deux    | réponses par jour, tous modes (voir « Synchronisation »)                                         |
-| Révisions espacées par jour                                  | journal     | réponses en révision espacée, par catégorie : en apprentissage, à consolider, acquises, oubliées |
-| Rétention réelle                                             | journal     | part des révisions réussies (toute note sauf « À revoir »), à consolider et acquises à part      |
-| Heures de la journée, notes données                          | journal     | révisions espacées des 30 derniers jours                                                         |
-| À venir                                                      | progression | échéances des 30 prochains jours                                                                 |
-| Cartes (nouvelles, en apprentissage, à consolider, acquises) | progression | état actuel de chaque carte                                                                      |
-| Intervalles, difficulté, probabilité de rappel               | progression | état FSRS actuel des cartes vues                                                                 |
+| Vue                                            | Source      | Ce qui est compté                                                                                     |
+| ---------------------------------------------- | ----------- | ----------------------------------------------------------------------------------------------------- |
+| Calendrier d'activité, série                   | les deux    | réponses par jour, tous modes (voir « Synchronisation »)                                              |
+| Révisions espacées par jour                    | journal     | réponses en révision espacée, par catégorie : en apprentissage, à réapprendre, à consolider, acquises |
+| Rétention réelle                               | journal     | part des révisions réussies (toute note sauf « À revoir »), à consolider et acquises à part           |
+| Heures de la journée, notes données            | journal     | révisions espacées des 30 derniers jours                                                              |
+| À venir                                        | progression | échéances des 30 prochains jours                                                                      |
+| Cartes (répartition)                           | progression | état actuel : nouvelles, en apprentissage, à réapprendre, à consolider, acquises                      |
+| Intervalles, difficulté, probabilité de rappel | progression | état FSRS actuel des cartes vues                                                                      |
 
-Une carte est **acquise** à partir de 21 jours d'intervalle, **à consolider** en deçà (ce sont les cartes « mature » et « young » d'Anki, même seuil). Les catégories du journal utilisent
+Une carte est **acquise** à partir de 21 jours d'intervalle, **à consolider** en deçà (ce sont les cartes « mature » et « young » d'Anki, même seuil). Une carte **à réapprendre** était en révision (à consolider ou acquise) et a été ratée à sa dernière révision (« Relearning » d'Anki) ; elle a sa propre part, comme dans Anki. Les catégories du journal utilisent
 l'état de la carte **avant** la réponse.
+
+Un seul ordre partout (répartition, graphique des révisions, tableau des notes), du souvenir le moins solide au plus
+solide, celui d'Anki : nouvelles, en apprentissage, à réapprendre, à consolider, acquises ; chaque état garde sa
+couleur.
+
+**État actuel** (répartition, à venir, intervalles, difficulté, rappel) : seulement les cartes qui existent et ne
+sont pas suspendues (`activeProgress`, [core/analytics.js](../src/core/analytics.js)) ; la progression d'une carte
+supprimée reste dans le fichier mais n'est plus comptée, une carte suspendue n'est ni comptée ni prévue (une ligne
+indique combien sont mises de côté). **Historique** (activité, révisions par jour, rétention, heures, notes) : toutes
+les réponses données, y compris sur des cartes supprimées ou suspendues depuis.
 
 ## Synchronisation
 

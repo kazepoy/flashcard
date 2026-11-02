@@ -100,7 +100,8 @@ test('activité quotidienne et série', () => {
 
 test('répartition des items et échéances', () => {
   const ps = progresses();
-  assert.deepEqual(itemCounts(ps, 10), { new: 6, learn: 2, young: 1, mature: 1 });
+  // une carte en réapprentissage est comptée à part (comme Anki : Learning et Relearning distincts)
+  assert.deepEqual(itemCounts(ps, 10), { new: 6, learn: 1, relearn: 1, young: 1, mature: 1 });
   const f = futureDue(ps, 7, NOW);
   assert.equal(f.overdue, 1);
   assert.deepEqual(f.perDay, [1, 1, 0, 1, 0, 0, 0]);
@@ -161,4 +162,27 @@ test('dailyActivity : deux appareils le même jour, le journal donne le vrai tot
   }));
   assert.equal(dailyActivity([progress], 1, now, logs)[0].n, 50);
   assert.equal(dailyActivity([progress], 1, now)[0].n, 30, 'sans journal : compteurs');
+});
+
+test('statistiques : cartes supprimées et suspendues hors de l’état actuel et des prévisions', async () => {
+  const { activeProgress } = await import('../src/core/analytics.js');
+  const { newSet, newCard } = await import('../src/core/format.js');
+  const { Scheduler } = await import('../src/core/srs.js');
+  const set = newSet({ cards: ['a', 'b', 'c'].map((x) => newCard({ term: x, definition: x.toUpperCase() })) });
+  const p = newProgress(set.id);
+  const s = new Scheduler({ fuzz: false });
+  for (const c of set.cards) {
+    let st;
+    for (const g of [3, 3, 3]) st = s.review(st, g, NOW).srs;
+    p.items[c.id] = { srs: st };
+  }
+  set.cards.splice(2, 1); // « c » supprimée : sa progression reste dans le fichier
+  p.suspended[set.cards[1].id] = { s: true, at: NOW.toISOString() }; // « b » suspendue
+  const a = activeProgress(set, p);
+  assert.deepEqual(Object.keys(a.progress.items), [set.cards[0].id], 'seule « a » compte');
+  assert.equal(a.totalItems, 1);
+  assert.equal(a.suspendedCards, 1);
+  assert.equal(itemCounts([a.progress], a.totalItems).young, 1);
+  const f = futureDue([a.progress], 400, NOW);
+  assert.equal(f.overdue + f.perDay.reduce((x, y) => x + y, 0), 1, 'une seule révision à venir');
 });

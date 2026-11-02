@@ -193,17 +193,58 @@ export function FlipCard({ front, back, frontStyle, backStyle, flipped, onFlip, 
 
 // ------------------------------------------------------------------ divers
 
+const TIP_WIDTH = 272; // largeur maximale d'une bulle (17rem)
+
 /**
  * Petite icône ⓘ et sa bulle d'explication : au survol, et au toucher ou au clavier (focus), pour les
- * appareils sans survol. Le texte sert aussi de nom accessible.
+ * appareils sans survol. Le texte sert aussi de nom accessible. La bulle est placée par rapport à l'écran
+ * (position fixe) : aucun conteneur qui défile ne la rogne ; elle reste dans l'écran, s'ouvre dessous s'il
+ * n'y a pas la place au-dessus, et se ferme au défilement.
  */
 export function InfoTip({ text }) {
+  const [pos, setPos] = useState(null);
+  const show = (e) => {
+    const r = e.currentTarget.getBoundingClientRect();
+    const half = Math.min(TIP_WIDTH, innerWidth * 0.8) / 2;
+    const above = r.top > 140;
+    setPos({
+      left: Math.min(Math.max(r.left + r.width / 2, half + 8), innerWidth - half - 8),
+      top: above ? r.top - 8 : r.bottom + 8,
+      above,
+    });
+  };
+  const hide = () => setPos(null);
+  useEffect(() => {
+    if (!pos) return;
+    addEventListener('scroll', hide, true);
+    addEventListener('resize', hide);
+    return () => {
+      removeEventListener('scroll', hide, true);
+      removeEventListener('resize', hide);
+    };
+  }, [pos]);
   return (
-    <button type="button" class="info-tip" aria-label={text} onClick={(e) => e.currentTarget.focus()}>
+    <button
+      type="button"
+      class="info-tip"
+      aria-label={text}
+      onMouseEnter={show}
+      onMouseLeave={(e) => document.activeElement !== e.currentTarget && hide()}
+      onFocus={show}
+      onBlur={hide}
+      onClick={(e) => e.currentTarget.focus()}
+    >
       <Icon name="info" size={14} />
-      <span class="tip" role="tooltip" aria-hidden="true">
-        {text}
-      </span>
+      {pos && (
+        <span
+          class={'tip' + (pos.above ? ' above' : '')}
+          role="tooltip"
+          aria-hidden="true"
+          style={{ left: pos.left + 'px', top: pos.top + 'px' }}
+        >
+          {text}
+        </span>
+      )}
     </button>
   );
 }

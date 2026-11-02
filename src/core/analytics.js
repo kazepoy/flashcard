@@ -1,5 +1,6 @@
 // Statistiques détaillées (inspirées des graphiques d'Anki), calculées à partir des fichiers
 // progress/ et logs/. Pur : `now` et la fonction de rappel sont injectés.
+import { expandSet } from './items.js';
 import { localDay, SrsState } from './srs.js';
 
 const DAY = 86400000;
@@ -12,7 +13,33 @@ export function reviewKind(l) {
   if (l.state === SrsState.Review) return (l.scheduled_days || 0) >= MATURE_DAYS ? 'mature' : 'young';
   return 'learn'; // nouveau ou en apprentissage
 }
-export const KINDS = ['learn', 'young', 'mature', 'relearn'];
+/** Ordre unique des états, du souvenir le moins solide au plus solide (celui d'Anki) : graphiques et tableaux. */
+export const KINDS = ['learn', 'relearn', 'young', 'mature'];
+
+/**
+ * Progression réduite aux éléments d'étude des cartes qui existent et ne sont pas suspendues : base des
+ * statistiques d'état et des prévisions (une carte supprimée ou suspendue ne sera pas présentée).
+ * Renvoie aussi le nombre d'éléments actifs (vus ou non) et de cartes suspendues.
+ */
+export function activeProgress(set, progress) {
+  const suspended = (cardId) => !!progress.suspended?.[cardId]?.s;
+  const cardOf = new Map(expandSet(set, 'both').map((i) => [i.id, i.cardId]));
+  const items = Object.fromEntries(
+    Object.entries(progress.items || {}).filter(([id]) => cardOf.has(id) && !suspended(cardOf.get(id))),
+  );
+  // éléments à compter : ceux du sens étudié par défaut, plus ceux déjà vus dans un autre sens
+  const ids = new Set(
+    expandSet(set, 'term')
+      .filter((i) => !suspended(i.cardId))
+      .map((i) => i.id),
+  );
+  for (const id of Object.keys(items)) if (items[id]?.srs) ids.add(id);
+  return {
+    progress: { ...progress, items },
+    totalItems: ids.size,
+    suspendedCards: set.cards.filter((c) => suspended(c.id)).length,
+  };
+}
 
 const startOfDay = (d) => {
   const x = new Date(d);
@@ -75,16 +102,18 @@ const seenItems = (progresses) =>
   );
 
 /**
- * Répartition des items : nouveaux, en apprentissage (dont réapprentissage), jeunes, matures.
- * `totalItems` = nombre d'items d'étude existants (les nouveaux sont ceux jamais vus).
+ * Répartition des items : nouveaux, en apprentissage, à réapprendre, à consolider, acquis (comme Anki :
+ * New, Learning, Relearning, Young, Mature). `totalItems` = nombre d'items d'étude (les nouveaux sont ceux
+ * jamais vus).
  */
 export function itemCounts(progresses, totalItems) {
-  const c = { new: 0, learn: 0, young: 0, mature: 0 };
+  const c = { new: 0, learn: 0, relearn: 0, young: 0, mature: 0 };
   for (const s of seenItems(progresses)) {
     if (s.state === SrsState.Review) c[(s.scheduled_days || 0) >= MATURE_DAYS ? 'mature' : 'young']++;
+    else if (s.state === SrsState.Relearning) c.relearn++;
     else c.learn++;
   }
-  c.new = Math.max(0, totalItems - c.learn - c.young - c.mature);
+  c.new = Math.max(0, totalItems - c.learn - c.relearn - c.young - c.mature);
   return c;
 }
 

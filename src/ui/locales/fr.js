@@ -707,7 +707,7 @@ export default {
   'srs.rating.hard': 'Difficile',
   'srs.state.learn': 'En apprentissage',
   'srs.state.new': 'Nouvelle',
-  'srs.state.relearn': 'Oubliée, à reprendre',
+  'srs.state.relearn': 'À réapprendre',
   'srs.state.review': 'En révision',
 
   'stats.activityOverYearAll': "Activité sur un an (toutes les méthodes d'étude)",
@@ -734,7 +734,7 @@ export default {
   'stats.help.intervals':
     'Délai actuel entre deux révisions, pour chaque carte en révision. Plus les barres sont à droite, plus vos cartes sont ancrées.',
   'stats.help.learn':
-    'En apprentissage : vues récemment ; elles reviennent dans la journée, par étapes (1 min, puis 10 min).',
+    "En apprentissage : vues récemment, pas encore sorties de l'apprentissage ; elles reviennent dans la journée, par étapes (1 min, puis 10 min).",
   'stats.help.mature': 'Acquises : bien ancrées ; prochaine révision dans 21 jours ou plus.',
   'stats.help.new': 'Nouvelles : jamais étudiées en révision espacée.',
   'stats.help.ratings':
@@ -742,7 +742,7 @@ export default {
   'stats.help.recall':
     'Probabilité, estimée par FSRS, de vous souvenir de chaque carte maintenant. Elle baisse avec le temps et remonte à chaque révision réussie.',
   'stats.help.relearn':
-    'Oubliées : ratées en révision (« À revoir ») ; elles sont réapprises, avec une étape de 10 min.',
+    'À réapprendre : connues (à consolider ou acquises) mais ratées à leur dernière révision ; elles reviennent dans 10 min, puis repartent sur un intervalle court.',
   'stats.help.retention':
     'Part des révisions réussies (toute réponse sauf « À revoir ») sur des cartes en révision. Nettement sous la rétention visée des réglages : vous oubliez plus que prévu.',
   'stats.help.reviews':
@@ -772,7 +772,7 @@ export default {
   'stats.range.365d': '1 an',
   'stats.range.90d': '3 mois',
   'stats.ratingsGivenLast30': 'Notes données (30 derniers jours)',
-  'stats.relearning': 'Oubliées',
+  'stats.relearning': 'À réapprendre',
   'stats.reviewsHourLast30': 'Révisions par heure (30 derniers jours)',
   'stats.reviewsPerDay': 'Révisions par jour',
   'stats.reviewsPerWeek': 'Révisions par semaine',
@@ -781,6 +781,10 @@ export default {
     'Part des révisions réussies (toute note sauf « À revoir ») parmi les cartes déjà en révision. Objectif réglé : {p}.',
   'stats.spacedReviews': 'Révisions espacées',
   'stats.successRate': '{p} de réussite',
+  'stats.suspendedNotCounted': {
+    one: "{n} carte suspendue n'est pas comptée : elle n'est plus présentée en révision.",
+    other: '{n} cartes suspendues ne sont pas comptées : elles ne sont plus présentées en révision.',
+  },
   'stats.todayShort': 'auj.',
   'stats.trueRetention': 'Rétention réelle',
   'stats.upcoming': 'À venir',

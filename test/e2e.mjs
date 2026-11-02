@@ -509,6 +509,11 @@ try {
     const pdf = await page.pdf({ preferCSSPageSize: true });
     if (shots) await import('node:fs/promises').then((fs) => fs.writeFile(`${shots}/18-fiches.pdf`, pdf));
     assert.equal(pdf.toString('latin1').match(/\/Type\s*\/Page\b/g).length, sheets * 2);
+    // papier et marges imposés par le navigateur ou l'imprimante (Safari, Letter) : une page par planche
+    const sheet = await page.addStyleTag({ content: '@page { size: letter; margin: 12.7mm; }' });
+    const letter = await page.pdf({ preferCSSPageSize: true });
+    assert.equal(letter.toString('latin1').match(/\/Type\s*\/Page\b/g).length, sheets * 2, 'planches coupées');
+    await sheet.evaluate((el) => el.remove());
     await page.getByLabel('Mise en page').selectOption('list');
     await page.locator('.print-list tr').first().waitFor();
     assert.equal(await page.locator('.print-list tr').count(), n);

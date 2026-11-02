@@ -11,12 +11,12 @@ celles d'Anki ; les durées ont été mesurées avec l'application (paramètres 
 
 ## États d'une carte
 
-| État                 | Sens                                                                       |
-| -------------------- | -------------------------------------------------------------------------- |
-| **Nouvelle**         | jamais étudiée en révision                                                 |
-| **En apprentissage** | vue récemment ; revient dans la journée, par étapes (1 min, puis 10 min)   |
-| **En révision**      | sortie de l'apprentissage ; revient dans des jours, des semaines, des mois |
-| **Oubliée**          | ratée en révision (« À revoir ») ; réapprise par une étape de 10 min       |
+| État                 | Sens                                                                        |
+| -------------------- | --------------------------------------------------------------------------- |
+| **Nouvelle**         | jamais étudiée en révision                                                  |
+| **En apprentissage** | vue récemment ; revient dans la journée, par étapes (1 min, puis 10 min)    |
+| **En révision**      | sortie de l'apprentissage ; revient dans des jours, des semaines, des mois  |
+| **À réapprendre**    | était en révision, ratée (« À revoir ») ; réapprise par une étape de 10 min |
 
 Dans les statistiques, une carte en révision est **à consolider** si sa prochaine révision est à moins de
 21 jours, **acquise** au-delà (« young » et « mature » d'Anki, même seuil ; voir [STATS.md](STATS.md)).
@@ -35,13 +35,13 @@ exactement ce délai qui est enregistré (voir « Écart aléatoire »).
 
 ## Délais selon l'état
 
-| État de la carte                | À revoir                  | Difficile       | Bien            | Facile |
-| ------------------------------- | ------------------------- | --------------- | --------------- | ------ |
-| Nouvelle                        | 1 min (séance)            | 6 min (séance)  | 10 min (séance) | 8 j    |
-| En apprentissage (vue une fois) | 1 min (séance)            | 6 min (séance)  | 1 à 2 j         | 4 j    |
-| En révision, intervalle de 11 j | 10 min (séance) → oubliée | 32 j            | 46 j            | 77 j   |
-| En révision, intervalle de 46 j | 10 min (séance) → oubliée | 116 j           | 163 j           | 265 j  |
-| Oubliée                         | 10 min (séance)           | 15 min (séance) | 2 j             | 3 j    |
+| État de la carte                | À revoir                        | Difficile       | Bien            | Facile |
+| ------------------------------- | ------------------------------- | --------------- | --------------- | ------ |
+| Nouvelle                        | 1 min (séance)                  | 6 min (séance)  | 10 min (séance) | 8 j    |
+| En apprentissage (vue une fois) | 1 min (séance)                  | 6 min (séance)  | 1 à 2 j         | 4 j    |
+| En révision, intervalle de 11 j | 10 min (séance) → à réapprendre | 32 j            | 46 j            | 77 j   |
+| En révision, intervalle de 46 j | 10 min (séance) → à réapprendre | 116 j           | 163 j           | 265 j  |
+| À réapprendre                   | 10 min (séance)                 | 15 min (séance) | 2 j             | 3 j    |
 
 « Séance » : la carte revient dans la même séance. Les valeurs varient un peu d'une carte à l'autre (écart
 aléatoire, difficulté propre de la carte) et dépendent de la rétention visée.
@@ -56,8 +56,9 @@ Règles qui en découlent :
    notée « Difficile » à chaque fois revient donc indéfiniment, jusqu'à un « Bien » ou un « Facile ».
 4. **En révision, « Difficile » reste une réussite** : l'intervalle grandit, moins qu'avec « Bien »
    (environ 0,7 fois) ; « Facile » donne environ 1,6 fois celui de « Bien ».
-5. **« À revoir » sur une carte en révision la fait oublier** : elle revient dans 10 min, puis repart sur un
-   intervalle court.
+5. **« À revoir » sur une carte en révision la met « à réapprendre »**, qu'elle ait été à consolider ou acquise :
+   elle revient dans 10 min, puis repart sur un intervalle court ; FSRS garde son historique (stabilité réduite,
+   difficulté un peu plus haute), ce n'est pas un retour à zéro.
 6. **La rétention visée** (Réglages › Étude, 90 % par défaut) règle tous les intervalles : FSRS programme
    chaque carte au moment où la probabilité de s'en souvenir tombe à cette valeur. Plus haute, intervalles
    plus courts et révisions plus nombreuses.
@@ -91,7 +92,7 @@ Jamais deux fois de suite la même carte s'il en reste une autre.
 
 ### Quand une carte quitte la séance
 
-Après une réponse, la carte **reste dans la séance** si elle est en apprentissage (ou oubliée) **et** si sa
+Après une réponse, la carte **reste dans la séance** si elle est en apprentissage (ou à réapprendre) **et** si sa
 prochaine échéance tombe dans les 20 minutes. Sinon, elle est **terminée** pour aujourd'hui. Une carte en
 révision quitte donc toujours la séance, sauf avec « À revoir ».
 
