@@ -1,7 +1,7 @@
 // Bandeau de la bibliothèque : données de cet appareil à la merci du navigateur (Safari : 7 jours sans visite ;
 // ailleurs : manque de place). Propose d'installer l'application, avec le geste propre à l'appareil, ou à défaut
-// de protéger le stockage ; et toujours la synchronisation Dropbox, qui permet de tout retrouver après un
-// effacement. Masquable quelques jours.
+// de protéger le stockage ; et la synchronisation Dropbox si elle n'est pas configurée (elle permet de tout
+// retrouver après un effacement). Masquable quelques jours.
 import { useEffect, useState } from 'preact/hooks';
 import { Icon } from './components.jsx';
 import { href } from './ctx.js';
@@ -95,10 +95,12 @@ export function InstallNotice({ risk, sync, onHide }) {
           <Icon name="lock" /> {t('install.protect')}
         </button>
       )}
-      {/* toujours : avec Dropbox, la bibliothèque se retrouve même après un effacement */}
-      <a class={'btn small' + (prompt || canProtect ? '' : ' primary')} href={href('settings/sync')}>
-        <Icon name="cloud" /> {sync.provider ? t('sync.manage') : t('install.syncButton')}
-      </a>
+      {/* Dropbox proposé tant qu'il n'est pas configuré (avec lui, la bibliothèque se retrouve après un effacement) */}
+      {!sync.provider && (
+        <a class={'btn small' + (prompt || canProtect ? '' : ' primary')} href={href('settings/sync')}>
+          <Icon name="cloud" /> {t('install.syncButton')}
+        </a>
+      )}
       <button class="icon-btn" aria-label={t('app.hideMessage')} onClick={hide}>
         <Icon name="x" />
       </button>

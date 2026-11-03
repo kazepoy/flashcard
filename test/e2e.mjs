@@ -1219,12 +1219,9 @@ try {
     assert.equal(await p.evaluate(() => window.installAsked), 1);
     await c.close();
     // iPhone : le geste à faire (Partager), les données propres de l'application installée, et Dropbox
-    const ios = await browser.newContext({
-      locale: 'fr-FR',
-      installNotice: true,
-      userAgent:
-        'Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Mobile/15E148 Safari/604.1',
-    });
+    const IPHONE =
+      'Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Mobile/15E148 Safari/604.1';
+    const ios = await browser.newContext({ locale: 'fr-FR', installNotice: true, userAgent: IPHONE });
     await ios.addInitScript(() => localStorage.setItem('flashcard.examplesNotice', 'seen'));
     const q = await ios.newPage();
     await q.goto(base);
@@ -1241,6 +1238,21 @@ try {
     await q.goto(base + '#/help');
     await q.getByText(/Sur cet appareil : Flashcard n'est pas installée/).waitFor();
     await ios.close();
+    // Dropbox déjà configuré : le bandeau le dit, sans bouton de synchronisation
+    const synced = await browser.newContext({ locale: 'fr-FR', installNotice: true, userAgent: IPHONE });
+    await synced.route(/dropbox(api)?\.com/, (r) => r.abort());
+    await synced.addInitScript(() => {
+      localStorage.setItem('flashcard.examplesNotice', 'seen');
+      localStorage.setItem('flashcard.dropboxAppKey', 'cle-test');
+      localStorage.setItem('flashcard.dropboxToken', JSON.stringify({ access: 'a', exp: 0, refresh: 'durable' }));
+      localStorage.setItem('flashcard.sync', JSON.stringify({ provider: 'dropbox', auto: false, files: {} }));
+    });
+    const r = await synced.newPage();
+    await r.goto(base);
+    const n3 = r.locator('.install-notice');
+    await n3.getByText(/après 7 jours sans visite/).waitFor();
+    assert.equal(await n3.getByRole('link').count(), 0, 'pas de bouton de synchronisation');
+    await synced.close();
   });
 
   await step('hors ligne : application, jeux et police déjà utilisée disponibles sans réseau', async () => {
