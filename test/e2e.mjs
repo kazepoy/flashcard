@@ -417,6 +417,13 @@ try {
     await page.getByRole('dialog').locator('.face-front').waitFor();
     await page.getByRole('dialog').getByRole('button', { name: 'Fermer' }).click();
     await shot('16c-navigateur');
+    // la carte ouverte sort des résultats : sa fiche est refermée, et ne revient pas toute seule
+    await page.getByRole('searchbox').fill('aucune-carte-ne-contient-ceci');
+    await page.locator('.browse .empty').waitFor();
+    await page.getByRole('searchbox').fill('mesa');
+    await page.locator('.btable tbody tr').first().waitFor();
+    await page.waitForTimeout(300);
+    assert.equal(await page.locator('.row-detail').count(), 0, 'fiche refermée');
     await page.getByRole('searchbox').fill('flag:1 or is:dupe');
     await page.waitForFunction(() => decodeURIComponent(location.hash).includes('flag:1'));
     assert.equal(await page.locator('.btable tbody tr:not(.row-detail)').count(), 1);
@@ -548,6 +555,40 @@ try {
     const letter = await page.pdf({ preferCSSPageSize: true });
     assert.equal(letter.toString('latin1').match(/\/Type\s*\/Page\b/g).length, sheets * 2, 'planches coupées');
     await sheet.evaluate((el) => el.remove());
+    // taille « Auto » : réajustée à la mise en page d'impression (page plus courte que l'aperçu à l'écran) ;
+    // taille par défaut des cartes remise à Auto (une étape précédente l'a mise à Très grande)
+    await page.goto(base + '#/settings/cards');
+    await page.locator('.settings .appearance').getByLabel('Taille').selectOption('auto');
+    await page.goto(setUrl + '/print');
+    await page.locator('.print-face.size-auto').first().waitFor();
+    await page.waitForTimeout(300);
+    const sizes = () =>
+      page
+        .locator('.print-face.size-auto')
+        .evaluateAll((els) =>
+          els.map((el) => ({ fs: el.style.getPropertyValue('--fs'), over: el.scrollHeight > el.clientHeight + 1 })),
+        );
+    const onScreen = await sizes();
+    assert.ok(onScreen.length > 0, 'fiches en taille Auto');
+    const viewport = page.viewportSize();
+    await page.setViewportSize({ width: viewport.width, height: 520 });
+    await page.emulateMedia({ media: 'print' });
+    await page.waitForTimeout(200);
+    const printed = await sizes();
+    assert.ok(
+      printed.some((x, i) => x.fs !== onScreen[i].fs),
+      'tailles recalculées pour le papier',
+    );
+    assert.deepEqual(
+      printed
+        .filter((x) => x.over)
+        .map((x) => x.fs)
+        .filter((fs) => parseFloat(fs) > 14),
+      [],
+      'aucune fiche ne déborde (sauf à la taille minimale)',
+    );
+    await page.emulateMedia({ media: 'screen' });
+    await page.setViewportSize(viewport);
     await page.getByLabel('Mise en page').selectOption('list');
     await page.locator('.print-list tr').first().waitFor();
     assert.equal(await page.locator('.print-list tr').count(), n);
@@ -961,6 +1002,7 @@ try {
     const files = new Map(); // /chemin → { bytes, rev }
     let n = 0;
     let tokenFailure = null;
+    let tokenDelay = 0; // échange du code contre un jeton : réseau lent
     const api = async (route) => {
       const req = route.request();
       const u = new URL(req.url());
@@ -1000,13 +1042,14 @@ try {
           body: `<script>location.replace(${JSON.stringify(back)})</script>`,
         });
       });
-      await c.route('https://api.dropboxapi.com/oauth2/token', (r) => {
+      await c.route('https://api.dropboxapi.com/oauth2/token', async (r) => {
         const q = new URLSearchParams(r.request().postData());
         // renouvellement sans clic : réseau coupé, ou accès révoqué (selon `tokenFailure`)
         if (q.get('grant_type') === 'refresh_token' && tokenFailure === 'network') return r.abort();
         if (q.get('grant_type') === 'refresh_token' && tokenFailure === 'revoked')
           return r.fulfill({ status: 400, contentType: 'application/json', body: '{"error":"invalid_grant"}' });
         assert.ok(q.get('code_verifier') || q.get('grant_type') === 'refresh_token');
+        if (q.get('code_verifier') && tokenDelay) await new Promise((ok) => setTimeout(ok, tokenDelay));
         return r.fulfill({
           contentType: 'application/json',
           body: JSON.stringify({ access_token: 'jeton', expires_in: 14400, refresh_token: 'durable' }),
@@ -1086,6 +1129,61 @@ try {
     await a.p.locator('.sync-status.idle').waitFor();
     assert.equal(await a.p.evaluate(() => window.avantRedirection), undefined, 'la page est partie puis revenue');
     assert.equal(await a.p.locator('.banner', { hasText: 'Dropbox est en pause' }).count(), 0);
+    // retour de redirection sur un réseau lent : l'application s'affiche sans attendre, la synchronisation
+    // reprend quand l'échange se termine
+    const revoke = async (p) => {
+      await expire();
+      tokenFailure = 'revoked';
+      await p.goto(base + '#/settings/sync');
+      await p.getByRole('button', { name: 'Synchroniser maintenant' }).click();
+      await p.locator('.sync-card').getByRole('button', { name: 'Se reconnecter à Dropbox' }).waitFor();
+      tokenFailure = null;
+    };
+    await revoke(a.p);
+    tokenDelay = 8000;
+    await a.p.evaluate(() => (window.open = () => null));
+    const t0 = Date.now();
+    await a.p.locator('.sync-card').getByRole('button', { name: 'Se reconnecter à Dropbox' }).click();
+    await a.p.waitForURL((u) => !u.search);
+    await a.p.locator('.sync-card').waitFor();
+    assert.ok(Date.now() - t0 < 7000, "affichée avant la fin de l'échange");
+    await a.p.locator('.sync-status.idle').waitFor({ timeout: 15000 });
+    tokenDelay = 0;
+    // redirection abandonnée plus tôt (retour sans autoriser) : une connexion par fenêtre aboutit quand même
+    await revoke(a.p);
+    await a.p.evaluate(() =>
+      localStorage.setItem(
+        'flashcard.authPending',
+        JSON.stringify({
+          key: 'flashcard.dropboxToken',
+          state: 'ancien',
+          verifier: 'v',
+          intent: 'resume',
+          back: '',
+          at: Date.now(),
+        }),
+      ),
+    );
+    await a.p.locator('.sync-card').getByRole('button', { name: 'Se reconnecter à Dropbox' }).click();
+    await a.p.locator('.sync-status.idle').waitFor();
+    // deux onglets en pause : se reconnecter dans l'un fait reprendre l'autre, sans nouvelle connexion
+    const a2 = await a.c.newPage();
+    await a2.goto(base + '#/settings/sync');
+    await a2.locator('.sync-status.idle').waitFor();
+    await revoke(a.p);
+    await a2
+      .getByRole('button', { name: 'Se reconnecter à Dropbox' })
+      .first()
+      .waitFor({ timeout: 15000 })
+      .catch(async () => {
+        await a2.reload();
+        await a2.getByRole('button', { name: 'Se reconnecter à Dropbox' }).first().waitFor();
+      });
+    await a.p.locator('.sync-card').getByRole('button', { name: 'Se reconnecter à Dropbox' }).click();
+    await a.p.locator('.sync-status.idle').waitFor();
+    await a2.locator('.sync-status.idle').waitFor();
+    assert.equal(await a2.locator('.banner', { hasText: 'Dropbox est en pause' }).count(), 0);
+    await a2.close();
     const b = await device();
     await connect(b.p);
     await b.p.goto(base);

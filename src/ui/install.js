@@ -23,10 +23,13 @@ export const weeklyWipe = (platform) => platform === 'ios' || platform === 'mac-
 /** L'application installée a ses propres données, distinctes de celles du navigateur (iPhone, iPad, Mac Safari). */
 export const separateStorage = weeklyWipe;
 
-/** Ouverte comme une application installée (et non dans un onglet). */
+/**
+ * Ouverte comme une application installée (et non dans un onglet). Pas « fullscreen » : un onglet en plein
+ * écran (F11) le serait aussi.
+ */
 export function isInstalled() {
   if (typeof navigator !== 'undefined' && navigator.standalone === true) return true;
-  return ['standalone', 'fullscreen', 'minimal-ui', 'window-controls-overlay'].some(
+  return ['standalone', 'minimal-ui', 'window-controls-overlay'].some(
     (m) => typeof matchMedia === 'function' && matchMedia(`(display-mode: ${m})`).matches,
   );
 }

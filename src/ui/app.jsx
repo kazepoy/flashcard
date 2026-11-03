@@ -122,6 +122,8 @@ function Root() {
 export async function start(el = document.getElementById('app')) {
   setSqlWasmBase('./');
   ensurePersistence(); // stockage protégé de l'effacement, si le navigateur l'accorde sans question
-  await completeSignIn(); // connexion revenue de chez le fournisseur (redirection), avant l'affichage
+  // connexion revenue de chez le fournisseur (redirection) : attendue avant l'affichage, mais 5 s au plus
+  // (réseau lent) ; la synchronisation est prévenue si elle se termine plus tard
+  await Promise.race([completeSignIn(), new Promise((r) => setTimeout(r, 5000))]);
   render(<Root />, el);
 }

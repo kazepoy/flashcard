@@ -11,7 +11,7 @@ import {
   stripMarkdown,
 } from '../src/core/text.js';
 import { newSet, newCard, normalizeSet, newProgress } from '../src/core/format.js';
-import { expandSet } from '../src/core/items.js';
+import { expandSet, footHint } from '../src/core/items.js';
 import { Scheduler, SrsSession, buildQueue, SrsState, Grade, emptySrs } from '../src/core/srs.js';
 import { LearnSession, buildChoices } from '../src/core/learn.js';
 import { buildTest, gradeTest } from '../src/core/test.js';
@@ -588,4 +588,19 @@ test('révision : la durée annoncée sur chaque bouton est celle enregistrée (
     srs = s.review(srs, g, at).srs;
     at = new Date(srs.due);
   }
+});
+
+test("indice en bas du recto : pas répété s'il est dans le trou, gardé sinon", () => {
+  const set = (card) => ({ ...newSet({ cards: [newCard(card)] }) });
+  const [inBlank] = expandSet(set({ type: 'cloze', term: 'La {{c1::Seine::fleuve}} coule à Paris.' }), 'term');
+  assert.equal(footHint(inBlank), '', 'déjà écrit dans le trou : « [fleuve] »');
+  // indice de la carte dont le mot figure ailleurs dans la phrase : il reste affiché
+  const [elsewhere] = expandSet(
+    set({ type: 'cloze', term: '{{c1::Paris}} est la capitale de la France.', hint: 'capitale' }),
+    'term',
+  );
+  assert.equal(footHint(elsewhere), 'capitale');
+  const [basic] = expandSet(set({ term: 'chat', definition: 'cat', hint: 'animal' }), 'term');
+  assert.equal(footHint(basic), 'animal');
+  assert.equal(footHint({ kind: 'basic', prompt: 'x', hint: '' }), '');
 });

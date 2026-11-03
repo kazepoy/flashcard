@@ -1322,25 +1322,26 @@ summary {
   top: 0.25rem;
   right: 0.3rem;
 }
-/* chaque note : bordure de sa couleur et fond légèrement teinté (mêlé au fond du thème, clair ou sombre) */
+/* chaque note : bordure de sa couleur et fond légèrement teinté, accentué au survol ; teintes fixes, les mêmes
+   dans tous les thèmes (assez soutenues pour se voir sur fond clair comme sombre) */
 .grade.g1 {
-  --grade: var(--bad);
+  --grade: #e03e3e;
 }
 .grade.g2 {
-  --grade: #c77a00;
+  --grade: #e08a00;
 }
 .grade.g3 {
-  --grade: var(--ok);
+  --grade: #2f9e44;
 }
 .grade.g4 {
-  --grade: var(--accent);
+  --grade: #3b6fe0;
 }
 .grade {
   border-color: var(--grade, var(--line-strong));
-  background: color-mix(in srgb, var(--grade, transparent) 11%, var(--surface));
+  background: color-mix(in srgb, var(--grade, transparent) 16%, var(--surface));
 }
 .grade:hover {
-  background: color-mix(in srgb, var(--grade, transparent) 20%, var(--surface));
+  background: color-mix(in srgb, var(--grade, transparent) 28%, var(--surface));
 }
 .finish {
   max-width: 34rem;

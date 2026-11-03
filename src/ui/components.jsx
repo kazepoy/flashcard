@@ -214,27 +214,31 @@ export function fitText(el) {
   st.setProperty('--fs', Math.floor(lo * 2) / 2 + 'px');
 }
 
-/** Ajuste la fiche à chaque changement de contenu ou de largeur, au chargement des polices et des images. */
+/**
+ * Ajuste la fiche à l'ouverture, puis seulement quand quelque chose change vraiment : contenu ou apparence
+ * (MutationObserver), largeur (ResizeObserver), police ou image chargée, passage à la mise en page
+ * d'impression (papier et marges réels) et retour à l'écran.
+ */
 function useAutoFit(ref, on) {
-  const last = useRef('');
   useLayoutEffect(() => {
     const el = ref.current;
-    if (!el) return;
+    if (!el) return undefined;
     if (!on) {
       el.style.removeProperty('--fs');
-      last.current = '';
-      return;
+      return undefined;
     }
-    // ne recalcule que si le contenu, l'apparence ou la largeur ont changé (la page peut se redessiner souvent)
-    const sig = `${el.clientWidth}|${el.className}|${el.innerHTML.length}|${el.textContent}`;
-    if (sig === last.current) return;
-    last.current = sig;
-    fitText(el);
-  });
-  useEffect(() => {
-    const el = ref.current;
-    if (!on || !el) return;
     const refit = () => fitText(el);
+    refit();
+    // contenu et classes (apparence) ; pas l'attribut style, que fitText modifie lui-même
+    const mo = typeof MutationObserver === 'function' && new MutationObserver(refit);
+    if (mo)
+      mo.observe(el, {
+        childList: true,
+        subtree: true,
+        characterData: true,
+        attributes: true,
+        attributeFilter: ['class', 'src'],
+      });
     let width = el.clientWidth;
     const ro =
       typeof ResizeObserver === 'function' &&
@@ -248,10 +252,19 @@ function useAutoFit(ref, on) {
     const fonts = document.fonts;
     fonts?.addEventListener?.('loadingdone', refit);
     fonts?.ready?.then(refit);
+    // impression : la planche prend la taille de la page réelle, le texte est réajusté (puis au retour)
+    const print = typeof matchMedia === 'function' ? matchMedia('print') : null;
+    print?.addEventListener?.('change', refit);
+    addEventListener('beforeprint', refit);
+    addEventListener('afterprint', refit);
     return () => {
+      if (mo) mo.disconnect();
       if (ro) ro.disconnect();
       el.removeEventListener('load', refit, true);
       fonts?.removeEventListener?.('loadingdone', refit);
+      print?.removeEventListener?.('change', refit);
+      removeEventListener('beforeprint', refit);
+      removeEventListener('afterprint', refit);
     };
   }, [ref, on]);
 }

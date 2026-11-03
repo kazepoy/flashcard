@@ -129,3 +129,10 @@ export const cardIdOfItem = (itemId) => itemId.split(/[~#]/)[0];
 /** Éléments d'étude hors cartes suspendues (progress.suspended). */
 export const activeItems = (items, progress) =>
   progress?.suspended ? items.filter((i) => !progress.suspended[i.cardId]?.s) : items;
+
+/**
+ * Indice à montrer en bas du recto : celui de l'élément, sauf s'il est déjà écrit dans le trou d'un texte à
+ * trous (« [indice] », voir renderCloze) ; '' sinon.
+ */
+export const footHint = (item) =>
+  item.hint && !(item.kind === 'cloze' && item.prompt.includes(`[${item.hint}]`)) ? item.hint : '';

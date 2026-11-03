@@ -1,3 +1,4 @@
+import { footHint } from '../../core/items.js';
 import { AudioButton, MediaImage, Md } from '../components.jsx';
 import { t } from '../i18n.js';
 import { OcclusionView } from '../occlusion.jsx';
@@ -37,10 +38,7 @@ function FaceFoot({ hint, example }) {
  * sauf si l'apparence le masque (`style.recall`).
  */
 export function CardFace({ item, set, side, showHint = false, recall = false }) {
-  // texte à trous : un indice déjà écrit dans le trou ([indice]) n'est pas répété en bas
-  const inBlank = item.kind === 'cloze' && !!item.hint && item.prompt.includes(item.hint);
-  const foot =
-    side === 'prompt' ? <FaceFoot hint={showHint && !inBlank && item.hint} /> : <FaceFoot example={item.example} />;
+  const foot = side === 'prompt' ? <FaceFoot hint={showHint && footHint(item)} /> : <FaceFoot example={item.example} />;
   if (item.kind === 'occlusion') {
     return (
       <>

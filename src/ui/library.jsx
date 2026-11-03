@@ -62,7 +62,7 @@ export function LibraryPage() {
   const risk = useStorageRisk();
   const banner = examplesNoticeShown() ? (
     <ExamplesNotice onOpen={() => (again(), setDialog('examples'))} onHide={again} />
-  ) : installNoticeShown(risk) ? (
+  ) : risk === undefined ? null : installNoticeShown(risk) ? ( // risque pas encore connu : rien, sans clignoter
     <InstallNotice risk={risk} sync={sync} onHide={again} />
   ) : !needsPermission && sync.status !== 'paused' && backupNoticeShown(sync) ? (
     <BackupNotice sync={sync} onHide={again} />

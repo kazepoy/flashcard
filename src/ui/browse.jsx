@@ -112,6 +112,10 @@ export function BrowsePage({ initialQuery = '' }) {
     return sortRows(found, sort.by, sort.desc, now);
   }, [all, debounced, sort, scheduler]);
   const shown = results.slice(0, limit);
+  // carte ouverte sortie des résultats (recherche, tri, pagination) : sa fiche est refermée, pas seulement cachée
+  useEffect(() => {
+    if (current && !shown.some((r) => r.key === current)) setCurrent(null);
+  }, [shown, current]);
   const open = (key, el) => {
     anchor.current = el && { key, top: el.getBoundingClientRect().top };
     setCurrent(key === current ? null : key);

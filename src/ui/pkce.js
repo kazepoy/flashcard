@@ -4,6 +4,7 @@
 // l'application installée sur iPhone et iPad, sans lien avec une telle fenêtre), la page elle-même part chez
 // le fournisseur et la réponse est traitée à son retour (completeRedirectSignIn).
 import { AppError } from '../core/errors.js';
+import { readJson as readLocal, writeJson as writeLocal } from './local.js';
 
 const MESSAGE = 'flashcard-auth';
 /** Connexion par redirection en cours : { key, state, verifier, intent, back, at }. */
@@ -26,22 +27,6 @@ export async function pkceChallenge(verifier) {
   return base64url(new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(verifier))));
 }
 const randomString = () => base64url(crypto.getRandomValues(new Uint8Array(32)));
-
-const readLocal = (key) => {
-  try {
-    return JSON.parse(localStorage.getItem(key)) || null;
-  } catch {
-    return null;
-  }
-};
-const writeLocal = (key, value) => {
-  try {
-    if (value === null) localStorage.removeItem(key);
-    else localStorage.setItem(key, JSON.stringify(value));
-  } catch {
-    /* stockage local indisponible */
-  }
-};
 
 /** Identifiant d'application : valeur du build, ou `localKey` dans le stockage local (tests, hébergement personnel). */
 export function appId(localKey, built) {
@@ -136,6 +121,7 @@ export function pkceClient({
       location.assign(url.href);
       return new Promise(() => {}); // la page s'en va
     }
+    writeLocal(PENDING, null); // une redirection abandonnée plus tôt ne doit pas capter la réponse de la fenêtre
     popup.location.href = url.href;
     const search = await new Promise((resolve, reject) => {
       const onMessage = (e) => {
@@ -219,7 +205,9 @@ export async function completeRedirectSignIn() {
  */
 export function handleAuthRedirect() {
   if (!window.opener || !/[?&](code|error)=/.test(location.search)) return false;
-  if (readLocal(PENDING)) return false; // la page elle-même était partie chez le fournisseur
+  // la page elle-même était partie chez le fournisseur (et non une fenêtre) : même état que la demande en cours
+  const state = new URLSearchParams(location.search).get('state');
+  if (state && readLocal(PENDING)?.state === state) return false;
   try {
     window.opener.postMessage({ type: MESSAGE, search: location.search }, location.origin);
   } finally {

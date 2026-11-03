@@ -6,6 +6,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'preact/hooks'
 import { DropboxRemote } from '../storage/dropbox.js';
 import { clearRemote, removeStrayFiles, syncLibrary } from '../storage/sync.js';
 import { dropboxAppKey, dropboxCanRenew, dropboxSignIn, dropboxToken, forgetDropbox } from './dropbox-auth.js';
+import { readJson, writeJson } from './local.js';
 import { completeRedirectSignIn } from './pkce.js';
 
 const KEY = 'flashcard.sync';
@@ -28,12 +29,14 @@ export const PROVIDERS = {
   },
 };
 
-/** Connexion revenue par redirection (pkce.js) : `connect:<service>` à terminer, ou erreur à afficher. */
+/** Connexion revenue par redirection (pkce.js) : terminée (`ok`), ou erreur à afficher ; annoncée par SIGNED_IN. */
 let redirected = null;
+const SIGNED_IN = 'flashcard-signin';
 
 /**
- * Au démarrage, avant l'affichage : termine une connexion partie chez le fournisseur (fenêtre bloquée,
- * application installée sur iPhone) ; une première connexion relie le service.
+ * Au démarrage : termine une connexion partie chez le fournisseur (fenêtre bloquée, application installée sur
+ * iPhone) ; une première connexion relie le service. L'application peut s'afficher avant la fin (réseau lent) :
+ * la synchronisation en est prévenue (SIGNED_IN).
  */
 export async function completeSignIn() {
   try {
@@ -45,22 +48,12 @@ export async function completeSignIn() {
   } catch (e) {
     redirected = { error: e };
   }
+  dispatchEvent(new Event(SIGNED_IN));
 }
 
-function loadConfig() {
-  try {
-    return { provider: null, auto: true, files: {}, ...JSON.parse(localStorage.getItem(KEY)) };
-  } catch {
-    return { provider: null, auto: true, files: {} };
-  }
-}
-function saveConfig(cfg) {
-  try {
-    localStorage.setItem(KEY, JSON.stringify(cfg));
-  } catch {
-    /* stockage local indisponible : la synchronisation repartira de zéro (fusion, sans perte) */
-  }
-}
+// stockage local indisponible : la synchronisation repartira de zéro (fusion, sans perte)
+const loadConfig = () => ({ provider: null, auto: true, files: {}, ...readJson(KEY) });
+const saveConfig = (cfg) => writeJson(KEY, cfg);
 
 /**
  * État et commandes de la synchronisation. `status` : 'off' | 'idle' | 'syncing' | 'paused' (connexion
@@ -75,7 +68,7 @@ export function useSync(lib, refresh) {
     auto: cfg.current.auto,
     lastSync: cfg.current.lastSync ?? null,
     status: !PROVIDERS[cfg.current.provider] ? 'off' : paused.current ? 'paused' : 'idle',
-    error: redirected?.error ?? null,
+    error: null,
   }));
   const running = useRef(null);
   // fichiers écrits ici depuis la dernière synchronisation ; `verified` : une vérification complète a eu lieu
@@ -174,13 +167,24 @@ export function useSync(lib, refresh) {
     return exclusive(syncWith);
   }, [lib, exclusive, syncWith]);
 
+  /** Fin de pause sans clic : un jeton valable est arrivé (reconnexion dans un autre onglet). */
+  const resumeIfRenewable = useCallback(() => {
+    if (!paused.current || !PROVIDERS[cfg.current.provider]?.canRenew()) return false;
+    paused.current = false;
+    setView((v) => ({ ...v, status: 'idle', error: null }));
+    run();
+    return true;
+  }, [run]);
+
   /**
    * Reconnexion (connexion à renouveler), à appeler directement dans un clic : la fenêtre de connexion s'ouvre
-   * aussitôt, avant toute attente (sinon le navigateur la bloque), puis la synchronisation reprend.
+   * aussitôt, avant toute attente (sinon le navigateur la bloque), puis la synchronisation reprend. Un jeton
+   * valable déjà là (autre onglet) : la synchronisation reprend simplement.
    */
   const reconnect = useCallback(() => {
     const provider = PROVIDERS[cfg.current.provider];
     if (!provider) return Promise.resolve();
+    if (resumeIfRenewable()) return Promise.resolve();
     return provider.signIn('resume').then(
       () => {
         paused.current = false;
@@ -191,15 +195,48 @@ export function useSync(lib, refresh) {
         throw e;
       },
     );
-  }, [run]);
+  }, [run, resumeIfRenewable]);
 
-  // déclencheurs automatiques ; juste après une connexion revenue par redirection, une synchronisation
-  // même sans synchronisation automatique (comme après une connexion dans une fenêtre)
+  // en pause : un autre onglet a pu se reconnecter (stockage partagé) ; vérifié aussi au retour au premier plan
   useEffect(() => {
-    if (lib && redirected?.ok) {
+    const onStorage = () => resumeIfRenewable();
+    const onVisible = () => document.visibilityState === 'visible' && resumeIfRenewable();
+    addEventListener('storage', onStorage);
+    document.addEventListener('visibilitychange', onVisible);
+    return () => {
+      removeEventListener('storage', onStorage);
+      document.removeEventListener('visibilitychange', onVisible);
+    };
+  }, [resumeIfRenewable]);
+
+  // connexion revenue par redirection, terminée avant ou après l'affichage : configuration relue (première
+  // connexion), puis une synchronisation, même sans synchronisation automatique
+  useEffect(() => {
+    if (!lib) return undefined;
+    const apply = () => {
+      const r = redirected;
+      if (!r) return;
       redirected = null;
-      run();
-    }
+      cfg.current = loadConfig();
+      const provider = PROVIDERS[cfg.current.provider];
+      paused.current = !!provider && !provider.canRenew();
+      setView((v) => ({
+        ...v,
+        provider: provider ? cfg.current.provider : null,
+        auto: cfg.current.auto,
+        lastSync: cfg.current.lastSync ?? null,
+        status: !provider ? 'off' : paused.current ? 'paused' : 'idle',
+        error: r.error ?? null,
+      }));
+      if (r.ok) run();
+    };
+    apply();
+    addEventListener(SIGNED_IN, apply);
+    return () => removeEventListener(SIGNED_IN, apply);
+  }, [lib, run]);
+
+  // déclencheurs automatiques
+  useEffect(() => {
     if (!lib || !view.provider || !view.auto) return;
     run();
     let timer = null;
