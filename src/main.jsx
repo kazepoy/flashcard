@@ -15,6 +15,14 @@ if (
     if (hadController) dispatchEvent(new Event('flashcard-update'));
   });
   addEventListener('load', () => {
-    navigator.serviceWorker.register('./sw.js').catch((e) => console.warn('Service worker indisponible', e));
+    navigator.serviceWorker
+      .register('./sw.js')
+      .then((reg) => {
+        // application restée ouverte (onglet, PWA) : chercher une nouvelle version à chaque retour au premier plan
+        document.addEventListener('visibilitychange', () => {
+          if (document.visibilityState === 'visible') reg.update().catch(() => {});
+        });
+      })
+      .catch((e) => console.warn('Service worker indisponible', e));
   });
 }

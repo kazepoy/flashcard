@@ -131,6 +131,66 @@ test("PKCE : défi S256 conforme à l'exemple de la RFC 7636", async () => {
   );
 });
 
+test('PKCE : le jeton durable survit à une panne de réseau, pas à un refus du fournisseur', async () => {
+  const mem = new Map();
+  globalThis.localStorage = {
+    getItem: (k) => (mem.has(k) ? mem.get(k) : null),
+    setItem: (k, v) => mem.set(k, String(v)),
+    removeItem: (k) => mem.delete(k),
+  };
+  try {
+    const { pkceClient } = await import('../src/ui/pkce.js');
+    let answer = null; // réponse du fournisseur à la prochaine demande de jeton
+    const client = pkceClient({
+      name: 'Test',
+      storageKey: 'jeton-test',
+      clientId: () => 'app',
+      authorizeUrl: 'https://exemple.test/authorize',
+      tokenUrl: 'https://exemple.test/token',
+      fetchImpl: async () => answer(),
+    });
+    const reply = (status, body) => () => ({ ok: status === 200, status, json: async () => body });
+    mem.set('jeton-test', JSON.stringify({ access: 'ancien', exp: Date.now() - 1, refresh: 'durable' }));
+    // sortie de veille sans réseau : erreur réseau, le jeton durable reste
+    answer = () => {
+      throw new TypeError('Failed to fetch');
+    };
+    await assert.rejects(client.token(), { code: 'syncOffline' });
+    assert.equal(client.canRenew(), true);
+    // service en panne : idem
+    answer = reply(503, {});
+    await assert.rejects(client.token(), { code: 'syncHttp' });
+    assert.equal(client.canRenew(), true);
+    // réseau revenu : nouveau jeton sans clic, le jeton durable est conservé
+    answer = reply(200, { access_token: 'neuf', expires_in: 14400 });
+    assert.equal(await client.token(), 'neuf');
+    assert.equal(await client.token(), 'neuf', 'en cache');
+    answer = reply(200, { access_token: 'renouvele', expires_in: 14400 });
+    assert.equal(await client.token({ renew: true }), 'renouvele');
+    assert.equal(JSON.parse(mem.get('jeton-test')).refresh, 'durable');
+    // accès révoqué : reconnexion nécessaire
+    answer = reply(400, { error: 'invalid_grant' });
+    await assert.rejects(client.token({ renew: true }), { code: 'syncAuth' });
+    assert.equal(client.canRenew(), false);
+  } finally {
+    delete globalThis.localStorage;
+  }
+});
+
+test("Dropbox : jeton refusé par l'API, renouvelé une fois avant de demander une reconnexion", async () => {
+  const { DropboxRemote } = await import('../src/storage/dropbox.js');
+  const asked = [];
+  const getToken = async (o) => (asked.push(!!o?.renew), o?.renew ? 'neuf' : 'perime');
+  const fetchImpl = async (url, init) =>
+    init.headers.Authorization === 'Bearer neuf'
+      ? { ok: true, status: 200, json: async () => ({ entries: [], has_more: false }) }
+      : { ok: false, status: 401, text: async () => '' };
+  assert.deepEqual(await new DropboxRemote(getToken, { fetchImpl }).list(), []);
+  assert.deepEqual(asked, [false, true]);
+  const refused = async () => ({ ok: false, status: 401, text: async () => '' });
+  await assert.rejects(new DropboxRemote(getToken, { fetchImpl: refused }).list(), { code: 'syncAuth' });
+});
+
 test("fiabilité : un jeu ouvert puis enregistré ne perd pas ce que la synchronisation vient d'apporter", async () => {
   const { libs, sync } = await devices();
   const s = newSet({ title: 'Partagé', cards: [card('a')] });

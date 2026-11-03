@@ -1,5 +1,6 @@
 // Navigateur de cartes : toutes les cartes de la bibliothèque, recherche, drapeaux, infos par carte.
-import { useEffect, useMemo, useState } from 'preact/hooks';
+import { Fragment } from 'preact';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'preact/hooks';
 import { setSuspended, toggleStar } from '../core/progress.js';
 import { FLAGS, buildRows, cardHistory, rowSummary, search, setFlag, sortRows } from '../core/search.js';
 import { Scheduler, SrsState } from '../core/srs.js';
@@ -66,6 +67,8 @@ export function BrowsePage({ initialQuery = '' }) {
   const [limit, setLimit] = useState(PAGE);
   const [selected, setSelected] = useState(() => new Set());
   const [current, setCurrent] = useState(null);
+  // ligne cliquée et sa position à l'écran : elle ne doit pas bouger quand la fiche ouverte au-dessus se replie
+  const anchor = useRef(null);
   const [, bump] = useState(0);
   const scheduler = useMemo(() => new Scheduler({ retention: settings.retention }), [settings.retention]);
 
@@ -109,7 +112,16 @@ export function BrowsePage({ initialQuery = '' }) {
     return sortRows(found, sort.by, sort.desc, now);
   }, [all, debounced, sort, scheduler]);
   const shown = results.slice(0, limit);
-  const cur = current && all.find((r) => r.key === current);
+  const open = (key, el) => {
+    anchor.current = el && { key, top: el.getBoundingClientRect().top };
+    setCurrent(key === current ? null : key);
+  };
+  useLayoutEffect(() => {
+    const a = anchor.current;
+    anchor.current = null;
+    const el = a && document.querySelector(`.btable tr[data-key="${CSS.escape(a.key)}"]`);
+    if (el) scrollBy(0, el.getBoundingClientRect().top - a.top);
+  }, [current]);
 
   const persist = async (rows) => {
     bump((n) => n + 1);
@@ -272,7 +284,7 @@ export function BrowsePage({ initialQuery = '' }) {
         </div>
       )}
 
-      <div class={'browse-body' + (cur ? ' with-info' : '')}>
+      <div class="browse-body">
         <div class="browse-list">
           {results.length === 0 ? (
             <Empty title={t('common.noResults')}>
@@ -300,14 +312,30 @@ export function BrowsePage({ initialQuery = '' }) {
               </thead>
               <tbody>
                 {shown.map((r) => (
-                  <Row
-                    key={r.key}
-                    row={r}
-                    active={r.key === current}
-                    checked={selected.has(r.key)}
-                    onCheck={() => toggleSel(r.key)}
-                    onOpen={() => setCurrent(r.key === current ? null : r.key)}
-                  />
+                  <Fragment key={r.key}>
+                    <Row
+                      row={r}
+                      active={r.key === current}
+                      checked={selected.has(r.key)}
+                      onCheck={() => toggleSel(r.key)}
+                      onOpen={(el) => open(r.key, el)}
+                    />
+                    {/* fiche de la carte, dépliée sous sa ligne (une seule ouverte à la fois) */}
+                    {r.key === current && (
+                      <tr class="row-detail">
+                        <td colSpan={5}>
+                          <CardInfo
+                            row={r}
+                            scheduler={scheduler}
+                            onClose={() => open(r.key, null)}
+                            onFlag={(n) => flagRows([r], n)}
+                            onStar={() => starRows([r], !r.starred)}
+                            onSuspend={() => suspendRows([r], !r.suspended)}
+                          />
+                        </td>
+                      </tr>
+                    )}
+                  </Fragment>
                 ))}
               </tbody>
             </table>
@@ -320,16 +348,6 @@ export function BrowsePage({ initialQuery = '' }) {
             </p>
           )}
         </div>
-        {cur && (
-          <CardInfo
-            row={cur}
-            scheduler={scheduler}
-            onClose={() => setCurrent(null)}
-            onFlag={(n) => flagRows([cur], n)}
-            onStar={() => starRows([cur], !cur.starred)}
-            onSuspend={() => suspendRows([cur], !cur.suspended)}
-          />
-        )}
       </div>
     </div>
   );
@@ -343,15 +361,16 @@ function Row({ row, active, checked, onCheck, onOpen }) {
   return (
     <tr
       class={(active ? 'active' : '') + (row.suspended ? ' suspended' : '')}
+      data-key={row.key}
       style={flag ? { '--flag': flag.hex } : undefined}
       // toute la ligne ouvre la carte (le bouton du terme reste la cible du clavier), sauf la case à cocher
-      onClick={(e) => !e.target.closest('input, button') && onOpen()}
+      onClick={(e) => !e.target.closest('input, button') && onOpen(e.currentTarget)}
     >
       <td class="c-sel">
         <input type="checkbox" aria-label={t('browse.select')} checked={checked} onChange={onCheck} />
       </td>
       <td class="c-term">
-        <button class="row-open" onClick={onOpen} aria-expanded={active}>
+        <button class="row-open" onClick={(e) => onOpen(e.currentTarget.closest('tr'))} aria-expanded={active}>
           {flag && <span class="flag-dot" aria-label={t('browse.flagNamed', { c: t(`flag.${flag.id}`) })} />}
           {row.starred && (
             <span class="star-mark" aria-label={t('browse.starred')}>
@@ -428,126 +447,127 @@ function CardInfo({ row, scheduler, onClose, onFlag, onStar, onSuspend }) {
   const nf = new Intl.NumberFormat(locale(), { maximumFractionDigits: 2 });
   const s = rowSummary(row, now);
   return (
-    <aside class="panel card-info" aria-label={t('browse.cardInfo')}>
-      <header>
-        <h2>{t('browse.card')}</h2>
-        <button class="icon-btn" aria-label={t('common.close')} onClick={onClose}>
-          <Icon name="x" />
-        </button>
-      </header>
-      <div class="ci-faces">
-        <Md text={card.term} extraMedia={[card.termImage || '']} />
-        <Md text={card.definition} />
-      </div>
-      <p class="ci-actions">
-        <button class="btn small" onClick={() => setPreview(true)}>
-          <Icon name="eye" /> {t('preview.action')}
-        </button>
-        <a class="btn small" href={href(`set/${set.id}/edit/${card.id}`)}>
-          <Icon name="edit" /> {t('common.edit')}
-        </a>
-        <a class="btn small" href={href(`set/${set.id}`)}>
-          {set.title}
-        </a>
-        <button class={'btn small' + (row.starred ? ' on' : '')} aria-pressed={row.starred} onClick={onStar}>
-          <Icon name="star" fill={row.starred} /> {row.starred ? t('browse.starred') : t('common.star')}
-        </button>
-        <button
-          class={'btn small' + (row.suspended ? ' on' : '')}
-          aria-pressed={row.suspended}
-          title={t('common.suspendHint')}
-          onClick={onSuspend}
-        >
-          <Icon name="pause" /> {row.suspended ? t('common.unsuspend') : t('common.suspend')}
-        </button>
-      </p>
-      <div class="ci-flag">
-        <span class="lbl">{t('browse.flag')}</span>
-        <FlagPicker value={row.flag} onChange={onFlag} />
-      </div>
-      <dl class="kv">
-        <div>
-          <dt>{t('browse.added')}</dt>
-          <dd>{row.added ? df.format(new Date(row.added)) : '—'}</dd>
+    <section class="card-info" aria-label={t('browse.cardInfo')}>
+      <button class="icon-btn ci-close" aria-label={t('common.close')} title={t('common.close')} onClick={onClose}>
+        <Icon name="x" />
+      </button>
+      <div class="ci-main">
+        <div class="ci-faces">
+          <Md text={card.term} extraMedia={[card.termImage || '']} />
+          <Md text={card.definition} />
         </div>
-        <div>
-          <dt>{t('browse.state')}</dt>
-          <dd>{t(STATE_LABEL[s.state])}</dd>
+        <p class="ci-actions">
+          <button class="btn small" onClick={() => setPreview(true)}>
+            <Icon name="eye" /> {t('preview.action')}
+          </button>
+          <a class="btn small" href={href(`set/${set.id}/edit/${card.id}`)}>
+            <Icon name="edit" /> {t('common.edit')}
+          </a>
+          <a class="btn small" href={href(`set/${set.id}`)}>
+            {set.title}
+          </a>
+          <button class={'btn small' + (row.starred ? ' on' : '')} aria-pressed={row.starred} onClick={onStar}>
+            <Icon name="star" fill={row.starred} /> {row.starred ? t('browse.starred') : t('common.star')}
+          </button>
+          <button
+            class={'btn small' + (row.suspended ? ' on' : '')}
+            aria-pressed={row.suspended}
+            title={t('common.suspendHint')}
+            onClick={onSuspend}
+          >
+            <Icon name="pause" /> {row.suspended ? t('common.unsuspend') : t('common.suspend')}
+          </button>
+        </p>
+        <div class="ci-flag">
+          <span class="lbl">{t('browse.flag')}</span>
+          <FlagPicker value={row.flag} onChange={onFlag} />
         </div>
-        {s.lastReview && (
+        <dl class="kv">
           <div>
-            <dt>{t('browse.lastReview')}</dt>
-            <dd>{df.format(new Date(s.lastReview))}</dd>
+            <dt>{t('browse.added')}</dt>
+            <dd>{row.added ? df.format(new Date(row.added)) : '—'}</dd>
+          </div>
+          <div>
+            <dt>{t('browse.state')}</dt>
+            <dd>{t(STATE_LABEL[s.state])}</dd>
+          </div>
+          {s.lastReview && (
+            <div>
+              <dt>{t('browse.lastReview')}</dt>
+              <dd>{df.format(new Date(s.lastReview))}</dd>
+            </div>
+          )}
+          {row.dupe && (
+            <div>
+              <dt>{t('browse.duplicate')}</dt>
+              <dd>{t('browse.sameTermAnotherCard')}</dd>
+            </div>
+          )}
+        </dl>
+      </div>
+      <div class="ci-side">
+        {row.items.some((x) => x.it?.srs) && (
+          <div class="ci-items">
+            <h3>{t('browse.fsrsScheduling')}</h3>
+            {row.items
+              .filter((x) => x.it?.srs)
+              .map(({ id, it }) => (
+                <section key={id} class="ci-item">
+                  {itemLabel(id, card) && <h4>{itemLabel(id, card)}</h4>}
+                  <dl class="kv compact">
+                    <div>
+                      <dt>{t('browse.state')}</dt>
+                      <dd>{SRS_STATE_LABEL[it.srs.state] ? t(SRS_STATE_LABEL[it.srs.state]) : ''}</dd>
+                    </div>
+                    <div>
+                      <dt>{t('browse.sort.due')}</dt>
+                      <dd>{df.format(new Date(it.srs.due))}</dd>
+                    </div>
+                    <div>
+                      <dt>{t('browse.stability')}</dt>
+                      <dd>{tn('common.days', Math.round(it.srs.stability))}</dd>
+                    </div>
+                    <div>
+                      <dt>{t('browse.difficultyScale')}</dt>
+                      <dd>{nf.format(it.srs.difficulty)}</dd>
+                    </div>
+                    <div>
+                      <dt>{t('browse.recallProbability')}</dt>
+                      <dd>{percent(Math.round(scheduler.retrievability(it.srs, now) * 100))}</dd>
+                    </div>
+                    <div>
+                      <dt>{t('browse.reviewsLapses')}</dt>
+                      <dd>
+                        {it.srs.reps} / {it.srs.lapses}
+                      </dd>
+                    </div>
+                  </dl>
+                </section>
+              ))}
           </div>
         )}
-        {row.dupe && (
-          <div>
-            <dt>{t('browse.duplicate')}</dt>
-            <dd>{t('browse.sameTermAnotherCard')}</dd>
-          </div>
-        )}
-      </dl>
-      {row.items.some((x) => x.it?.srs) && (
-        <div class="ci-items">
-          <h3>{t('browse.fsrsScheduling')}</h3>
-          {row.items
-            .filter((x) => x.it?.srs)
-            .map(({ id, it }) => (
-              <section key={id} class="ci-item">
-                {itemLabel(id, card) && <h4>{itemLabel(id, card)}</h4>}
-                <dl class="kv compact">
-                  <div>
-                    <dt>{t('browse.state')}</dt>
-                    <dd>{SRS_STATE_LABEL[it.srs.state] ? t(SRS_STATE_LABEL[it.srs.state]) : ''}</dd>
-                  </div>
-                  <div>
-                    <dt>{t('browse.sort.due')}</dt>
-                    <dd>{df.format(new Date(it.srs.due))}</dd>
-                  </div>
-                  <div>
-                    <dt>{t('browse.stability')}</dt>
-                    <dd>{tn('common.days', Math.round(it.srs.stability))}</dd>
-                  </div>
-                  <div>
-                    <dt>{t('browse.difficultyScale')}</dt>
-                    <dd>{nf.format(it.srs.difficulty)}</dd>
-                  </div>
-                  <div>
-                    <dt>{t('browse.recallProbability')}</dt>
-                    <dd>{percent(Math.round(scheduler.retrievability(it.srs, now) * 100))}</dd>
-                  </div>
-                  <div>
-                    <dt>{t('browse.reviewsLapses')}</dt>
-                    <dd>
-                      {it.srs.reps} / {it.srs.lapses}
-                    </dd>
-                  </div>
-                </dl>
-              </section>
+        <h3>{t('browse.history')}</h3>
+        {!log ? (
+          <p class="muted">{t('common.loading')}</p>
+        ) : history.length === 0 ? (
+          <p class="muted">{t('browse.neverStudied')}</p>
+        ) : (
+          <ol class="history">
+            {history.slice(0, 50).map((l, i) => (
+              <li key={i}>
+                <time dateTime={l.t}>{dtf.format(new Date(l.t))}</time>
+                <span class={'rating r' + l.rating}>{RATING_LABEL[l.rating] ? t(RATING_LABEL[l.rating]) : '?'}</span>
+                <span class="muted">
+                  {l.mode ? t(`mode.${l.mode === 'srs' ? 'review' : l.mode}`) : ''}
+                  {itemLabel(l.item, card) && ` · ${itemLabel(l.item, card)}`}
+                </span>
+              </li>
             ))}
-        </div>
-      )}
-      <h3>{t('browse.history')}</h3>
-      {!log ? (
-        <p class="muted">{t('common.loading')}</p>
-      ) : history.length === 0 ? (
-        <p class="muted">{t('browse.neverStudied')}</p>
-      ) : (
-        <ol class="history">
-          {history.slice(0, 50).map((l, i) => (
-            <li key={i}>
-              <time dateTime={l.t}>{dtf.format(new Date(l.t))}</time>
-              <span class={'rating r' + l.rating}>{RATING_LABEL[l.rating] ? t(RATING_LABEL[l.rating]) : '?'}</span>
-              <span class="muted">
-                {l.mode ? t(`mode.${l.mode === 'srs' ? 'review' : l.mode}`) : ''}
-                {itemLabel(l.item, card) && ` · ${itemLabel(l.item, card)}`}
-              </span>
-            </li>
-          ))}
-        </ol>
-      )}
+          </ol>
+        )}
+      </div>
       {preview && <CardPreviewDialog card={card} set={set} onClose={() => setPreview(false)} />}
-    </aside>
+    </section>
   );
 }
 

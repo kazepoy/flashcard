@@ -20,6 +20,18 @@ const base = `http://localhost:${PORT}/`;
 const server = spawn('node', ['scripts/serve.mjs'], { env: { ...process.env, PORT: String(PORT) }, stdio: 'ignore' });
 await new Promise((r) => setTimeout(r, 600));
 const browser = await chromium.launch();
+// bandeau d'installation (Chromium sans interface : stockage jamais persistant) : vérifié dans son étape,
+// masqué ailleurs pour laisser voir les autres bandeaux
+const newContext = browser.newContext.bind(browser);
+browser.newContext = async ({ installNotice = false, ...o } = {}) => {
+  const c = await newContext(o);
+  if (!installNotice)
+    await c.addInitScript(
+      (k) => localStorage.getItem(k) || localStorage.setItem(k, new Date().toISOString()),
+      'flashcard.installNoticeSnooze',
+    );
+  return c;
+};
 const ctx = await browser.newContext({
   viewport: { width: 1100, height: 800 },
   locale: 'fr-FR',
@@ -238,7 +250,9 @@ try {
       .getByRole('button', { name: /^Retourner/ })
       .first()
       .click();
-    assert.match(await page.locator('.face-back .face-foot').first().innerText(), /Exemple\s*:\s*La mesa es grande/i);
+    const backFoot = await page.locator('.face-back .face-foot').first().innerText();
+    assert.match(backFoot, /Exemple\s*:\s*La mesa es grande/i);
+    assert.doesNotMatch(backFoot, /un meuble/, "l'indice n'est pas répété au verso");
     await shot('15b-pied-de-fiche');
     // aperçu d'une carte, depuis l'éditeur puis depuis la page du jeu
     await page.goto(setUrl + '/edit');
@@ -390,6 +404,12 @@ try {
     assert.equal(await page.getByRole('searchbox').inputValue(), 'mesa');
     await page.locator('.row-open').first().click();
     await page.locator('.card-info').waitFor();
+    // la fiche se déplie sous sa ligne
+    assert.equal(
+      await page.locator('.btable tbody tr.active + tr.row-detail .card-info').count(),
+      1,
+      'fiche sous la ligne ouverte',
+    );
     await page.locator('.card-info').getByRole('button', { name: 'Drapeau Rouge' }).click();
     await page.locator('.card-info .history li').first().waitFor();
     // aperçu de la carte depuis le panneau
@@ -399,7 +419,7 @@ try {
     await shot('16c-navigateur');
     await page.getByRole('searchbox').fill('flag:1 or is:dupe');
     await page.waitForFunction(() => decodeURIComponent(location.hash).includes('flag:1'));
-    assert.equal(await page.locator('.btable tbody tr').count(), 1);
+    assert.equal(await page.locator('.btable tbody tr:not(.row-detail)').count(), 1);
     // le drapeau est enregistré : il survit au rechargement
     await page.reload();
     await page.locator('.btable tbody tr').first().waitFor();
@@ -474,6 +494,15 @@ try {
     const cls = await page.locator('.face-front').first().getAttribute('class');
     assert.match(cls, /size-xl/);
     assert.match(cls, /paper-grid/);
+    // la question est rappelée au verso, sauf si l'apparence la masque
+    assert.equal(await page.locator('.face-back .face-recall').count(), 1);
+    await page.goto(base + '#/settings/cards');
+    await page.locator('.settings .appearance').getByLabel('Question au verso').selectOption('hide');
+    await page.goto(setUrl + '/study/flashcards');
+    await page.locator('.face-back').first().waitFor();
+    assert.equal(await page.locator('.face-back .face-recall').count(), 0);
+    await page.goto(base + '#/settings/cards');
+    await page.locator('.settings .appearance').getByLabel('Question au verso').selectOption('show');
     // l'adresse #/settings/<rubrique> la déplie
     await page.goto(base + '#/settings/appearance');
     await page.getByLabel(/^Langue(?! des)/).selectOption('en');
@@ -843,10 +872,11 @@ try {
     assert.equal(await p.locator('.archive-suggest').count(), 0, 'jeu récent : rien à proposer');
     // quatre mois plus tard
     await p.clock.install({ time: new Date(Date.now() + 120 * 86400000) });
-    // bandeaux prioritaires déjà traités : annonce des exemples vue, rappel de sauvegarde masqué
+    // bandeaux prioritaires déjà traités : annonce des exemples vue, installation et sauvegarde masquées
     await p.evaluate(() => {
       localStorage.setItem('flashcard.examplesNotice', 'seen');
       localStorage.setItem('flashcard.backupNoticeSnooze', new Date().toISOString());
+      localStorage.setItem('flashcard.installNoticeSnooze', new Date().toISOString());
     });
     await p.reload();
     await p.locator('.archive-suggest').getByRole('button', { name: 'Voir' }).click();
@@ -890,6 +920,10 @@ try {
     await page.evaluate(() => dispatchEvent(new Event('flashcard-update')));
     await page.getByRole('button', { name: 'Recharger' }).waitFor();
     await shot('20-aide');
+    // le bandeau reste affiché tant que la page n'a pas été rechargée, même en changeant de page
+    await page.waitForTimeout(8000);
+    await page.goto(base + '#/settings');
+    assert.equal(await page.locator('.toast.update').getByRole('button', { name: 'Recharger' }).count(), 1);
   });
 
   await step("import d'un jeu déjà présent : copie renommée ou mise à jour", async () => {
@@ -926,6 +960,7 @@ try {
   await step('synchronisation Dropbox (connexion PKCE et API simulées) entre deux appareils', async () => {
     const files = new Map(); // /chemin → { bytes, rev }
     let n = 0;
+    let tokenFailure = null;
     const api = async (route) => {
       const req = route.request();
       const u = new URL(req.url());
@@ -966,7 +1001,12 @@ try {
         });
       });
       await c.route('https://api.dropboxapi.com/oauth2/token', (r) => {
-        assert.ok(new URLSearchParams(r.request().postData()).get('code_verifier'));
+        const q = new URLSearchParams(r.request().postData());
+        // renouvellement sans clic : réseau coupé, ou accès révoqué (selon `tokenFailure`)
+        if (q.get('grant_type') === 'refresh_token' && tokenFailure === 'network') return r.abort();
+        if (q.get('grant_type') === 'refresh_token' && tokenFailure === 'revoked')
+          return r.fulfill({ status: 400, contentType: 'application/json', body: '{"error":"invalid_grant"}' });
+        assert.ok(q.get('code_verifier') || q.get('grant_type') === 'refresh_token');
         return r.fulfill({
           contentType: 'application/json',
           body: JSON.stringify({ access_token: 'jeton', expires_in: 14400, refresh_token: 'durable' }),
@@ -1000,6 +1040,52 @@ try {
     await connect(a.p);
     assert.ok([...files.keys()].some((k) => k.startsWith('/sets/')));
     assert.ok(files.has('/shared/settings.json'));
+    // jeton d'accès expiré, réseau coupé au moment de le renouveler (sortie de veille) : la connexion n'est pas
+    // perdue, la synchronisation réessaie d'elle-même
+    const expire = () =>
+      a.p.evaluate(() => {
+        const k = 'flashcard.dropboxToken';
+        localStorage.setItem(k, JSON.stringify({ ...JSON.parse(localStorage.getItem(k)), exp: 0 }));
+      });
+    await expire();
+    tokenFailure = 'network';
+    await a.p.getByRole('button', { name: 'Synchroniser maintenant' }).click();
+    await a.p.locator('.sync-status.error').waitFor();
+    await a.p.getByText(/Dropbox est injoignable/).waitFor();
+    tokenFailure = null;
+    await a.p.getByRole('button', { name: 'Synchroniser maintenant' }).click();
+    await a.p.locator('.sync-status.idle').waitFor();
+    // accès révoqué : bandeau « Se reconnecter », qui reste affiché (les synchronisations automatiques
+    // n'insistent pas) d'une page à l'autre et après rechargement
+    await expire();
+    tokenFailure = 'revoked';
+    await a.p.getByRole('button', { name: 'Synchroniser maintenant' }).click();
+    const banner = a.p.locator('.banner', { hasText: 'Dropbox est en pause' });
+    await banner.waitFor();
+    tokenFailure = null;
+    await a.p.goto(base);
+    await a.p.evaluate(() => document.dispatchEvent(new Event('visibilitychange')));
+    await a.p.waitForTimeout(500);
+    assert.equal(await banner.count(), 1, 'bandeau toujours là');
+    await a.p.reload();
+    await banner.waitFor();
+    // reconnexion depuis le bandeau : la fenêtre de connexion s'ouvre dans le clic
+    await banner.getByRole('button', { name: 'Se reconnecter à Dropbox' }).click();
+    await banner.waitFor({ state: 'detached' });
+    await a.p.goto(base + '#/settings/sync');
+    await a.p.locator('.sync-status.idle').waitFor();
+    // fenêtre bloquée par le navigateur : la page part chez Dropbox et la connexion se termine à son retour
+    await expire();
+    tokenFailure = 'revoked';
+    await a.p.getByRole('button', { name: 'Synchroniser maintenant' }).click();
+    await a.p.getByRole('button', { name: 'Se reconnecter à Dropbox' }).first().waitFor();
+    tokenFailure = null;
+    await a.p.evaluate(() => ((window.open = () => null), (window.avantRedirection = true)));
+    await a.p.locator('.sync-card').getByRole('button', { name: 'Se reconnecter à Dropbox' }).click();
+    await a.p.waitForURL((u) => u.hash === '#/settings/sync' && !u.search);
+    await a.p.locator('.sync-status.idle').waitFor();
+    assert.equal(await a.p.evaluate(() => window.avantRedirection), undefined, 'la page est partie puis revenue');
+    assert.equal(await a.p.locator('.banner', { hasText: 'Dropbox est en pause' }).count(), 0);
     const b = await device();
     await connect(b.p);
     await b.p.goto(base);
@@ -1106,6 +1192,55 @@ try {
     await page.goto(base);
     await page.locator('.set-row').first().waitFor();
     assert.equal(await page.locator('.backup-notice').count(), 0);
+  });
+
+  await step("risque d'effacement : installer l'application, et toujours Dropbox", async () => {
+    // Chrome : stockage non persistant, invite d'installation du navigateur
+    const c = await browser.newContext({ locale: 'fr-FR', installNotice: true });
+    await c.addInitScript(() => {
+      localStorage.setItem('flashcard.examplesNotice', 'seen');
+      navigator.storage.persisted = async () => false;
+      navigator.storage.persist = async () => false;
+      window.installAsked = 0;
+      addEventListener('load', () => {
+        const e = new Event('beforeinstallprompt');
+        e.prompt = async () => window.installAsked++;
+        e.userChoice = Promise.resolve({ outcome: 'accepted' });
+        dispatchEvent(e);
+      });
+    });
+    const p = await c.newPage();
+    await p.goto(base);
+    const notice = p.locator('.install-notice');
+    await notice.getByText(/peut effacer les données de Flashcard/).waitFor();
+    await notice.getByRole('link', { name: 'Synchroniser avec Dropbox' }).waitFor();
+    await notice.getByRole('button', { name: 'Installer' }).click();
+    await notice.waitFor({ state: 'detached' });
+    assert.equal(await p.evaluate(() => window.installAsked), 1);
+    await c.close();
+    // iPhone : le geste à faire (Partager), les données propres de l'application installée, et Dropbox
+    const ios = await browser.newContext({
+      locale: 'fr-FR',
+      installNotice: true,
+      userAgent:
+        'Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Mobile/15E148 Safari/604.1',
+    });
+    await ios.addInitScript(() => localStorage.setItem('flashcard.examplesNotice', 'seen'));
+    const q = await ios.newPage();
+    await q.goto(base);
+    const n2 = q.locator('.install-notice');
+    await n2.getByText(/après 7 jours sans visite/).waitFor();
+    assert.match(await n2.innerText(), /Sur l'écran d'accueil/);
+    assert.match(await n2.innerText(), /démarre vide/);
+    await n2.getByRole('link', { name: 'Synchroniser avec Dropbox' }).waitFor();
+    // masqué : ne revient pas avant quelques jours
+    await n2.getByRole('button', { name: 'Masquer ce message' }).click();
+    await q.reload();
+    await q.locator('.set-row').first().waitFor();
+    assert.equal(await q.locator('.install-notice').count(), 0);
+    await q.goto(base + '#/help');
+    await q.getByText(/Sur cet appareil : Flashcard n'est pas installée/).waitFor();
+    await ios.close();
   });
 
   await step('hors ligne : application, jeux et police déjà utilisée disponibles sans réseau', async () => {

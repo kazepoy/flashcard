@@ -8,7 +8,8 @@ const CONTENT = 'https://content.dropboxapi.com/2';
 
 export class DropboxRemote {
   /**
-   * @param {() => Promise<string>} getToken jeton d'accès OAuth valide
+   * @param {(o?: {renew?: boolean}) => Promise<string>} getToken jeton d'accès OAuth valide (`renew` : à
+   *   renouveler, le service a refusé le précédent)
    * @param {{fetchImpl?: typeof fetch}} o
    */
   constructor(getToken, { fetchImpl = globalThis.fetch.bind(globalThis) } = {}) {
@@ -17,15 +18,19 @@ export class DropboxRemote {
   }
 
   async _call(url, { body, args, headers = {} } = {}) {
-    const res = await this.fetch(url, {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${await this.getToken()}`,
-        ...(args ? { 'Dropbox-API-Arg': JSON.stringify(args) } : {}),
-        ...headers,
-      },
-      body,
-    });
+    const send = async (renew) =>
+      this.fetch(url, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${await this.getToken(renew ? { renew } : undefined)}`,
+          ...(args ? { 'Dropbox-API-Arg': JSON.stringify(args) } : {}),
+          ...headers,
+        },
+        body,
+      });
+    let res = await send(false);
+    // jeton refusé (expiré plus tôt que prévu, révoqué) : un nouveau, une fois, avant de demander une reconnexion
+    if (res.status === 401) res = await send(true);
     if (res.status === 401) throw new AppError('syncAuth', 'Connexion à Dropbox expirée');
     if (!res.ok) {
       const detail = (await res.text()).slice(0, 200);

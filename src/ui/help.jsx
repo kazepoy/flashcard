@@ -3,6 +3,8 @@
 import { Icon } from './components.jsx';
 import { href } from './ctx.js';
 import { t } from './i18n.js';
+import { isInstalled } from './install.js';
+import { useStorageRisk } from './install-notice.jsx';
 
 const REPO = 'https://github.com/kazepoy/flashcard';
 const VERSION = typeof __APP_VERSION__ === 'string' ? __APP_VERSION__ : '';
@@ -105,11 +107,21 @@ export function HelpPage() {
       <section aria-labelledby="help-install">
         <h2 id="help-install">{t('help.installTitle')}</h2>
         <p>{t('help.installWhy')}</p>
+        <InstallState />
         <ul class="help-install">
-          {['help.installIos', 'help.installAndroid', 'help.installDesktop'].map((k) => (
+          {[
+            'help.installIos',
+            'help.installAndroid',
+            'help.installDesktop',
+            'help.installMac',
+            'help.installFirefox',
+          ].map((k) => (
             <li key={k}>{t(k)}</li>
           ))}
         </ul>
+        <p>
+          {t('help.installSync')} <a href={href('settings/sync')}>{t('sync.setup')}</a>
+        </p>
       </section>
 
       <section aria-labelledby="help-keys">
@@ -156,4 +168,17 @@ export function HelpPage() {
       </footer>
     </div>
   );
+}
+
+/** État de cet appareil : application installée, stockage protégé, ou données à la merci du navigateur. */
+function InstallState() {
+  const risk = useStorageRisk();
+  const key = isInstalled()
+    ? 'help.installState.installed'
+    : risk
+      ? `help.installState.${risk}`
+      : risk === null
+        ? 'help.installState.protected'
+        : null;
+  return key && <p class={'notice small' + (risk ? '' : ' ok')}>{t(key)}</p>;
 }

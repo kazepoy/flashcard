@@ -4,11 +4,14 @@
 // « default » : police par défaut du lecteur (sur une carte, pour ne pas reprendre celle du jeu) ;
 // les quatre dernières sont aussi les polices de lecture des réglages (ui/themes.js : READING_FONTS)
 export const FONTS = ['default', 'serif', 'sans', 'mono', 'hand', 'opendyslexic', 'atkinson', 'lexend', 'andika'];
-export const SIZES = ['sm', 'md', 'lg', 'xl'];
+/** `auto` (défaut) : taille calculée pour remplir la fiche sans la dépasser (ui/components.jsx : fitText). */
+export const SIZES = ['sm', 'md', 'lg', 'xl', 'auto'];
 export const ALIGNS = ['center', 'left'];
 /** Alignement vertical du contenu de la fiche (défaut : centré entre l'en-tête et le pied). */
 export const VALIGNS = ['middle', 'top'];
 export const PAPERS = ['ruled', 'plain', 'grid', 'dots'];
+/** Rappel de la question au verso, au-dessus de la réponse (défaut : affiché). */
+export const RECALLS = ['show', 'hide'];
 
 /** Couleurs de papier proposées (l'utilisateur peut aussi choisir n'importe quelle couleur #RRGGBB). */
 export const PAPER_COLORS = [
@@ -46,7 +49,10 @@ export const CLOZE_COLORS = [
   { id: 'pink', hex: '#AD1457' },
 ];
 
-/** Ne garde que les clés valides d'un style : {bg, backBg, fg, cloze, font, size, align, valign, paper, bgImage}. */
+/**
+ * Ne garde que les clés valides d'un style : {bg, backBg, fg, cloze, font, size, align, valign, paper, recall,
+ * bgImage}.
+ */
 export function sanitizeStyle(raw) {
   const s = {};
   if (!raw || typeof raw !== 'object') return s;
@@ -59,6 +65,7 @@ export function sanitizeStyle(raw) {
   if (ALIGNS.includes(raw.align)) s.align = raw.align;
   if (VALIGNS.includes(raw.valign)) s.valign = raw.valign;
   if (PAPERS.includes(raw.paper)) s.paper = raw.paper;
+  if (RECALLS.includes(raw.recall)) s.recall = raw.recall;
   if (isMedia(raw.bgImage)) s.bgImage = raw.bgImage;
   return s;
 }
@@ -108,12 +115,12 @@ export function cardAppearance(style = {}, side = 'prompt') {
   } else if (style.cloze) vars['--card-cloze'] = style.cloze;
   const cls = [
     'font-' + (style.font || 'default'), // défaut : police des réglages ou du thème, sinon manuscrite (styles.css)
-    'size-' + (style.size || 'md'),
+    'size-' + (style.size || 'auto'), // défaut : ajustée à la fiche
     'align-' + (style.align || 'center'), // défaut : centré
     'valign-' + (style.valign || 'middle'), // défaut : centré
     'paper-' + (style.paper || 'ruled'),
   ];
   if (bg && luminance(bg) < 0.25) cls.push('is-dark');
   if (style.bgImage) cls.push('has-bg-image');
-  return { vars, className: cls.join(' '), bgImage: style.bgImage || null };
+  return { vars, className: cls.join(' '), bgImage: style.bgImage || null, fit: !style.size || style.size === 'auto' };
 }

@@ -356,6 +356,10 @@ kbd {
   border-left-color: var(--bad);
   color: var(--bad);
 }
+.notice.ok {
+  background: var(--ok-bg);
+  border-left-color: var(--ok);
+}
 .warn {
   display: block;
   color: var(--bad);
@@ -1065,6 +1069,10 @@ summary {
 .index-card.size-xl {
   --fs: 2.4rem;
 }
+/* taille auto (--fs calculée, ui/components.jsx : fitText) : l'en-tête ne grandit pas avec le texte */
+.index-card.size-auto {
+  --head: min(calc(var(--lh) * 1.5), 3.25rem);
+}
 .index-card.align-center {
   text-align: center;
 }
@@ -1073,9 +1081,6 @@ summary {
 .index-card.valign-middle > .face-content {
   flex: 0 1 auto;
   margin-block: auto;
-}
-.index-card.align-center .foot-row {
-  justify-content: center;
 }
 .index-card.align-center .card-img {
   margin-inline: auto;
@@ -1103,10 +1108,14 @@ summary {
 .index-card a {
   color: inherit;
 }
+/* lecture audio : en haut à droite, dans l'en-tête de la fiche (le bas est au pied : indice, exemple) */
 .index-card .face-tools {
   position: absolute;
+  top: 0;
   right: 0.6rem;
-  bottom: 0.5rem;
+  height: var(--head);
+  display: flex;
+  align-items: center;
 }
 .index-card .face-tools .icon-btn {
   color: inherit;
@@ -1313,17 +1322,25 @@ summary {
   top: 0.25rem;
   right: 0.3rem;
 }
+/* chaque note : bordure de sa couleur et fond légèrement teinté (mêlé au fond du thème, clair ou sombre) */
 .grade.g1 {
-  border-color: var(--bad);
+  --grade: var(--bad);
 }
 .grade.g2 {
-  border-color: #c77a00;
+  --grade: #c77a00;
 }
 .grade.g3 {
-  border-color: var(--ok);
+  --grade: var(--ok);
 }
 .grade.g4 {
-  border-color: var(--accent);
+  --grade: var(--accent);
+}
+.grade {
+  border-color: var(--grade, var(--line-strong));
+  background: color-mix(in srgb, var(--grade, transparent) 11%, var(--surface));
+}
+.grade:hover {
+  background: color-mix(in srgb, var(--grade, transparent) 20%, var(--surface));
 }
 .finish {
   max-width: 34rem;
@@ -1937,11 +1954,14 @@ summary {
   padding: 0.5rem 0;
   border-top: 1px solid var(--line);
 }
+/* centrées par les marges (et non par une translation) et sur leur propre calque : Safari laissait sinon une
+   copie du message en place pendant le défilement */
 .toasts {
   position: fixed;
-  left: 50%;
-  bottom: 1.2rem;
-  transform: translateX(-50%);
+  inset-inline: 0;
+  bottom: calc(1.2rem + env(safe-area-inset-bottom, 0px));
+  margin-inline: auto;
+  transform: translateZ(0);
   display: grid;
   gap: 0.4rem;
   z-index: 50;
@@ -1961,6 +1981,12 @@ summary {
 .toast.bad {
   background: var(--bad);
   color: #fff;
+}
+/* nouvelle version : reste affichée jusqu'au rechargement, d'une autre couleur que les notifications */
+.toast.update {
+  background: var(--accent);
+  color: var(--surface);
+  font-weight: 600;
 }
 .toast .link-btn {
   color: var(--hi);
@@ -2000,6 +2026,10 @@ summary {
     min-height: 16rem;
   }
   .index-card {
+    padding-inline: 1.1rem;
+  }
+  .index-card .face-foot {
+    margin-inline: -1.1rem;
     padding-inline: 1.1rem;
   }
   .export-list li {
@@ -2168,15 +2198,6 @@ details.search-help table {
   gap: 1rem;
   align-items: start;
 }
-.browse-body.with-info {
-  grid-template-columns: minmax(0, 1fr) minmax(17rem, 23rem);
-}
-/* largeur commune aux autres pages : panneau ouvert, la table garde le terme et l'échéance (le panneau montre
-   la définition et le jeu) */
-.browse-body.with-info .btable .c-def,
-.browse-body.with-info .btable .c-set {
-  display: none;
-}
 .browse-list {
   min-width: 0;
 }
@@ -2215,9 +2236,6 @@ details.search-help table {
 }
 .btable tr:last-child td {
   border-bottom: 0;
-}
-.btable tr.active td {
-  background: var(--surface-2);
 }
 .btable tr[style] td:first-child {
   box-shadow: inset 3px 0 0 var(--flag);
@@ -2297,19 +2315,41 @@ details.search-help table {
   background: var(--surface);
   color: var(--muted);
 }
+/* fiche d'une carte, dépliée sous sa ligne : même teinte que la ligne ouverte, liseré d'accent à gauche */
+.btable tr.active td,
+.btable tr.row-detail > td {
+  background: color-mix(in srgb, var(--accent) 7%, var(--surface));
+}
+.btable tr.active td {
+  border-bottom-color: transparent;
+}
+.btable tr.active td:first-child,
+.btable tr.row-detail > td {
+  box-shadow: inset 3px 0 0 var(--accent);
+}
+.btable tbody tr.row-detail {
+  cursor: auto;
+}
+.btable tr.row-detail > td {
+  padding: 0.2rem 0.9rem 1rem 1.1rem;
+  border-bottom: 1px solid var(--line-strong);
+}
 .card-info {
-  position: sticky;
-  top: 0.8rem;
-  max-height: calc(100vh - 1.6rem);
-  overflow: auto;
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 19rem), 1fr));
+  gap: 0.4rem 1.6rem;
+  align-items: start;
+  padding-right: 2rem; /* place du bouton de repli */
 }
-.card-info > header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
+.ci-close {
+  position: absolute;
+  top: 0;
+  right: -0.4rem;
 }
-.card-info > header h2 {
-  margin: 0;
+.ci-side > h3:first-child,
+.ci-items h3 {
+  margin-top: 0.6rem;
 }
 .ci-faces {
   display: grid;
@@ -2389,19 +2429,17 @@ details.search-help table {
 .rating.r4 {
   color: var(--accent);
 }
-@media (max-width: 900px) {
-  .browse-body.with-info {
-    grid-template-columns: minmax(0, 1fr);
-  }
-  .card-info {
-    position: static;
-    max-height: none;
-    order: -1;
-  }
-}
+/* écran étroit : définition et jeu repliés à une largeur nulle (et non retirés : la table garde ses cinq
+   colonnes, que couvre la fiche dépliée sous une ligne) */
 @media (max-width: 720px) {
   .btable .c-def,
   .btable .c-set {
+    width: 0;
+    padding: 0;
+    font-size: 0;
+  }
+  .btable .c-def > *,
+  .btable .c-set > * {
     display: none;
   }
 }
@@ -3163,17 +3201,20 @@ details.search-help table {
 }
 
 /* ------------------------------------------------------------------ rappel de sauvegarde */
-.backup-notice {
+.backup-notice,
+.install-notice {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   gap: 0.5rem 0.8rem;
   font-size: 0.9rem;
 }
-.backup-notice span {
+.backup-notice > span,
+.install-notice > span {
   flex: 1 1 16rem;
 }
-.backup-notice .btn {
+.backup-notice .btn,
+.install-notice .btn {
   flex: none;
 }
 
@@ -3550,34 +3591,41 @@ h2 .badge {
   display: flex;
   align-items: center;
   gap: 0.3rem;
+  color: inherit;
+  pointer-events: none;
+}
+/* étiquettes de la fiche : en-tête (Question, Réponse) et pied (Indice, Exemple), toutes du même style */
+.flip .face-label,
+.foot-label {
   font: 700 0.72rem/1 var(--font-ui);
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: inherit;
   opacity: 0.6;
-  pointer-events: none;
 }
 .flip .face-label.answer {
   opacity: 0.9;
 }
-/* le rappel garde l'interligne de la fiche : sur papier ligné, chaque ligne reste sur la trame */
+/* rappel de la question au verso : toujours plus petit que la réponse, quelle que soit la taille (auto
+   comprise : bornes en rem, la réponse ne descend pas sous 1,05rem), et détaché d'elle par un espace et un trait */
 .face-recall {
-  font-size: 0.72em;
-  opacity: 0.6;
+  font-size: clamp(0.78rem, 0.6em, 0.98rem);
+  line-height: 1.4;
+  opacity: 0.65;
+  padding-bottom: 0.45rem;
+  margin-bottom: 0.8rem;
+  border-bottom: 1px dashed color-mix(in srgb, currentColor 45%, transparent);
 }
 .face-recall p {
   margin: 0;
 }
 .face-recall .card-img {
-  height: calc(var(--lh) * 2);
+  height: 3.2rem;
   max-height: none;
   width: auto;
-  margin: 0;
+  margin: 0.2rem 0 0;
 }
-.index-card:not(.paper-ruled) .face-recall {
-  padding-bottom: 0.3em;
-  margin-bottom: 0.4em;
-  border-bottom: 1px dashed currentColor;
+.index-card.align-center .face-recall .card-img {
+  margin-inline: auto;
 }
 /* papier ligné : pas d'espacement hors trame entre réponse et complément */
 .index-card.paper-ruled .extra {
@@ -3593,31 +3641,36 @@ h2 .badge {
 .index-card > .face-content {
   flex: 1 0 auto;
 }
+/* indice et exemple : plus petits que le contenu quelle que soit la taille (bornes en rem, comme le rappel) */
 .face-foot {
-  margin: 0.6rem -1.6rem -1.4rem;
-  padding: 0.35rem 1.6rem 0.6rem;
+  margin: 0.8rem -1.6rem -1.4rem;
+  padding: 0.4rem 1.6rem 0.6rem;
   border-top: 2px solid var(--margin);
   background: var(--bg);
-  font-size: 0.72em;
+  font-size: clamp(0.75rem, 0.6em, 0.95rem);
   line-height: 1.45;
 }
 .index-card:not(.paper-ruled) .face-foot {
   border-top-color: color-mix(in srgb, currentColor 35%, transparent);
   background: none;
 }
-.foot-row {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0 0.4em;
+/* « INDICE : texte » sur une ligne, toujours à gauche (comme l'en-tête), quel que soit l'alignement de la carte */
+.face-foot {
+  text-align: left;
+}
+/* le texte suit l'étiquette sur la même ligne et continue dessous s'il est long */
+.foot-row .md,
+.foot-row .md p {
+  display: inline;
+}
+.foot-row + .foot-row {
+  margin-top: 0.3rem;
 }
 .foot-row .md p {
   margin: 0;
 }
 .foot-label {
-  font: 700 0.85em/1.7 var(--font-ui);
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  opacity: 0.6;
+  margin-right: 0.5em;
 }
 .foot-hint > span:last-child {
   font-style: italic;

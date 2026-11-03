@@ -51,13 +51,15 @@ export function SyncSettings() {
           </label>
           <div class="actions">
             <button class="btn primary" disabled={busy || sync.status === 'syncing'} onClick={() => act(sync.syncNow)}>
-              <Icon name="cloud" /> {sync.status === 'paused' ? t('sync.resume') : t('sync.now')}
+              <Icon name="cloud" />{' '}
+              {sync.status === 'paused' ? t('sync.reconnect', { service: sync.service }) : t('sync.now')}
             </button>
             <button class="btn" disabled={busy} onClick={() => act(async () => sync.disconnect())}>
               {t('sync.disconnect')}
             </button>
           </div>
-          {error && sync.status !== 'paused' && (
+          {/* en pause, le motif est le statut lui-même ; un échec de la reconnexion est montré */}
+          {error && (sync.status !== 'paused' || error.code !== 'syncAuth') && (
             <p class="notice bad" role="alert">
               {errorText(error)}
             </p>

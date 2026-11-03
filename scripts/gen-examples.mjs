@@ -75,53 +75,6 @@ function planetsCard(names, term, definition, tag) {
   return { type: 'occlusion', image, term, definition, occlusion: 'all', masks, tags: [tag] };
 }
 
-/** Cercle chromatique : primaires = un groupe chacune (nom caché, réponse écrite) ;
- *  secondaires = un seul groupe de trois ellipses, sans réponse écrite (« masquer un, deviner un »). */
-function colorWheelCard(names, term, definition, tag) {
-  const C = [
-    ['#dc2626', '#fff'],
-    ['#f97316', '#111'],
-    ['#facc15', '#111'],
-    ['#16a34a', '#fff'],
-    ['#2563eb', '#fff'],
-    ['#7c3aed', '#fff'],
-  ];
-  const pos = C.map((_, i) => {
-    const a = (i * Math.PI) / 3;
-    return [300 + 115 * Math.sin(a), 175 - 115 * Math.cos(a)];
-  });
-  const body = C.map(
-    ([bg, fg], i) =>
-      `<circle cx="${pos[i][0]}" cy="${pos[i][1]}" r="40" fill="${bg}"/><text x="${pos[i][0]}" y="${pos[i][1] + 6}" text-anchor="middle" font-family="Helvetica, Arial, sans-serif" font-size="16" fill="${fg}">${names[i]}</text>`,
-  ).join('');
-  const image = addSvg(
-    `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 350" width="600" height="350"><rect width="600" height="350" fill="#ffffff"/>${body}</svg>`,
-  );
-  const masks = [];
-  [0, 2, 4].forEach((i, g) =>
-    masks.push({
-      n: g + 1,
-      shape: 'rect',
-      x: (pos[i][0] - 34) / 600,
-      y: (pos[i][1] - 13) / 350,
-      w: 68 / 600,
-      h: 26 / 350,
-      label: names[i],
-    }),
-  );
-  [1, 3, 5].forEach((i) =>
-    masks.push({
-      n: 4,
-      shape: 'ellipse',
-      x: (pos[i][0] - 43) / 600,
-      y: (pos[i][1] - 43) / 350,
-      w: 86 / 600,
-      h: 86 / 350,
-    }),
-  );
-  return { type: 'occlusion', image, term, definition, occlusion: 'one', masks, tags: [tag] };
-}
-
 const SUN_IMG = addSvg(SUN);
 const EARTH_IMG = addSvg(EARTH);
 
@@ -130,160 +83,130 @@ const TOUR_DATE = '2026-11-02T00:00:05.000Z';
 /**
  * Visite guidée en questions-réponses : chaque carte répond à une question qu'on se pose en découvrant
  * Flashcard, et montre la fonction sur elle-même (la carte sur l'indice a un indice, celle sur les trous est
- * un texte à trous…). Étiquettes : bases, étude, contenu, apparence, trous, image-masquee, organisation, données.
+ * un texte à trous…). Un exemple par type de carte, expliqué en détail ; une série « apparence » où chaque carte
+ * porte le réglage qu'elle décrit. Étiquettes : bases, étude, contenu, trous, image-masquee, apparence,
+ * organisation, données.
  */
 function tourCards(L) {
   const F = L === 'fr';
-  const t = (fr, en) => (F ? fr : en);
+  // français : espaces insécables avant ? ! : ; » et après «, pour qu'aucun signe ne commence une ligne
+  const nbsp = (s) => s.replace(/ ([?!:;»])/g, '\u00a0$1').replace(/« /g, '«\u00a0');
+  const t = (fr, en) => (F ? (typeof fr === 'string' ? nbsp(fr) : fr) : en);
   const c = (term, definition, tag, more = {}) => ({ term, definition, tags: [tag], ...more });
+  const BASICS = t('bases', 'basics');
+  const STUDY = t('étude', 'study');
+  const CONTENT = t('contenu', 'content');
+  const CLOZE = t('trous', 'cloze');
+  const LOOK = t('apparence', 'appearance');
+  const ORG = t('organisation', 'organisation');
+  const DATA = t('données', 'data');
   return [
+    // ---------------------------------------------------------------- bases et étude
     c(
       t('Comment utiliser une fiche ?', 'How do I use a card?'),
       t(
-        'Lisez la **question**, cherchez la réponse de tête, puis **retournez** la fiche (clic ou Espace). C’est cet effort de mémoire, plus que la relecture, qui fait retenir.',
-        'Read the **question**, try to recall the answer, then **flip** the card (click or Space). This effort of recall, more than re-reading, is what makes things stick.',
+        'Lisez la **question** et cherchez la réponse **de tête**, puis **retournez** la fiche (clic ou Espace).\nEn mode Fiches, dites ensuite si vous saviez : **Je sais** (→) ou **À revoir** (←).\nC’est l’effort de mémoire, plus que la relecture, qui fait retenir.',
+        'Read the **question** and try to recall the answer **in your head**, then **flip** the card (click or Space).\nIn Flashcards mode, then say whether you knew it: **I know** (→) or **Again** (←).\nThis effort of recall, more than re-reading, is what makes things stick.',
       ),
-      t('bases', 'basics'),
+      BASICS,
     ),
     c(
+      t('Fiches ou Révision espacée : lequel choisir ?', 'Flashcards or Spaced review: which one?'),
       t(
-        'Que se passe-t-il quand je réponds « Je sais » ou « À revoir » ?',
-        'What happens when I answer “I know” or “Again”?',
+        '- **Fiches** : tout le jeu, dans l’ordre ou mélangé ; une carte « à revoir » revient plus loin dans la séance. Rien n’est planifié.\n- **Révision espacée** : seulement les cartes du jour. Votre note (À revoir, Difficile, Bien, Facile) fixe la date de leur prochain passage.',
+        '- **Flashcards**: the whole set, in order or shuffled; a card marked “again” comes back later in the session. Nothing is scheduled.\n- **Spaced review**: only today’s cards. Your rating (Again, Hard, Good, Easy) sets the date they come back.',
       ),
-      t(
-        'En mode **Fiches**, une carte « à revoir » revient plus loin dans la séance. En **Révision**, votre note (À revoir, Difficile, Correct, Facile) fixe la date de la prochaine révision.',
-        'In **Flashcards** mode, a card marked “again” comes back later in the session. In **Review**, your rating (Again, Hard, Good, Easy) sets the date of the next review.',
-      ),
-      t('bases', 'basics'),
+      STUDY,
+      {
+        example: t(
+          'Sous chaque bouton de note, le délai avant le prochain passage : « 10 min », « 3 j »…',
+          'Under each rating button, the delay before the card comes back: “10 min”, “3 d”…',
+        ),
+      },
     ),
     c(
       t('Qu’est-ce que la révision espacée ?', 'What is spaced repetition?'),
       t(
-        'Revoir une carte **juste avant de l’oublier**. Flashcard calcule ce moment pour chaque carte (algorithme FSRS) : un peu de révision chaque jour, et les cartes connues reviennent de plus en plus rarement.',
-        'Reviewing a card **just before you forget it**. Flashcard works out that moment for each card (FSRS algorithm): a little review every day, and known cards come back less and less often.',
+        'Revoir une carte **juste avant de l’oublier**. Flashcard estime ce moment pour chaque carte (algorithme FSRS) : une carte réussie revient de plus en plus tard (quelques jours, puis des semaines, puis des mois), une carte oubliée revient vite. Quelques minutes par jour suffisent.',
+        'Reviewing a card **just before you forget it**. Flashcard estimates that moment for each card (FSRS algorithm): a card you get right comes back later and later (a few days, then weeks, then months), a forgotten card comes back soon. A few minutes a day is enough.',
       ),
-      t('étude', 'study'),
+      STUDY,
       {
         example: t(
-          'Le nombre de cartes du jour est sur la bibliothèque ; les limites se règlent dans Réglages › Étude.',
-          'The number of cards due today is on the library; limits are in Settings › Study.',
+          'Le nombre de cartes du jour est sur la bibliothèque ; les limites (nouvelles cartes, révisions) se règlent dans Réglages › Étude.',
+          'The number of cards due today is on the library; limits (new cards, reviews) are in Settings › Study.',
         ),
       },
     ),
     c(
       t('Quels autres modes d’étude existent ?', 'Which other study modes are there?'),
       t(
-        '- **Apprendre** : choix multiple, puis réponse écrite\n- **Écrire** : taper la réponse\n- **Test** : un examen noté\n- **Association** et **Gravité** : des jeux contre la montre',
-        '- **Learn**: multiple choice, then typed answers\n- **Write**: type the answer\n- **Test**: a graded exam\n- **Match** and **Gravity**: games against the clock',
+        '- **Apprendre** : manches de 7 cartes, choix multiple puis réponse à taper\n- **Écrire** : taper la réponse, sans choix proposé\n- **Épeler** : écouter le mot et l’écrire\n- **Test** : un contrôle noté (choix multiple, vrai ou faux, réponse écrite…)\n- **Association** et **Gravité** : des jeux contre la montre',
+        '- **Learn**: rounds of 7 cards, multiple choice then typed answers\n- **Write**: type the answer, with no choices\n- **Spell**: hear the word and write it\n- **Test**: a graded quiz (multiple choice, true or false, typed answers…)\n- **Match** and **Gravity**: games against the clock',
       ),
-      t('étude', 'study'),
+      STUDY,
+      {
+        example: t(
+          'Sur la page d’un jeu, l’icône ⓘ de chaque mode dit à quoi il sert ; un mode grisé n’a aucune carte qui s’y prête.',
+          'On a set’s page, the ⓘ icon of each mode says what it is for; a greyed-out mode has no suitable card.',
+        ),
+      },
     ),
+    // ---------------------------------------------------------------- contenu : un exemple par possibilité
     c(
-      t('À quoi sert le bouton « Indice » ?', 'What is the “Hint” button for?'),
+      t('À quoi servent l’indice et l’exemple ?', 'What are the hint and the example for?'),
       t(
-        'À afficher un **indice** facultatif avant la réponse, comme celui de cette carte. Il se saisit dans « Indice, exemple, images, audio », sous la carte dans l’éditeur.',
-        'To show an optional **hint** before the answer, like the one on this card. You enter it under “Hint, example, images, audio”, below the card in the editor.',
+        'L’**indice** s’affiche en bas du recto, comme sur cette carte : un coup de pouce, sans donner la réponse. L’**exemple** s’affiche en bas du verso, sous la réponse : une phrase, un contexte.\nTous deux se saisissent dans « Indice, exemple, images, audio », sous la carte dans l’éditeur.',
+        'The **hint** shows at the bottom of the front, as on this card: a nudge, without giving the answer away. The **example** shows at the bottom of the back, under the answer: a sentence, some context.\nBoth are entered under “Hint, example, images, audio”, below the card in the editor.',
       ),
-      t('contenu', 'content'),
+      CONTENT,
       {
         hint: t('Un coup de pouce, sans donner la réponse.', 'A nudge, without giving the answer away.'),
         example: t(
-          'Ceci est un **exemple** : il s’affiche avec la réponse, en bas de la fiche.',
-          'This is an **example**: it shows with the answer, at the bottom of the card.',
+          'Le voici : il complète la réponse sans l’encombrer.',
+          'Here it is: it adds to the answer without cluttering it.',
         ),
       },
     ),
     c(
       t('Peut-on mettre en forme le texte ?', 'Can I format the text?'),
       t(
-        'Oui, en Markdown : **gras** (entre deux paires d’astérisques), *italique* (entre astérisques simples), `code`, listes et [liens](https://fr.wikipedia.org/wiki/Markdown).',
-        'Yes, with Markdown: **bold** (between double asterisks), *italics* (between single asterisks), `code`, lists and [links](https://en.wikipedia.org/wiki/Markdown).',
+        'Oui, avec quelques signes (Markdown) :\n- **gras** : entre deux paires d’astérisques\n- *italique* : entre astérisques simples\n- `code` : entre accents graves\n- [liens](https://fr.wikipedia.org/wiki/Markdown) : le texte entre crochets, l’adresse entre parenthèses\nUn retour à la ligne dans l’éditeur passe à la ligne sur la fiche.',
+        'Yes, with a few signs (Markdown):\n- **bold**: between double asterisks\n- *italics*: between single asterisks\n- `code`: between backticks\n- [links](https://en.wikipedia.org/wiki/Markdown): the text in square brackets, the address in parentheses\nA line break in the editor is a line break on the card.',
       ),
-      t('contenu', 'content'),
+      CONTENT,
     ),
-    c(t('Quel est cet astre ?', 'What is this star?'), t('Le Soleil.', 'The Sun.'), t('contenu', 'content'), {
-      termImage: SUN_IMG,
-      example: t(
-        'Une image peut accompagner la question, ou la remplacer : « Image du terme » dans l’éditeur.',
-        'An image can go with the question, or replace it: “Term image” in the editor.',
-      ),
-    }),
     c(
-      t('Comment montrer une image avec la réponse ?', 'How do I show an image with the answer?'),
+      t('Quel est cet astre ?', 'What is this star?'),
       t(
-        'Avec « Image de la définition ». La voici : la Terre vue de l’espace.',
-        'With “Definition image”. Here it is: the Earth seen from space.',
+        'Le **Soleil**. Et voici la Terre, vue de l’espace.\nUne carte peut porter une image de chaque côté : « Image du terme » pour la question, « Image de la définition » pour la réponse. Une image seule, sans texte, suffit aussi.',
+        'The **Sun**. And here is the Earth, seen from space.\nA card can carry an image on each side: “Term image” for the question, “Definition image” for the answer. An image alone, with no text, works too.',
       ),
-      t('contenu', 'content'),
-      { image: EARTH_IMG },
+      CONTENT,
+      {
+        termImage: SUN_IMG,
+        image: EARTH_IMG,
+      },
     ),
     c(
       t('Comment entendre la prononciation ?', 'How do I hear the pronunciation?'),
       t(
-        'Le bouton **haut-parleur** lit la face à voix haute, dans la langue choisie pour le jeu (dans « Modifier »). On peut aussi joindre son propre enregistrement : « Audio (prononciation) ».',
-        'The **speaker** button reads the side aloud, in the language chosen for the set (in “Edit”). You can also attach your own recording: “Audio (pronunciation)”.',
+        'Le bouton **haut-parleur**, en haut à droite de la fiche, lit la face à voix haute dans la langue du jeu (« Modifier » › langue des termes, langue des définitions).\nPour une prononciation exacte, joignez votre propre enregistrement : « Audio (prononciation) ».',
+        'The **speaker** button, at the top right of the card, reads the side aloud in the set’s language (“Edit” › term language, definition language).\nFor an exact pronunciation, attach your own recording: “Audio (pronunciation)”.',
       ),
-      t('contenu', 'content'),
-    ),
-    c(
-      t('Puis-je changer l’apparence d’une carte ?', 'Can I change how a card looks?'),
-      t(
-        'Oui : celle-ci a son propre fond, sa police et sa taille, réglés dans « Apparence de cette carte ».',
-        'Yes: this one has its own background, font and size, set in “Appearance of this card”.',
-      ),
-      t('apparence', 'appearance'),
-      { style: { bg: '#FDE68A', font: 'hand', size: 'lg', align: 'center' } },
-    ),
-    c(
-      t('Comment l’apparence est-elle choisie ?', 'How is the appearance chosen?'),
-      t(
-        'Sur trois niveaux : les **réglages** (toutes les cartes), puis le **jeu**, puis la **carte**, chacun remplaçant le précédent. Ici, le verso a sa propre couleur, et le texte s’ajuste pour rester lisible.',
-        'On three levels: **settings** (every card), then the **set**, then the **card**, each one overriding the previous. Here, the back has its own colour, and the text adapts to stay readable.',
-      ),
-      t('apparence', 'appearance'),
-      { style: { bg: '#1E3A5F', backBg: '#E0F2FE', font: 'mono', paper: 'grid' } },
-    ),
-    c(
-      t('Et une image de fond ?', 'What about a background image?'),
-      t(
-        'Possible aussi, pour un jeu ou une carte (« Image de fond »), ici sur papier uni.',
-        'Possible too, for a set or a card (“Background image”), here on plain paper.',
-      ),
-      t('apparence', 'appearance'),
-      { style: { bgImage: PATTERN, paper: 'plain', align: 'center', font: 'sans' } },
+      CONTENT,
     ),
     {
       type: 'cloze',
       term: t(
-        'Un texte à {{c1::trous}} cache un ou plusieurs mots à retrouver.',
-        'A {{c1::cloze}} text hides one or more words to recall.',
+        'Un texte à {{c1::trous}} cache des mots à retrouver ; un trou peut aussi afficher un {{c2::indice::mot d’aide}} entre ses crochets.',
+        'A {{c1::cloze}} text hides words to recall; a blank can also show a {{c2::hint::helper word}} between its brackets.',
       ),
       definition: t(
-        'Dans l’éditeur : type « Texte à trous », sélectionnez un mot, puis « Créer un trou ».',
-        'In the editor: “Cloze” type, select a word, then “Make a blank”.',
+        'Dans l’éditeur : type « Texte à trous », sélectionnez un mot, puis « Créer un trou ». Chaque numéro (c1, c2…) devient sa propre carte, qui ne cache que son trou : celle-ci en donne deux. L’indice s’écrit après « :: » dans le trou.',
+        'In the editor: “Cloze” type, select a word, then “Make a blank”. Each number (c1, c2…) becomes its own card, hiding only its blank: this one makes two. The hint goes after “::” inside the blank.',
       ),
-      tags: [t('trous', 'cloze')],
-    },
-    {
-      type: 'cloze',
-      term: t(
-        'Un trou peut afficher un {{c1::indice::mot d’aide}} à la place de […].',
-        'A blank can show a {{c1::hint::helper word}} instead of […].',
-      ),
-      definition: t('Écrivez l’indice après « :: » dans le trou.', 'Write the hint after “::” inside the blank.'),
-      tags: [t('trous', 'cloze')],
-    },
-    {
-      type: 'cloze',
-      term: t(
-        'Le trou {{c1::numéro 1}} et le trou {{c2::numéro 2}} donnent deux cartes d’étude.',
-        'Blank {{c1::number 1}} and blank {{c2::number 2}} make two study cards.',
-      ),
-      definition: t(
-        'Chaque numéro (c1, c2…) devient une carte qui ne cache que son trou.',
-        'Each number (c1, c2…) becomes a card that hides only its own blank.',
-      ),
-      tags: [t('trous', 'cloze')],
+      tags: [CLOZE],
     },
     {
       type: 'cloze',
@@ -291,83 +214,170 @@ function tourCards(L) {
         'Des trous de même numéro sont {{c1::cachés}} et {{c1::révélés}} ensemble.',
         'Blanks with the same number are {{c1::hidden}} and {{c1::revealed}} together.',
       ),
-      definition: t('Bouton « Même trou que le précédent ».', '“Same blank as previous” button.'),
-      tags: [t('trous', 'cloze')],
+      definition: t(
+        'Bouton « Même trou que le précédent ». Sur cette carte, les mots révélés sont en rouge : « Mots révélés » dans l’apparence.',
+        '“Same blank as the previous one” button. On this card, revealed words are red: “Revealed words” in the appearance.',
+      ),
+      tags: [CLOZE],
+      style: { cloze: '#C62828', paper: 'dots' },
     },
     planetsCard(
       t(['Mercure', 'Vénus', 'Terre', 'Mars'], ['Mercury', 'Venus', 'Earth', 'Mars']),
       t('Image masquée : quelles sont les planètes rocheuses ?', 'Image occlusion: which are the rocky planets?'),
       t(
-        'Mode « Masquer tout, deviner un » : tous les noms sont cachés, un seul est demandé à la fois. Chaque masque a une réponse écrite, donc la carte sert aussi dans Apprendre, Écrire et Test.',
-        '“Hide all, guess one” mode: every name is hidden, one is asked at a time. Each mask has a written answer, so the card also works in Learn, Write and Test.',
+        'Mode « Masquer tout, deviner un » : tous les noms sont cachés, un seul est demandé à la fois. L’autre mode, « Masquer un, deviner un », ne cache que le nom demandé.\nChaque masque a ici une réponse écrite : la carte sert aussi dans Apprendre, Écrire et Test.',
+        '“Hide all, guess one” mode: every name is hidden, one is asked at a time. The other mode, “Hide one, guess one”, hides only the name being asked.\nEach mask here has a written answer, so the card also works in Learn, Write and Test.',
       ),
       t('image-masquee', 'image-occlusion'),
     ),
-    colorWheelCard(
-      t(['rouge', 'orange', 'jaune', 'vert', 'bleu', 'violet'], ['red', 'orange', 'yellow', 'green', 'blue', 'purple']),
-      t('Image masquée : le cercle chromatique', 'Image occlusion: the colour wheel'),
+    // ---------------------------------------------------------------- apparence : chaque carte porte ce qu'elle décrit
+    c(
+      t('Comment l’apparence d’une carte est-elle choisie ?', 'How is a card’s appearance chosen?'),
       t(
-        'Mode « Masquer un, deviner un » : seul le groupe demandé est caché. Les trois couleurs secondaires forment un seul groupe, révélé d’un coup.',
-        '“Hide one, guess one” mode: only the asked group is hidden. The three secondary colours form a single group, revealed at once.',
+        'Sur trois niveaux, chacun remplaçant le précédent :\n- **Réglages** › Apparence par défaut des cartes : toutes les cartes\n- **Jeu** : « Apparence des cartes de ce jeu », dans « Modifier »\n- **Carte** : « Apparence de cette carte », sous la carte\nCelle-ci a l’apparence par défaut ; les suivantes ont chacune la leur.',
+        'On three levels, each overriding the previous one:\n- **Settings** › Default card appearance: every card\n- **Set**: “Appearance of this set’s cards”, in “Edit”\n- **Card**: “Appearance of this card”, below the card\nThis one has the default appearance; the next ones each have their own.',
       ),
-      t('image-masquee', 'image-occlusion'),
+      LOOK,
+      {
+        example: t(
+          'Ouvrez « Modifier » sur ces cartes pour voir leurs réglages.',
+          'Open “Edit” on these cards to see their settings.',
+        ),
+      },
     ),
+    c(
+      t('Quel papier pour mes fiches ?', 'Which paper for my cards?'),
+      t(
+        'Quatre papiers : **lignée** (par défaut, comme une fiche bristol), **quadrillée** (celle-ci), **pointillée** et **unie**.\nLe fond se choisit parmi huit couleurs, ou n’importe quelle autre (bouton +).',
+        'Four papers: **ruled** (the default, like an index card), **grid** (this one), **dotted** and **plain**.\nThe background is one of eight colours, or any other (+ button).',
+      ),
+      LOOK,
+      { style: { bg: '#FFF3A3', paper: 'grid', font: 'hand' } },
+    ),
+    c(
+      t('Et sur un fond sombre ?', 'What about a dark background?'),
+      t(
+        'Le texte passe en blanc tout seul pour rester lisible. Le verso a ici son propre fond, clair (« Fond du verso ») : retournez la fiche.\nUne couleur de texte choisie mais illisible sur le fond est remplacée automatiquement.',
+        'The text turns white on its own to stay readable. Here the back has its own light background (“Back background”): flip the card.\nA chosen text colour that would be unreadable on the background is replaced automatically.',
+      ),
+      LOOK,
+      { style: { bg: '#1B2A41', backBg: '#CFF1DC', paper: 'plain', font: 'serif' } },
+    ),
+    c(
+      t('Quelle police choisir ?', 'Which font should I choose?'),
+      t(
+        'Celle-ci est **OpenDyslexic**, pensée pour la dyslexie. Atkinson Hyperlegible, Lexend et Andika visent aussi la lisibilité ; il y a encore Serif, Sans-serif, Machine à écrire et Manuscrite.',
+        'This one is **OpenDyslexic**, designed for dyslexia. Atkinson Hyperlegible, Lexend and Andika also aim at readability; there are also Serif, Sans-serif, Typewriter and Handwriting.',
+      ),
+      LOOK,
+      {
+        style: { font: 'opendyslexic', paper: 'dots', bg: '#E3DAFF' },
+        example: t(
+          'La police de lecture choisie dans Réglages › Apparence sert aussi de police par défaut aux cartes.',
+          'The reading font chosen in Settings › Appearance is also the cards’ default font.',
+        ),
+      },
+    ),
+    c(
+      t('Quelle taille de texte ?', 'What text size?'),
+      t(
+        '**Très grande**, ici : pour un mot, un nombre, un symbole.',
+        '**Extra large**, here: for a word, a number, a symbol.',
+      ),
+      LOOK,
+      {
+        style: { size: 'xl', bg: '#FFE0C2', paper: 'plain' },
+        example: t(
+          'Par défaut, la taille est **Auto** : le texte remplit la fiche sans la dépasser, plus grand pour une réponse courte, plus petit pour une longue. Petite, Moyenne, Grande et Très grande fixent la taille.',
+          'By default, the size is **Auto**: the text fills the card without overflowing, larger for a short answer, smaller for a long one. Small, Medium, Large and Extra large set a fixed size.',
+        ),
+      },
+    ),
+    c(
+      t('Peut-on aligner le texte à gauche ?', 'Can I align the text to the left?'),
+      t(
+        'Oui, et en haut de la fiche plutôt qu’au milieu : pratique pour les listes et les textes longs.\n- Alignement horizontal : centré ou à gauche\n- Alignement vertical : centré ou en haut\nSur papier ligné, chaque ligne tombe alors sur la trame.',
+        'Yes, and at the top of the card rather than in the middle: handy for lists and long texts.\n- Horizontal alignment: centred or left\n- Vertical alignment: centred or top\nOn ruled paper, each line then sits on a rule.',
+      ),
+      LOOK,
+      { style: { align: 'left', valign: 'top' } },
+    ),
+    c(
+      t('Et une image de fond ?', 'What about a background image?'),
+      t(
+        'Possible pour un jeu ou une carte (« Image de fond ») : un motif comme ici, une photo… Elle est voilée de la couleur du fond pour que le texte reste lisible.',
+        'Possible for a set or a card (“Background image”): a pattern like this one, a photo… It is veiled with the background colour so the text stays readable.',
+      ),
+      LOOK,
+      { style: { bgImage: PATTERN, paper: 'plain', font: 'sans' } },
+    ),
+    c(
+      t('La question doit-elle être rappelée au verso ?', 'Should the question be repeated on the back?'),
+      t(
+        'Par défaut, elle est rappelée en petit au-dessus de la réponse. Sur cette carte, elle est masquée : « Question au verso » › Masquée, dans l’apparence (réglages, jeu ou carte).',
+        'By default, it is repeated in small type above the answer. On this card it is hidden: “Question on the back” › Hidden, in the appearance (settings, set or card).',
+      ),
+      LOOK,
+      { style: { recall: 'hide' } },
+    ),
+    // ---------------------------------------------------------------- organisation
     c(
       t('Comment retrouver une carte parmi tous mes jeux ?', 'How do I find a card across all my sets?'),
       t(
-        'La page **Cartes** cherche partout, avec des filtres : `tag:trous`, `is:due`, `-set:anglais`… Les étiquettes de cette visite (bases, trous, apparence…) servent à ça.',
-        'The **Cards** page searches everywhere, with filters: `tag:cloze`, `is:due`, `-set:spanish`… The tags of this tour (basics, cloze, appearance…) are there for that.',
+        'La page **Cartes** cherche dans tous vos jeux, avec des filtres :\n- `tag:trous` : une étiquette\n- `is:due` : à réviser aujourd’hui\n- `-set:anglais` : sauf un jeu\nCliquez une ligne : la carte se déplie dessous, avec sa planification et son historique.',
+        'The **Cards** page searches all your sets, with filters:\n- `tag:cloze`: a tag\n- `is:due`: due today\n- `-set:spanish`: except one set\nClick a row: the card unfolds below it, with its schedule and history.',
       ),
-      t('organisation', 'organisation'),
-      { example: t('Essayez : Cartes › tag:trous', 'Try: Cards › tag:cloze') },
+      ORG,
+      { example: t('Essayez Cartes › tag:apparence', 'Try Cards › tag:appearance') },
     ),
     c(
       t('À quoi servent l’étoile et la pause ?', 'What are the star and the pause for?'),
       t(
-        'L’**étoile** marque une carte pour l’étudier à part (« Étoilées seulement »). La **pause** suspend une carte : elle ne revient plus en révision jusqu’à ce que vous la réactiviez.',
-        'The **star** marks a card to study it separately (“Starred only”). The **pause** suspends a card: it stops coming back in reviews until you reactivate it.',
+        'L’**étoile** marque une carte pour l’étudier à part (« Étoilées seulement », en mode Fiches).\nLa **pause** suspend une carte : elle ne revient plus en révision jusqu’à ce que vous la réactiviez. Pratique pour une carte mal faite, le temps de la corriger.',
+        'The **star** marks a card to study it separately (“Starred only”, in Flashcards mode).\nThe **pause** suspends a card: it stops coming back in reviews until you reactivate it. Handy for a badly made card, until you fix it.',
       ),
-      t('organisation', 'organisation'),
+      ORG,
     ),
     c(
       t('Comment voir une carte avant de l’étudier ?', 'How do I see a card before studying it?'),
       t(
-        'Avec le bouton **Aperçu** (l’œil), dans l’éditeur, sur la page du jeu et dans Cartes : la fiche s’affiche telle qu’elle sera étudiée.',
-        'With the **Preview** button (the eye), in the editor, on the set page and in Cards: the card shows exactly as it will be studied.',
+        'Avec le bouton **Aperçu** (l’œil), dans l’éditeur, sur la page du jeu et dans Cartes : la fiche s’affiche telle qu’elle sera étudiée, recto et verso, avec son apparence.',
+        'With the **Preview** button (the eye), in the editor, on the set page and in Cards: the card shows exactly as it will be studied, front and back, with its appearance.',
       ),
-      t('organisation', 'organisation'),
+      ORG,
     ),
+    // ---------------------------------------------------------------- données
     c(
       t('Comment créer des cartes rapidement ?', 'How do I create cards quickly?'),
       t(
-        '- **Coller plusieurs cartes**, une par ligne\n- **Importer** : Anki, CSV, Quizlet, Markdown\n- **Créer avec l’IA** depuis vos notes ou un PDF, avec une clé d’API ou gratuitement par copier-coller avec ChatGPT ou Claude',
-        '- **Paste several cards**, one per line\n- **Import**: Anki, CSV, Quizlet, Markdown\n- **Create with AI** from your notes or a PDF, with an API key or for free by copy-paste with ChatGPT or Claude',
+        '- **Coller plusieurs cartes**, une par ligne, dans l’éditeur\n- **Importer** : Anki, CSV, Quizlet, Markdown\n- **Créer avec l’IA** depuis un sujet, vos notes ou un PDF : avec une clé d’API, ou gratuitement par copier-coller avec ChatGPT ou Claude',
+        '- **Paste several cards**, one per line, in the editor\n- **Import**: Anki, CSV, Quizlet, Markdown\n- **Create with AI** from a topic, your notes or a PDF: with an API key, or for free by copy-paste with ChatGPT or Claude',
       ),
-      t('contenu', 'content'),
+      DATA,
     ),
     c(
       t('Comment ne pas perdre mes cartes ?', 'How do I keep my cards safe?'),
       t(
-        'Configurez la **synchronisation Dropbox** (Réglages › Synchronisation) ou **exportez** régulièrement la bibliothèque (Réglages › Sauvegarde et restauration). Installer l’application sur l’écran d’accueil aide aussi.',
-        'Set up **Dropbox sync** (Settings › Sync) or **export** the library regularly (Settings › Backup and restore). Installing the app on your home screen helps too.',
+        '- **Synchronisation Dropbox** (Réglages › Synchronisation) : une copie en ligne, et vos jeux sur tous vos appareils\n- **Export** de la bibliothèque (Réglages › Sauvegarde et restauration) : un fichier à garder\n- **Installer l’application** sur l’écran d’accueil : le navigateur n’effacera plus ses données',
+        '- **Dropbox sync** (Settings › Sync): an online copy, and your sets on all your devices\n- **Export** the library (Settings › Backup and restore): a file to keep\n- **Install the app** on your home screen: the browser will no longer erase its data',
       ),
-      t('données', 'data'),
+      DATA,
     ),
     c(
       t('Que faire d’un jeu que je n’étudie plus ?', 'What do I do with a set I no longer study?'),
       t(
-        '**Archivez-le** (bouton Archiver de sa page) : il quitte la bibliothèque avec sa progression, et se restaure à tout moment. Flashcard le propose de lui-même après 3 mois sans étude.',
-        '**Archive it** (Archive button on its page): it leaves the library with its progress, and can be restored at any time. Flashcard suggests it after 3 months without study.',
+        '**Archivez-le** (bouton Archiver de sa page) : il quitte la bibliothèque avec sa progression, et se restaure à tout moment depuis Réglages › Sauvegarde et restauration. Flashcard le propose de lui-même après 3 mois sans étude.',
+        '**Archive it** (Archive button on its page): it leaves the library with its progress, and can be restored at any time from Settings › Backup and restore. Flashcard suggests it after 3 months without study.',
       ),
-      t('données', 'data'),
+      DATA,
     ),
     c(
       t('Où trouver d’autres jeux pour essayer ?', 'Where can I find more sets to try?'),
       t(
-        'Importer › **Jeux d’exemple** : drapeaux, langues, histoire, anatomie, formules…',
-        'Import › **Example sets**: flags, languages, history, anatomy, formulas…',
+        'Importer › **Jeux d’exemple** : drapeaux, langues, histoire, anatomie, formules… Chacun met en valeur d’autres possibilités : images masquées, apparence d’un jeu, lecture à voix haute.',
+        'Import › **Example sets**: flags, languages, history, anatomy, formulas… Each one shows other possibilities: image occlusion, a set’s appearance, reading aloud.',
       ),
-      t('bases', 'basics'),
+      BASICS,
     ),
     c(
       t('Et maintenant ?', 'What now?'),
@@ -375,7 +385,7 @@ function tourCards(L) {
         'Créez votre premier jeu avec **Nouveau jeu**. Cette visite peut être supprimée ou archivée quand vous n’en avez plus besoin.',
         'Create your first set with **New set**. This tour can be deleted or archived once you no longer need it.',
       ),
-      t('bases', 'basics'),
+      BASICS,
     ),
   ];
 }

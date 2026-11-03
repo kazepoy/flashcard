@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'preact/hooks';
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'preact/hooks';
 import { mdToHtml, stripMarkdown } from '../core/text.js';
 import { t } from './i18n.js';
 import { useApp } from './ctx.js';
@@ -154,13 +154,106 @@ export function speak(text, lang) {
 export function IndexCard({ children, class: cls = '', style, side = 'prompt', ...rest }) {
   const ap = cardAppearance(style || {}, side);
   const map = useMediaMap([ap.bgImage || '']);
+  const ref = useRef(null);
+  useAutoFit(ref, ap.fit);
   const css = { ...ap.vars };
   if (ap.bgImage && map[ap.bgImage]) css['--card-image'] = `url("${map[ap.bgImage]}")`;
   return (
-    <div class={['index-card', ap.className, cls].join(' ')} style={css} {...rest}>
+    <div ref={ref} class={['index-card', ap.className, cls].join(' ')} style={css} {...rest}>
       {children}
     </div>
   );
+}
+
+// taille « auto » : bornes en proportion de la taille de base de la fiche (étude, aperçu, impression), celles
+// des tailles fixes (« Petite » 1,05rem et « Très grande » 2,4rem pour une base « Moyenne » de 1,35rem) : une
+// question courte n'est pas démesurée, un long texte pas minuscule
+const FIT_MIN = 1.05 / 1.35;
+const FIT_MAX = 2.4 / 1.35;
+// part de la hauteur que le contenu peut occuper : un peu d'air autour du texte
+const FIT_FILL = 0.9;
+
+/**
+ * Taille « auto » : la plus grande police (variable --fs) pour laquelle le contenu tient dans la fiche — sa
+ * hauteur minimale, ou sa hauteur imposée (impression) — sans couper un mot. Au minimum, la fiche s'allonge
+ * comme pour les autres tailles. Recherche par dichotomie, mesurée sur la fiche elle-même.
+ */
+export function fitText(el) {
+  if (!el || !el.isConnected) return;
+  const st = el.style;
+  st.removeProperty('--fs');
+  if (!el.clientWidth) return; // fiche non affichée : on recommencera quand elle aura une taille
+  const cs = getComputedStyle(el);
+  // taille de base de la fiche : --fs, dont la police peut être une fraction (font-mono : 0,9)
+  st.setProperty('--fs', '100px');
+  const ratio = parseFloat(getComputedStyle(el).fontSize) / 100 || 1;
+  st.removeProperty('--fs');
+  const base = parseFloat(cs.fontSize) / ratio;
+  const H = parseFloat(cs.minHeight) || el.clientHeight;
+  if (!base || !H) return;
+  const saved = [st.height, st.minHeight, st.overflowWrap];
+  st.height = H * FIT_FILL + 'px';
+  st.minHeight = '0';
+  st.overflowWrap = 'normal'; // un mot trop long pour la largeur déborde (au lieu d'être coupé) : trop grand
+  const fits = (fs) => {
+    st.setProperty('--fs', fs + 'px');
+    if (el.scrollHeight > el.clientHeight + 1) return false;
+    for (const c of el.children) if (c.clientWidth && c.scrollWidth > c.clientWidth + 1) return false;
+    return true;
+  };
+  let lo = base * FIT_MIN;
+  let hi = base * FIT_MAX;
+  if (fits(hi)) lo = hi;
+  else if (fits(lo))
+    while (hi - lo > 0.5) {
+      const mid = (lo + hi) / 2;
+      if (fits(mid)) lo = mid;
+      else hi = mid;
+    }
+  [st.height, st.minHeight, st.overflowWrap] = saved;
+  st.setProperty('--fs', Math.floor(lo * 2) / 2 + 'px');
+}
+
+/** Ajuste la fiche à chaque changement de contenu ou de largeur, au chargement des polices et des images. */
+function useAutoFit(ref, on) {
+  const last = useRef('');
+  useLayoutEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    if (!on) {
+      el.style.removeProperty('--fs');
+      last.current = '';
+      return;
+    }
+    // ne recalcule que si le contenu, l'apparence ou la largeur ont changé (la page peut se redessiner souvent)
+    const sig = `${el.clientWidth}|${el.className}|${el.innerHTML.length}|${el.textContent}`;
+    if (sig === last.current) return;
+    last.current = sig;
+    fitText(el);
+  });
+  useEffect(() => {
+    const el = ref.current;
+    if (!on || !el) return;
+    const refit = () => fitText(el);
+    let width = el.clientWidth;
+    const ro =
+      typeof ResizeObserver === 'function' &&
+      new ResizeObserver(() => {
+        if (el.clientWidth === width) return; // la hauteur, elle, change avec la police
+        width = el.clientWidth;
+        refit();
+      });
+    if (ro) ro.observe(el);
+    el.addEventListener('load', refit, true); // images
+    const fonts = document.fonts;
+    fonts?.addEventListener?.('loadingdone', refit);
+    fonts?.ready?.then(refit);
+    return () => {
+      if (ro) ro.disconnect();
+      el.removeEventListener('load', refit, true);
+      fonts?.removeEventListener?.('loadingdone', refit);
+    };
+  }, [ref, on]);
 }
 
 export function FlipCard({ front, back, frontStyle, backStyle, flipped, onFlip, label }) {
@@ -355,9 +448,11 @@ export function useToasts() {
   return { items, toast, dismiss };
 }
 
-export function Toasts({ items, onDismiss }) {
+/** Notifications en bas de l'écran ; `children` : messages qui restent (nouvelle version), avant les autres. */
+export function Toasts({ items, onDismiss, children }) {
   return (
     <div class="toasts" role="status" aria-live="polite">
+      {children}
       {items.map((x) => (
         <div key={x.id} class={'toast ' + (x.kind || '')}>
           <span>{x.text}</span>

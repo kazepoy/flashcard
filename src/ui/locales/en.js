@@ -66,7 +66,6 @@ export default {
   'browse.allSets': 'All sets',
   'browse.ascending': 'Ascending',
   'browse.blank': 'Blank {n}',
-  'browse.card': 'Card',
   'browse.cardInfo': 'Card info',
   'browse.createImportSetCards': 'Create or import a set: its cards will appear here.',
   'browse.descending': 'Descending',
@@ -270,8 +269,10 @@ export default {
   'error.setVersion': 'Unsupported set version: {v}. Please update Flashcard.',
   'error.syncAuth': 'The connection to the sync service needs to be renewed.',
   'error.syncHttp': '{service} returned error {status}: {detail}',
+  'error.syncOffline': "{service} can't be reached (no network?): sync will retry on its own.",
   'error.syncRemoteEmpty':
     'The online folder was purged from a device. Nothing was deleted here. Disconnect and reconnect sync to send this library back to it.',
+  'error.syncSignIn': 'Connection to {service} interrupted or refused: try again.',
 
   'examples.add': 'Add',
   'examples.addLabel': 'Add: {title}',
@@ -305,7 +306,18 @@ export default {
   'help.github': 'Source code on GitHub',
   'help.installAndroid': 'Android (Chrome): ⋮ menu, then “Install app” (or “Add to Home screen”).',
   'help.installDesktop': 'Computer (Chrome, Edge): install icon in the address bar, or menu › “Install Flashcard”.',
-  'help.installIos': 'iPhone, iPad (Safari): Share button, then “Add to Home Screen”.',
+  'help.installFirefox':
+    "Firefox: on Android, ⋮ menu › “Install”; on a computer it can't install apps, but the library offers to protect the data (persistent storage).",
+  'help.installIos':
+    'iPhone, iPad (Safari, Chrome, Firefox…): Share button, then “Add to Home Screen”. The installed app has its own data: connect Dropbox in it to find your library there.',
+  'help.installMac': 'Mac (Safari 17 or later): File menu › “Add to Dock”; as on iPhone, the app has its own data.',
+  'help.installState.installed': 'On this device: Flashcard is installed, its data is protected.',
+  'help.installState.protected': 'On this device: data protected (persistent storage granted by the browser).',
+  'help.installState.space': 'On this device: data not protected, the browser may erase it if it runs out of space.',
+  'help.installState.weekly':
+    'On this device: Flashcard is not installed, Safari may erase its data after 7 days without a visit.',
+  'help.installSync':
+    'In every case, Dropbox sync keeps a copy of your library: it can be recovered after being erased, or on a new device.',
   'help.installTitle': 'Install on the home screen',
   'help.installWhy':
     'Once installed, Flashcard opens like an app, works offline, and the browser keeps its data. On iPhone and iPad this matters: Safari may erase the data of a site that is not installed after 7 days without a visit. If your sets are neither synced with Dropbox nor exported regularly, install it.',
@@ -352,6 +364,25 @@ export default {
   'help.title': 'Help & credits',
   'help.tourHint': 'To discover each card type, open the “Guided tour” set. Keyboard shortcuts: see the settings.',
   'help.version': 'Version {v} (build {build} UTC)',
+
+  'install.fallback': 'To protect it, install the app if your browser allows it.',
+  'install.how.chromium':
+    'To protect it, install the app: browser menu › “Install Flashcard” (or “Add to Home screen”).',
+  'install.how.firefoxAndroid': 'To protect it, install the app: ⋮ menu › “Install” (or “Add to Home screen”).',
+  'install.how.ios': 'To protect it, install the app: Share button, then “Add to Home Screen”.',
+  'install.how.macSafari': 'To protect it, install the app: File menu › “Add to Dock”.',
+  'install.install': 'Install',
+  'install.offer': 'Install the app: it will open like an app and its data will be protected.',
+  'install.protect': 'Protect data',
+  'install.protectOffer': 'Allow persistent storage to protect it.',
+  'install.refused': 'The browser refused.',
+  'install.riskSpace': "The browser may erase Flashcard's data on this device if it runs out of space.",
+  'install.riskWeekly': "Safari may erase Flashcard's data on this device after 7 days without a visit.",
+  'install.separate':
+    'The installed app starts empty: connect Dropbox in it (or import your exported sets) to find your library there.',
+  'install.syncButton': 'Sync with Dropbox',
+  'install.syncOffer': 'With Dropbox sync, your library can be recovered even after it is erased.',
+  'install.synced': 'Your library is also on Dropbox: it could be recovered after being erased.',
 
   'lang.ar': 'Arabic',
   'lang.de': 'German',
@@ -917,7 +948,11 @@ export default {
   'style.paper.grid': 'Grid',
   'style.paper.plain': 'Plain',
   'style.paper.ruled': 'Ruled',
+  'style.recall': 'Question on the back',
+  'style.recall.hide': 'Hidden',
+  'style.recall.show': 'Shown above the answer',
   'style.size': 'Size',
+  'style.size.auto': 'Auto (fit to card)',
   'style.size.lg': 'Large',
   'style.size.md': 'Medium',
   'style.size.sm': 'Small',
@@ -951,7 +986,7 @@ export default {
   'sync.manage': 'Manage sync',
   'sync.now': 'Sync now',
   'sync.pausedBanner': '{service} sync is paused: the connection needs to be renewed.',
-  'sync.resume': 'Resume sync',
+  'sync.reconnect': 'Reconnect to {service}',
   'sync.setup': 'Set up sync',
   'sync.status.connected': 'Connected',
   'sync.status.done': 'Synced {ago}',

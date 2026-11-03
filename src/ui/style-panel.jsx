@@ -9,6 +9,7 @@ import {
   ALIGNS,
   VALIGNS,
   PAPERS,
+  RECALLS,
   isHex,
   mergeStyle,
   sanitizeStyle,
@@ -166,10 +167,11 @@ function StylePanel({ style, onChange, preview, inherit = null, image = true, re
         </div>
         <div class="row grid-sel">
           {choice('font', FONTS, 'default')}
-          {choice('size', SIZES, 'md')}
+          {choice('size', SIZES, 'auto')}
           {choice('align', ALIGNS, 'center')}
           {choice('valign', VALIGNS, 'middle')}
           {choice('paper', PAPERS, 'ruled')}
+          {choice('recall', RECALLS, 'show')}
         </div>
         {image && (
           <MediaField

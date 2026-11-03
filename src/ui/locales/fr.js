@@ -65,7 +65,6 @@ export default {
   'browse.allSets': 'Tous les jeux',
   'browse.ascending': 'Ordre croissant',
   'browse.blank': 'Trou {n}',
-  'browse.card': 'Carte',
   'browse.cardInfo': 'Infos sur la carte',
   'browse.createImportSetCards': 'Créez ou importez un jeu : ses cartes apparaîtront ici.',
   'browse.descending': 'Ordre décroissant',
@@ -270,8 +269,10 @@ export default {
   'error.setVersion': 'Version de jeu non prise en charge : {v}. Mettez Flashcard à jour.',
   'error.syncAuth': 'La connexion au service de synchronisation doit être renouvelée.',
   'error.syncHttp': '{service} a répondu par une erreur {status} : {detail}',
+  'error.syncOffline': "{service} est injoignable (pas de réseau ?) : la synchronisation réessaiera d'elle-même.",
   'error.syncRemoteEmpty':
     "Le dossier en ligne a été purgé depuis un appareil. Rien n'a été supprimé ici. Déconnectez puis reconnectez la synchronisation pour y renvoyer cette bibliothèque.",
+  'error.syncSignIn': 'Connexion à {service} interrompue ou refusée : réessayez.',
 
   'examples.add': 'Ajouter',
   'examples.addLabel': 'Ajouter : {title}',
@@ -308,7 +309,21 @@ export default {
     "Android (Chrome) : menu ⋮, puis « Installer l'application » (ou « Ajouter à l'écran d'accueil »).",
   'help.installDesktop':
     "Ordinateur (Chrome, Edge) : icône d'installation dans la barre d'adresse, ou menu › « Installer Flashcard ».",
-  'help.installIos': "iPhone, iPad (Safari) : bouton Partager, puis « Sur l'écran d'accueil ».",
+  'help.installFirefox':
+    "Firefox : sur Android, menu ⋮ › « Installer » ; sur ordinateur, pas d'installation, mais la bibliothèque propose de protéger les données (stockage persistant).",
+  'help.installIos':
+    "iPhone, iPad (Safari, Chrome, Firefox…) : bouton Partager, puis « Sur l'écran d'accueil ». L'application installée a ses propres données : connectez-y Dropbox pour y retrouver votre bibliothèque.",
+  'help.installMac':
+    "Mac (Safari 17 ou plus) : menu Fichier › « Ajouter au Dock » ; comme sur iPhone, l'application a ses propres données.",
+  'help.installState.installed': 'Sur cet appareil : Flashcard est installée, ses données sont protégées.',
+  'help.installState.protected':
+    'Sur cet appareil : données protégées (stockage persistant accordé par le navigateur).',
+  'help.installState.space':
+    "Sur cet appareil : données non protégées, le navigateur peut les effacer s'il manque de place.",
+  'help.installState.weekly':
+    "Sur cet appareil : Flashcard n'est pas installée, Safari peut effacer ses données après 7 jours sans visite.",
+  'help.installSync':
+    'Dans tous les cas, la synchronisation Dropbox garde une copie de votre bibliothèque : elle se retrouve après un effacement, ou sur un nouvel appareil.',
   'help.installTitle': "Installer sur l'écran d'accueil",
   'help.installWhy':
     "Installée, Flashcard s'ouvre comme une application, fonctionne sans connexion, et le navigateur garde ses données. Sur iPhone et iPad, c'est important : Safari peut effacer les données d'un site non installé après 7 jours sans visite. Si vos jeux ne sont ni synchronisés avec Dropbox ni exportés régulièrement, installez-la.",
@@ -357,6 +372,26 @@ export default {
   'help.tourHint':
     'Pour découvrir chaque type de carte, ouvrez le jeu « Visite guidée ». Raccourcis clavier : voir les réglages.',
   'help.version': 'Version {v} (build {build} UTC)',
+
+  'install.fallback': "Pour les protéger, installez l'application si votre navigateur le permet.",
+  'install.how.chromium':
+    "Pour les protéger, installez l'application : menu du navigateur › « Installer Flashcard » (ou « Ajouter à l'écran d'accueil »).",
+  'install.how.firefoxAndroid':
+    "Pour les protéger, installez l'application : menu ⋮ › « Installer » (ou « Ajouter à l'écran d'accueil »).",
+  'install.how.ios': "Pour les protéger, installez l'application : bouton Partager, puis « Sur l'écran d'accueil ».",
+  'install.how.macSafari': "Pour les protéger, installez l'application : menu Fichier › « Ajouter au Dock ».",
+  'install.install': 'Installer',
+  'install.offer': "Installez l'application : elle s'ouvrira comme une application et ses données seront protégées.",
+  'install.protect': 'Protéger les données',
+  'install.protectOffer': 'Autorisez le stockage persistant pour les protéger.',
+  'install.refused': 'Le navigateur a refusé.',
+  'install.riskSpace': "Le navigateur peut effacer les données de Flashcard sur cet appareil s'il manque de place.",
+  'install.riskWeekly': 'Safari peut effacer les données de Flashcard sur cet appareil après 7 jours sans visite.',
+  'install.separate':
+    "L'application installée démarre vide : connectez-y Dropbox (ou importez vos jeux exportés) pour y retrouver votre bibliothèque.",
+  'install.syncButton': 'Synchroniser avec Dropbox',
+  'install.syncOffer': 'Avec la synchronisation Dropbox, votre bibliothèque se retrouve même après un effacement.',
+  'install.synced': 'Votre bibliothèque est aussi sur Dropbox : elle se retrouverait après un effacement.',
 
   'lang.ar': 'Arabe',
   'lang.de': 'Allemand',
@@ -935,7 +970,11 @@ export default {
   'style.paper.grid': 'Quadrillée',
   'style.paper.plain': 'Unie',
   'style.paper.ruled': 'Lignée',
+  'style.recall': 'Question au verso',
+  'style.recall.hide': 'Masquée',
+  'style.recall.show': 'Rappelée au-dessus de la réponse',
   'style.size': 'Taille',
+  'style.size.auto': 'Auto (ajustée à la fiche)',
   'style.size.lg': 'Grande',
   'style.size.md': 'Moyenne',
   'style.size.sm': 'Petite',
@@ -969,7 +1008,7 @@ export default {
   'sync.manage': 'Gérer la synchronisation',
   'sync.now': 'Synchroniser maintenant',
   'sync.pausedBanner': 'La synchronisation {service} est en pause : la connexion doit être renouvelée.',
-  'sync.resume': 'Reprendre la synchronisation',
+  'sync.reconnect': 'Se reconnecter à {service}',
   'sync.setup': 'Configurer la synchronisation',
   'sync.status.connected': 'Connectée',
   'sync.status.done': 'Synchronisée {ago}',

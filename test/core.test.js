@@ -323,6 +323,14 @@ test("style : validation stricte (pas d'injection CSS)", () => {
   });
   assert.deepEqual(s, { bg: '#FFF3A3', size: 'xl', align: 'center', valign: 'middle', paper: 'grid' });
   assert.equal(sanitizeStyle({ valign: 'bottom' }).valign, undefined);
+  // rappel de la question au verso
+  assert.equal(sanitizeStyle({ recall: 'hide' }).recall, 'hide');
+  assert.equal(sanitizeStyle({ recall: 'non' }).recall, undefined);
+  // taille ajustée à la fiche
+  assert.equal(sanitizeStyle({ size: 'auto' }).size, 'auto');
+  assert.equal(cardAppearance({ size: 'auto' }).fit, true);
+  assert.equal(cardAppearance({}).fit, true, 'auto par défaut');
+  assert.equal(cardAppearance({ size: 'xl' }).fit, false);
   assert.match(cardAppearance({ valign: 'middle' }).className, /valign-middle/);
   assert.match(cardAppearance({}).className, /align-center .*valign-middle/);
   assert.deepEqual(sanitizeStyle(null), {});

@@ -9,7 +9,8 @@ import { errorText, getLang, onLang, t } from './i18n.js';
 import { Routes } from './routes.jsx';
 import { applyReadingFont, applyTheme } from './themes.js';
 import { useLibrary } from './use-library.js';
-import { useSync } from './use-sync.js';
+import { completeSignIn, useSync } from './use-sync.js';
+import { ensurePersistence } from './install.js';
 
 function TopBar({ route }) {
   const current = (page) => (route.page === page ? 'page' : undefined);
@@ -54,12 +55,14 @@ function Root() {
   const studying = route.page === 'study';
 
   useEffect(() => onLang(setLangState), []);
-  // nouvelle version prête (voir main.jsx) : la page ouverte tourne encore sur l'ancienne
+  // nouvelle version prête (voir main.jsx) : la page ouverte tourne encore sur l'ancienne ; le message reste
+  // affiché en bas, avec les notifications, jusqu'au rechargement
+  const [updateReady, setUpdateReady] = useState(false);
   useEffect(() => {
-    const ready = () => toast(t('app.updateReady'), '', { label: t('app.reload'), run: () => location.reload() });
+    const ready = () => setUpdateReady(true);
     addEventListener('flashcard-update', ready);
     return () => removeEventListener('flashcard-update', ready);
-  }, [toast]);
+  }, []);
   useEffect(() => applyTheme(settings?.theme || 'auto'), [settings?.theme]);
   useEffect(() => applyReadingFont(settings?.readingFont || 'default'), [settings?.readingFont]);
 
@@ -92,20 +95,33 @@ function Root() {
       {sync.status === 'paused' && !studying && (
         <div class="notice banner" role="status">
           {t('sync.pausedBanner', { service: sync.service })}
-          <button class="btn small" onClick={() => sync.syncNow()}>
-            {t('sync.resume')}
+          {sync.error && sync.error.code !== 'syncAuth' && <span> {errorText(sync.error)}</span>}
+          {/* la fenêtre de connexion s'ouvre dans le clic ; un échec reste affiché dans les réglages */}
+          <button class="btn small primary" onClick={() => sync.syncNow().catch(() => {})}>
+            {t('sync.reconnect', { service: sync.service })}
           </button>
         </div>
       )}
       <div class={'page' + (studying ? ' studying' : '')}>
         <Routes route={route} />
       </div>
-      <Toasts items={toasts} onDismiss={dismiss} />
+      <Toasts items={toasts} onDismiss={dismiss}>
+        {updateReady && !studying && (
+          <div class="toast update">
+            <span>{t('app.updateReady')}</span>
+            <button type="button" class="btn small primary" onClick={() => location.reload()}>
+              {t('app.reload')}
+            </button>
+          </div>
+        )}
+      </Toasts>
     </AppCtx.Provider>
   );
 }
 
-export function start(el = document.getElementById('app')) {
+export async function start(el = document.getElementById('app')) {
   setSqlWasmBase('./');
+  ensurePersistence(); // stockage protégé de l'effacement, si le navigateur l'accorde sans question
+  await completeSignIn(); // connexion revenue de chez le fournisseur (redirection), avant l'affichage
   render(<Root />, el);
 }

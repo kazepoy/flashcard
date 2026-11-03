@@ -67,6 +67,7 @@ src/
    ├─ ctx.js          contexte global, routeur (parseRoute → routeOf), useAsync ; routes.jsx : pages
    ├─ use-library.js  cycle de vie de la bibliothèque ; boot.js : ouverture du stockage ;
    │                  first-run.js : première ouverture (langue, exemples) ; backup-notice.jsx (rappel de synchronisation ou de sauvegarde)
+   │                  install.js, install-notice.jsx : installation de l'application, stockage persistant, risque d'effacement
    ├─ useSet.js       chargement d'un jeu, progression immuable (update), enregistrement différé
    ├─ components.jsx  fiche, dialogue, icônes, médias, audio, raccourcis, notifications
    ├─ library.jsx     bibliothèque, archivage proposé (core/archive.js) ; import-dialog.jsx ; ai-dialog.jsx ;
@@ -149,7 +150,13 @@ reconnecté, il y renvoie sa bibliothèque.
    Dropbox accepte un nombre limité d'utilisateurs ; demander le passage en production depuis la console.
 
 Connexion PKCE avec accès hors ligne (`ui/dropbox-auth.js`, sur `ui/pkce.js`) : le
-jeton de rafraîchissement ne périme pas, la synchronisation reste connectée. Fichiers dans
+jeton de rafraîchissement ne périme pas, la synchronisation reste connectée. Il n'est oublié que si Dropbox le
+refuse (400/401) : sans réseau ou service en panne, il est gardé et la synchronisation réessaie. Un jeton
+d'accès refusé par l'API est renouvelé une fois avant de demander une reconnexion. Connexion à renouveler :
+la synchronisation se met en pause (bandeau persistant, aucune tentative automatique) jusqu'au clic sur
+« Se reconnecter », qui ouvre la fenêtre de connexion dans le clic même (sinon le navigateur la bloque) ;
+fenêtre bloquée quand même, ou application installée sur iPhone/iPad : la page part chez Dropbox et la
+connexion se termine à son retour (`completeRedirectSignIn`, avant l'affichage). Fichiers dans
 `Applications/Flashcard` (`storage/dropbox.js`).
 
 ## Traduction

@@ -16,4 +16,7 @@ const client = pkceClient({
 });
 
 export const dropboxToken = (o) => client.token(o);
+/** Connexion : à appeler directement dans un clic (voir pkce.js). */
+export const dropboxSignIn = (intent) => client.signIn(intent);
+export const dropboxCanRenew = () => client.canRenew();
 export const forgetDropbox = () => client.forget();

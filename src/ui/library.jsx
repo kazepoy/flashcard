@@ -10,6 +10,7 @@ import { AiDialog } from './ai-dialog.jsx';
 import { ImportDialog } from './import-dialog.jsx';
 import { ExamplesNotice, examplesNoticeShown } from './examples.jsx';
 import { BackupNotice, backupNoticeShown } from './backup-notice.jsx';
+import { InstallNotice, installNoticeShown, useStorageRisk } from './install-notice.jsx';
 import { ArchiveSuggestDialog } from './archive-suggest.jsx';
 import { recentLocal, writeLocal } from './local.js';
 
@@ -54,11 +55,15 @@ export function LibraryPage() {
   }, [filtered]);
   const totalDue = rows.reduce((n, r) => n + r.due, 0);
   const toArchive = rows.filter((r) => r.archive);
-  // Un seul bandeau à la fois, par priorité : découvrir les exemples (premier lancement), mettre les données
-  // à l'abri, alléger la bibliothèque. Le suivant n'apparaît qu'une fois le précédent vu ou masqué.
+  // Un seul bandeau à la fois, par priorité : découvrir les exemples (premier lancement), protéger les données
+  // d'un effacement par le navigateur (installer l'application), les mettre à l'abri (synchronisation,
+  // sauvegarde), alléger la bibliothèque. Le suivant n'apparaît qu'une fois le précédent vu ou masqué.
   const again = () => rerender((n) => n + 1);
+  const risk = useStorageRisk();
   const banner = examplesNoticeShown() ? (
     <ExamplesNotice onOpen={() => (again(), setDialog('examples'))} onHide={again} />
+  ) : installNoticeShown(risk) ? (
+    <InstallNotice risk={risk} sync={sync} onHide={again} />
   ) : !needsPermission && sync.status !== 'paused' && backupNoticeShown(sync) ? (
     <BackupNotice sync={sync} onHide={again} />
   ) : toArchive.length > 0 && !snoozed() ? (

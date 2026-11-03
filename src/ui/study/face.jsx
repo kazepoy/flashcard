@@ -32,16 +32,15 @@ function FaceFoot({ hint, example }) {
 }
 
 /**
- * Une face de carte et son pied (indice : au recto si `showHint`, au verso hors texte à trous, dont l'indice
- * est dans le trou ; exemple : au verso). `recall` : au verso, rappelle la question au-dessus de la réponse.
+ * Une face de carte et son pied (indice : au recto si `showHint`, jamais au verso, qui donne la réponse ;
+ * exemple : au verso). `recall` : au verso, rappelle la question au-dessus de la réponse,
+ * sauf si l'apparence le masque (`style.recall`).
  */
 export function CardFace({ item, set, side, showHint = false, recall = false }) {
+  // texte à trous : un indice déjà écrit dans le trou ([indice]) n'est pas répété en bas
+  const inBlank = item.kind === 'cloze' && !!item.hint && item.prompt.includes(item.hint);
   const foot =
-    side === 'prompt' ? (
-      <FaceFoot hint={showHint && item.hint} />
-    ) : (
-      <FaceFoot hint={item.kind !== 'cloze' && item.hint} example={item.example} />
-    );
+    side === 'prompt' ? <FaceFoot hint={showHint && !inBlank && item.hint} /> : <FaceFoot example={item.example} />;
   if (item.kind === 'occlusion') {
     return (
       <>
@@ -86,7 +85,7 @@ export function CardFace({ item, set, side, showHint = false, recall = false }) 
     <>
       <div class="face-content">
         {/* rappel de la question (sauf texte à trous : la phrase révélée la contient déjà) */}
-        {recall && item.kind === 'basic' && (
+        {recall && item.kind === 'basic' && item.style?.recall !== 'hide' && (
           <div class="face-recall">
             <Md text={item.prompt} />
             <MediaImage path={item.promptImage} />
