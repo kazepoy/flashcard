@@ -3,7 +3,7 @@ import { newCard } from '../core/format.js';
 import { sanitizeStyle } from '../core/style.js';
 import { parseDelimited, rowsToCards } from '../io/csv.js';
 import { Dialog, Empty, Icon, TagsInput } from './components.jsx';
-import { go, href, useApp } from './ctx.js';
+import { go, href, useApp, useAsync } from './ctx.js';
 import { errorText, t, tn } from './i18n.js';
 import { CardEditor } from './card-editor.jsx';
 import { LANGS } from './languages.js';
@@ -12,7 +12,7 @@ import { AppearanceSection, Swatches } from './style-panel.jsx';
 // ------------------------------------------------------------------ page
 
 export function Editor({ setId, focusCardId = null }) {
-  const { lib, toast, settings } = useApp();
+  const { lib, toast, settings, version } = useApp();
   const setRef = useRef(null);
   const [, bump] = useState(0);
   const [status, setStatus] = useState('saved');
@@ -22,6 +22,7 @@ export function Editor({ setId, focusCardId = null }) {
   const timer = useRef();
   const dirty = useRef(false);
   const flushRef = useRef(() => {});
+  const { data: setList } = useAsync(() => lib.listSets(), [lib, version]);
 
   useEffect(() => {
     let live = true;
@@ -65,6 +66,11 @@ export function Editor({ setId, focusCardId = null }) {
     bump((n) => n + 1);
   };
   const set = setRef.current;
+  const folders = new Set();
+  for (const folder of [...(setList?.sets.map((s) => s.folder) || []), set?.folder || '']) {
+    const parts = folder.split('/').filter(Boolean);
+    for (let i = 1; i <= parts.length; i++) folders.add(parts.slice(0, i).join('/'));
+  }
   if (error)
     return (
       <Empty title={t('common.setNotFound')}>
@@ -151,9 +157,24 @@ export function Editor({ setId, focusCardId = null }) {
             <span>{t('editor.folder')}</span>
             <input
               value={set.folder}
+              list="folder-options"
               placeholder={t('editor.folderPlaceholder')}
-              onInput={(e) => mutateSet({ folder: e.currentTarget.value.replace(/^\/+|\/+$/g, '') })}
+              onInput={(e) => mutateSet({ folder: e.currentTarget.value })}
+              onBlur={(e) => {
+                const folder = e.currentTarget.value
+                  .trim()
+                  .replace(/^\/+|\/+$/g, '')
+                  .trim();
+                if (folder !== set.folder) mutateSet({ folder });
+              }}
             />
+            <datalist id="folder-options">
+              {[...folders]
+                .sort((a, b) => a.localeCompare(b))
+                .map((folder) => (
+                  <option key={folder} value={folder} />
+                ))}
+            </datalist>
           </label>
           <label class="field">
             <span>{t('editor.termLanguage')}</span>

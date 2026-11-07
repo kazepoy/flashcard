@@ -1,5 +1,18 @@
 [
   {
+    "file": "visite-guidee.flashcard.zip",
+    "id": "01JZ0000000000000000005000",
+    "cards": 27,
+    "color": "#8a5cd6",
+    "title": "Visite guidée : découvrir Flashcard",
+    "description": "Découvrir les fonctions de Flashcard avec des cartes qui les illustrent.",
+    "features": [
+      "Prise en main",
+      "Textes à trous",
+      "Image masquée"
+    ]
+  },
+  {
     "file": "drapeaux-et-capitales.flashcard.zip",
     "id": "01JZ0000000000000000101000",
     "cards": 68,

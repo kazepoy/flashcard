@@ -38,6 +38,19 @@ self.addEventListener('fetch', (event) => {
   if (url.origin !== location.origin) return; // API d'IA, etc. : jamais interceptées
   event.respondWith(
     caches.match(req, { ignoreSearch: true }).then(async (hit) => {
+      // Le catalogue peut changer à la même adresse : le vérifier en ligne, garder la copie hors ligne.
+      if (/\/examples\/[^/]+\/catalog\.json$/.test(url.pathname)) {
+        try {
+          const res = await fetch(req, { cache: 'no-cache' });
+          if (res.ok) {
+            await (await caches.open(LAZY_CACHE)).put(req, res.clone());
+            return res;
+          }
+          return hit || res;
+        } catch {
+          return hit || Response.error();
+        }
+      }
       if (hit) return hit;
       try {
         const res = await fetch(req);

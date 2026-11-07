@@ -454,5 +454,23 @@ async function writeCatalog(lang, entries) {
   await writeFile(new URL('catalog.json', dir), JSON.stringify(list, null, 2) + '\n');
 }
 const catalog = buildCatalog({ makeSet, addSvg });
+catalog.fr.unshift([
+  'visite-guidee',
+  tour,
+  {
+    title: tour.title,
+    description: 'Découvrir les fonctions de Flashcard avec des cartes qui les illustrent.',
+    features: ['Prise en main', 'Textes à trous', 'Image masquée'],
+  },
+]);
+catalog.en.unshift([
+  'guided-tour',
+  tourEn,
+  {
+    title: tourEn.title,
+    description: 'Discover Flashcard features through cards that demonstrate them.',
+    features: ['Getting started', 'Cloze deletion', 'Image occlusion'],
+  },
+]);
 await writeCatalog('fr', catalog.fr);
 await writeCatalog('en', catalog.en);
