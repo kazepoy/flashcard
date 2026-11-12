@@ -406,3 +406,82 @@ test('réglages : modification gardée même si la page se ferme avant l’écri
   await store.writeText('shared/settings.json', JSON.stringify(shared));
   assert.equal((await new Library(store).init()).settings.newPerDay, 35);
 });
+
+test('Library.moveCards : déplace les cartes avec progression, étoile, drapeau, suspension et historique', async () => {
+  const lib = await mkLib();
+  const c1 = newCard({ term: 'un', definition: 'one' });
+  const c2 = newCard({ type: 'cloze', term: '{{c1::deux}} et {{c2::trois}}' });
+  const c3 = newCard({ term: 'reste', definition: 'stays' });
+  const a = newSet({ title: 'Source', cards: [c1, c2, c3] });
+  const b = newSet({ title: 'Cible', cards: [] });
+  await lib.saveSet(a);
+  await lib.saveSet(b);
+
+  const pa = await lib.loadProgress(a.id);
+  review(pa, c1.id, Grade.Good, '2026-10-01T10:00:00Z');
+  review(pa, `${c1.id}~r`, Grade.Easy, '2026-10-02T10:00:00Z');
+  review(pa, `${c2.id}#c1`, Grade.Good, '2026-10-03T10:00:00Z');
+  review(pa, c3.id, Grade.Hard, '2026-10-04T10:00:00Z');
+  pa.starred[c1.id] = true;
+  pa.flags[c2.id] = { f: 3, t: '2026-10-03T10:00:00Z' };
+  pa.suspended[c1.id] = { s: true, t: '2026-10-03T10:00:00Z' };
+  await lib.saveProgress(pa);
+
+  await lib.appendLog(a.id, [
+    { t: '2026-10-01T10:00:00Z', item: c1.id, rating: 3 },
+    { t: '2026-10-03T10:00:00Z', item: `${c2.id}#c1`, rating: 3 },
+    { t: '2026-10-04T10:00:00Z', item: c3.id, rating: 2 },
+  ]);
+
+  const n = await lib.moveCards(
+    [
+      { setId: a.id, cardId: c1.id },
+      { setId: a.id, cardId: c2.id },
+    ],
+    b.id,
+  );
+  assert.equal(n, 2);
+
+  const aAfter = await lib.loadSet(a.id);
+  const bAfter = await lib.loadSet(b.id);
+  assert.deepEqual(
+    aAfter.cards.map((c) => c.id),
+    [c3.id],
+  );
+  assert.ok(aAfter.deleted[c1.id] && aAfter.deleted[c2.id], 'marquées supprimées dans le jeu source');
+  assert.deepEqual(
+    bAfter.cards.map((c) => c.id),
+    [c1.id, c2.id],
+  );
+
+  const paAfter = await lib.loadProgress(a.id);
+  const pbAfter = await lib.loadProgress(b.id);
+  assert.deepEqual(Object.keys(paAfter.items), [c3.id]);
+  assert.equal(paAfter.starred[c1.id], undefined);
+  assert.equal(paAfter.flags[c2.id], undefined);
+  assert.equal(paAfter.suspended[c1.id], undefined);
+  assert.deepEqual(Object.keys(pbAfter.items).sort(), [c1.id, `${c1.id}~r`, `${c2.id}#c1`].sort());
+  assert.equal(pbAfter.starred[c1.id], true);
+  assert.equal(pbAfter.flags[c2.id]?.f, 3);
+  assert.equal(pbAfter.suspended[c1.id]?.s, true);
+
+  assert.deepEqual(
+    (await lib.readLog(a.id)).map((l) => l.item),
+    [c3.id],
+  );
+  assert.deepEqual(
+    (await lib.readLog(b.id)).map((l) => l.item),
+    [c1.id, `${c2.id}#c1`],
+  );
+
+  // retour dans le jeu d'origine (où la carte était marquée supprimée) : elle revient bien
+  assert.equal(await lib.moveCards([{ setId: b.id, cardId: c1.id }], a.id), 1);
+  assert.deepEqual(
+    (await lib.loadSet(a.id)).cards.map((c) => c.id),
+    [c3.id, c1.id],
+  );
+  assert.deepEqual(
+    (await lib.loadSet(b.id)).cards.map((c) => c.id),
+    [c2.id],
+  );
+});

@@ -433,6 +433,24 @@ try {
     assert.equal(await page.locator('.btable tbody tr').count(), 1);
     assert.equal(await page.getByRole('searchbox').inputValue(), 'flag:1 or is:dupe');
     await page.locator('.row-open').first().click();
+    await page.locator('.card-info').waitFor();
+    // déplacer la carte ouverte vers un nouveau jeu, puis la ramener via la barre de sélection
+    await page.locator('.card-info').getByRole('button', { name: 'Déplacer' }).click();
+    const moveDlg = page.getByRole('dialog');
+    await moveDlg.getByLabel('Titre du jeu').fill('Meubles');
+    await moveDlg.getByRole('button', { name: 'Déplacer' }).click();
+    await page.locator('.btable .c-set', { hasText: 'Meubles' }).waitFor();
+    await page.locator('.btable tbody input[type="checkbox"]').first().check();
+    await page.locator('.selbar').getByRole('button', { name: 'Déplacer' }).click();
+    await page.getByRole('dialog').getByLabel('Jeu de destination').selectOption({ label: 'Espagnol — cuisine' });
+    await page.getByRole('dialog').getByRole('button', { name: 'Déplacer' }).click();
+    await page.locator('.btable .c-set', { hasText: 'Espagnol — cuisine' }).waitFor();
+    await page.goto(base);
+    await page.locator('.set-row', { hasText: 'Meubles' }).click();
+    await page.getByRole('button', { name: 'Supprimer' }).click();
+    await page.getByRole('dialog').getByRole('button', { name: 'Supprimer définitivement' }).click();
+    await page.goto(base + '#/browse/flag:1%20or%20is:dupe');
+    await page.locator('.row-open').first().click();
     await page
       .locator('.card-info')
       .getByRole('link', { name: /Modifier/ })

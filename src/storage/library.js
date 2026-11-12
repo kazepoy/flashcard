@@ -12,6 +12,7 @@ import {
   nowIso,
 } from '../core/format.js';
 import { sha256Hex } from '../core/ids.js';
+import { cardIdOfItem } from '../core/items.js';
 import { mergeLogs, mergeProgress, mergeSets, mergeSharedSettings } from '../core/merge.js';
 import { exportBundle, importBundle } from '../io/bundle.js';
 import { AppError } from '../core/errors.js';
@@ -239,6 +240,127 @@ export class Library {
   async deleteSet(id) {
     for (const p of [`sets/${id}.json`, `progress/${id}.json`, `logs/${id}.jsonl`])
       await this._enqueue(p, () => this.store.remove(p));
+  }
+
+  /**
+   * Déplace des cartes `[{ setId, cardId }, …]` vers `targetSetId`, avec leur progression
+   * (FSRS, maîtrise, étoile, drapeau, suspension) et leur historique de révisions.
+   * @returns {Promise<number>} nombre de cartes effectivement déplacées
+   */
+  async moveCards(sources, targetSetId) {
+    const bySet = new Map();
+    for (const { setId, cardId } of sources || []) {
+      if (!setId || !cardId || setId === targetSetId) continue;
+      if (!bySet.has(setId)) bySet.set(setId, new Set());
+      bySet.get(setId).add(cardId);
+    }
+    if (!bySet.size) return 0;
+    const targetSet = await this.loadSet(targetSetId);
+    if (!targetSet) return 0;
+
+    const after = (iso) => new Date(Math.max(Date.now(), iso ? new Date(iso).getTime() + 1 : 0)).toISOString();
+    const movedCards = [];
+    const progressPatches = [];
+    const movedLogChunks = [];
+
+    for (const [fromSetId, cardIds] of bySet) {
+      const fromSet = await this.loadSet(fromSetId);
+      if (!fromSet) continue;
+      const moving = fromSet.cards.filter((c) => cardIds.has(c.id));
+      if (!moving.length) continue;
+      const movedIds = new Set(moving.map((c) => c.id));
+      fromSet.cards = fromSet.cards.filter((c) => !movedIds.has(c.id));
+      fromSet.deleted = { ...fromSet.deleted };
+      for (const c of moving) fromSet.deleted[c.id] = after(c.restoredAt);
+      await this.saveSet(fromSet);
+      movedCards.push(...moving);
+
+      const fromProgress = await this.loadProgress(fromSetId);
+      const patch = newProgress(targetSetId);
+      let hasProgress = false;
+      for (const [itemId, it] of Object.entries(fromProgress.items)) {
+        if (movedIds.has(cardIdOfItem(itemId))) {
+          patch.items[itemId] = it;
+          delete fromProgress.items[itemId];
+          hasProgress = true;
+        }
+      }
+      for (const id of movedIds) {
+        if (fromProgress.starred[id]) {
+          patch.starred[id] = true;
+          delete fromProgress.starred[id];
+          hasProgress = true;
+        }
+        if (fromProgress.flags?.[id]) {
+          patch.flags[id] = fromProgress.flags[id];
+          delete fromProgress.flags[id];
+          hasProgress = true;
+        }
+        if (fromProgress.suspended?.[id]) {
+          patch.suspended[id] = fromProgress.suspended[id];
+          delete fromProgress.suspended[id];
+          hasProgress = true;
+        }
+      }
+      if (hasProgress) {
+        await this.saveProgress(fromProgress);
+        progressPatches.push(patch);
+      }
+
+      const srcLogPath = `logs/${fromSetId}.jsonl`;
+      await this._settled(srcLogPath);
+      const rawLog = await this.store.readText(srcLogPath);
+      if (rawLog) {
+        const kept = [];
+        const taken = [];
+        for (const line of rawLog.split('\n')) {
+          if (!line.trim()) continue;
+          let moveLine = false;
+          try {
+            const parsed = JSON.parse(line);
+            moveLine = !!(parsed.item && movedIds.has(cardIdOfItem(parsed.item)));
+          } catch {
+            /* ligne corrompue gardée sur place */
+          }
+          (moveLine ? taken : kept).push(line);
+        }
+        if (taken.length) {
+          movedLogChunks.push(taken.join('\n') + '\n');
+          await this._enqueue(srcLogPath, () =>
+            this.store.writeText(srcLogPath, kept.length ? kept.join('\n') + '\n' : ''),
+          );
+        }
+      }
+    }
+
+    if (!movedCards.length) return 0;
+
+    const existingIds = new Set(targetSet.cards.map((c) => c.id));
+    for (const c of movedCards) {
+      if (existingIds.has(c.id)) continue;
+      const delAt = targetSet.deleted?.[c.id];
+      if (delAt) delete targetSet.deleted[c.id];
+      targetSet.cards.push(delAt || c.restoredAt ? { ...c, restoredAt: after(delAt || c.restoredAt) } : c);
+      existingIds.add(c.id);
+    }
+    if (targetSet.deleted && !Object.keys(targetSet.deleted).length) delete targetSet.deleted;
+    await this.saveSet(targetSet);
+
+    if (progressPatches.length) {
+      let dstProgress = await this.loadProgress(targetSetId);
+      for (const p of progressPatches) dstProgress = mergeProgress(dstProgress, p);
+      await this.saveProgress(dstProgress);
+    }
+
+    if (movedLogChunks.length) {
+      const dstLogPath = `logs/${targetSetId}.jsonl`;
+      await this._enqueue(dstLogPath, async () => {
+        const cur = (await this.store.readText(dstLogPath)) || '';
+        await this.store.writeText(dstLogPath, mergeLogs(cur, movedLogChunks.join('\n')));
+      });
+    }
+
+    return movedCards.length;
   }
 
   // ---- archives : un jeu archivé est une archive d'échange (jeu, progression, journal, médias) rangée dans

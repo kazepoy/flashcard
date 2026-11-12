@@ -1,11 +1,12 @@
 // Navigateur de cartes : toutes les cartes de la bibliothèque, recherche, drapeaux, infos par carte.
 import { Fragment } from 'preact';
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'preact/hooks';
+import { newSet } from '../core/format.js';
 import { setSuspended, toggleStar } from '../core/progress.js';
 import { FLAGS, buildRows, cardHistory, rowSummary, search, setFlag, sortRows } from '../core/search.js';
 import { Scheduler, SrsState } from '../core/srs.js';
 import { CardPreviewDialog } from './card-preview.jsx';
-import { Empty, Icon, Md } from './components.jsx';
+import { Dialog, Empty, Icon, Md } from './components.jsx';
 import { href, parseRoute, useApp, useAsync } from './ctx.js';
 import { errorText, locale, percent, t, tn } from './i18n.js';
 
@@ -60,13 +61,14 @@ const withSet = (q, key) =>
   [q.replace(SET_TOKEN, '$1').replace(/\s+/g, ' ').trim(), key ? `set:"${key}"` : ''].filter(Boolean).join(' ');
 
 export function BrowsePage({ initialQuery = '' }) {
-  const { lib, version, settings, toast } = useApp();
+  const { lib, version, settings, toast, refresh } = useApp();
   const [query, setQuery] = useState(initialQuery);
   const [debounced, setDebounced] = useState(initialQuery);
   const [sort, setSort] = useState({ by: 'added', desc: true });
   const [limit, setLimit] = useState(PAGE);
   const [selected, setSelected] = useState(() => new Set());
   const [current, setCurrent] = useState(null);
+  const [moving, setMoving] = useState(null);
   // ligne cliquée et sa position à l'écran : elle ne doit pas bouger quand la fiche ouverte au-dessus se replie
   const anchor = useRef(null);
   const [, bump] = useState(0);
@@ -81,6 +83,7 @@ export function BrowsePage({ initialQuery = '' }) {
       rows: buildRows(loaded),
       setCount: libs.length,
       sets: loaded.map((x) => x.set.title).sort((a, b) => a.localeCompare(b, locale())),
+      setList: loaded.map((x) => x.set).sort((a, b) => a.title.localeCompare(b.title, locale())),
     };
   }, [lib, version]);
 
@@ -282,6 +285,9 @@ export function BrowsePage({ initialQuery = '' }) {
           <button class="btn small" onClick={() => suspendRows(selRows, false)}>
             {t('common.unsuspend')}
           </button>
+          <button class="btn small" onClick={() => setMoving(selRows)}>
+            <Icon name="folder" /> {t('browse.move')}
+          </button>
           <button class="btn small" onClick={() => setSelected(new Set())}>
             {t('browse.deselect')}
           </button>
@@ -335,6 +341,7 @@ export function BrowsePage({ initialQuery = '' }) {
                             onFlag={(n) => flagRows([r], n)}
                             onStar={() => starRows([r], !r.starred)}
                             onSuspend={() => suspendRows([r], !r.suspended)}
+                            onMove={() => setMoving([r])}
                           />
                         </td>
                       </tr>
@@ -353,6 +360,26 @@ export function BrowsePage({ initialQuery = '' }) {
           )}
         </div>
       </div>
+
+      {moving && (
+        <MoveDialog
+          rows={moving}
+          sets={data?.setList || NONE}
+          onClose={() => setMoving(null)}
+          onMoved={(dest, n) => {
+            const movedKeys = new Set(moving.map((r) => r.key));
+            setMoving(null);
+            setSelected((prev) => {
+              const next = new Set(prev);
+              for (const k of movedKeys) next.delete(k);
+              return next;
+            });
+            if (movedKeys.has(current)) setCurrent(null);
+            refresh();
+            if (n > 0) toast(tn('browse.movedTo', n, { title: dest.title }));
+          }}
+        />
+      )}
     </div>
   );
 }
@@ -439,7 +466,7 @@ function itemLabel(id, card) {
   return card.type === 'cloze' ? '' : t('common.directionTermToDef');
 }
 
-function CardInfo({ row, scheduler, onClose, onFlag, onStar, onSuspend }) {
+function CardInfo({ row, scheduler, onClose, onFlag, onStar, onSuspend, onMove }) {
   const { lib } = useApp();
   const { card, set } = row;
   const [preview, setPreview] = useState(false);
@@ -480,6 +507,9 @@ function CardInfo({ row, scheduler, onClose, onFlag, onStar, onSuspend }) {
             onClick={onSuspend}
           >
             <Icon name="pause" /> {row.suspended ? t('common.unsuspend') : t('common.suspend')}
+          </button>
+          <button class="btn small" onClick={onMove}>
+            <Icon name="folder" /> {t('browse.move')}
           </button>
         </p>
         <div class="ci-flag">
@@ -610,5 +640,84 @@ function SearchHelp() {
         </tbody>
       </table>
     </details>
+  );
+}
+
+function MoveDialog({ rows, sets, onClose, onMoved }) {
+  const { lib, settings, toast } = useApp();
+  const sourceIds = new Set(rows.map((r) => r.set.id));
+  const onlySetId = sourceIds.size === 1 ? [...sourceIds][0] : null;
+  const candidates = sets.filter((s) => s.id !== onlySetId);
+  const [targetId, setTargetId] = useState(() => candidates[0]?.id || '__new__');
+  const [newTitle, setNewTitle] = useState(() => t('library.newSet'));
+  const [busy, setBusy] = useState(false);
+
+  const isNew = targetId === '__new__';
+  const canSubmit = !busy && (!isNew || newTitle.trim().length > 0);
+
+  const submit = async (e) => {
+    e?.preventDefault?.();
+    if (!canSubmit) return;
+    setBusy(true);
+    try {
+      let dest = candidates.find((s) => s.id === targetId);
+      if (isNew) {
+        const ref = rows[0]?.set;
+        dest = newSet({
+          title: newTitle.trim(),
+          folder: ref?.folder || '',
+          language: ref?.language || settings.language,
+        });
+        await lib.saveSet(dest);
+      }
+      const n = await lib.moveCards(
+        rows.map((r) => ({ setId: r.set.id, cardId: r.card.id })),
+        dest.id,
+      );
+      onMoved(dest, n);
+    } catch (err) {
+      toast(errorText(err), 'bad');
+      setBusy(false);
+    }
+  };
+
+  return (
+    <Dialog
+      title={tn('browse.moveTitle', rows.length)}
+      onClose={onClose}
+      footer={
+        <>
+          <button class="btn" onClick={onClose}>
+            {t('common.cancel')}
+          </button>
+          <button class="btn primary" disabled={!canSubmit} onClick={submit}>
+            {t('browse.move')}
+          </button>
+        </>
+      }
+    >
+      <label class="field">
+        <span>{t('browse.moveTarget')}</span>
+        <select value={targetId} onChange={(e) => setTargetId(e.currentTarget.value)}>
+          {candidates.map((s) => (
+            <option key={s.id} value={s.id}>
+              {s.title}
+            </option>
+          ))}
+          <option value="__new__">{t('browse.moveNewSet')}</option>
+        </select>
+      </label>
+      {isNew && (
+        <label class="field">
+          <span>{t('library.setTitle')}</span>
+          <input
+            value={newTitle}
+            onInput={(e) => setNewTitle(e.currentTarget.value)}
+            onKeyDown={(e) => e.key === 'Enter' && submit(e)}
+            autoFocus
+          />
+        </label>
+      )}
+    </Dialog>
   );
 }
