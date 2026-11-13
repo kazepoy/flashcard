@@ -56,6 +56,7 @@ export function LibraryPage() {
       if (!m.has(k)) m.set(k, []);
       m.get(k).push(r);
     }
+    for (const list of m.values()) list.sort((a, b) => Number(!!a.inactive) - Number(!!b.inactive));
     return [...m.entries()].sort((a, b) => (a[0] === '' ? -1 : b[0] === '' ? 1 : a[0].localeCompare(b[0])));
   }, [filtered]);
   const activeRows = rows.filter((r) => !r.inactive);

@@ -493,12 +493,20 @@ try {
     // La révision espacée est bloquée tant que le jeu est inactif
     await page.goto(draftUrl + '/study/review');
     await page.getByRole('heading', { name: 'Jeu inactif' }).waitFor();
-    // Bibliothèque : ligne distinguée visuellement et aucune carte à revoir comptée
+    // Bibliothèque : ligne distinguée visuellement, placée en bas de sa liste et aucune carte à revoir comptée
     await page.goto(base);
     const row = page.locator('.set-list li.inactive', { hasText: 'Brouillon — grammaire' });
     await row.waitFor();
     await row.locator('.badge.inactive').waitFor();
     assert.equal(await row.locator('.pill.due').count(), 0);
+    assert.equal(
+      await page
+        .locator('.set-list li')
+        .last()
+        .evaluate((el) => el.classList.contains('inactive')),
+      true,
+      'jeu inactif en bas de sa liste',
+    );
     // Stats globales : mention du jeu inactif exclu
     await page.goto(base + '#/stats');
     await page.getByText(/1 jeu inactif n'est pas compté/).waitFor();
