@@ -1,66 +1,69 @@
 # Flashcard
 
-**Français** · [English](README.en.md)
+**English** · [Français](README.fr.md)
 
-**Essayer : [kazepoy.github.io/flashcard](https://kazepoy.github.io/flashcard/)**
+**Try it: [kazepoy.github.io/flashcard](https://kazepoy.github.io/flashcard/)**
 
-Application libre de fiches et de révision espacée, alternative à Quizlet et Anki. Elle fonctionne
-entièrement dans le navigateur, hors ligne, sans compte ni serveur : vos cartes restent chez vous,
-dans un format de fichiers ouvert.
+A free and open-source flashcard and spaced repetition app, an alternative to Quizlet and Anki. It runs
+entirely in the browser, offline, with no account and no server: your cards stay with you, in an open
+file format.
 
 <p>
-  <img src="docs/screenshots/fr-bibliotheque.jpg" alt="Bibliothèque garnie de jeux d'exemple, avec les cartes du jour" width="49%">
-  <img src="docs/screenshots/fr-planche.jpg" alt="Planche d'anatomie du cœur en image masquée, thème sombre" width="49%">
-  <img src="docs/screenshots/fr-fiche.jpg" alt="Fiche retournée : drapeau, réponse et exemple en pied de fiche" width="49%">
-  <img src="docs/screenshots/fr-apprendre.jpg" alt="Mode Apprendre : vocabulaire espagnol en choix multiple" width="49%">
+  <img src="docs/screenshots/en-bibliotheque.jpg" alt="Library filled with example sets, with today's cards" width="49%">
+  <img src="docs/screenshots/en-planche.jpg" alt="Skeleton anatomy diagram as image occlusion in light theme" width="49%">
+  <img src="docs/screenshots/en-fiche.jpg" alt="Spaced repetition: flipped formula card on grid paper with FSRS rating buttons" width="49%">
+  <img src="docs/screenshots/en-apprendre.jpg" alt="Learn mode: Spanish vocabulary multiple choice with feedback" width="49%">
 </p>
 
-## Fonctionnalités
+## Features
 
-- **Cartes** : terme / définition, texte à trous (`{{c1::Paris}}`, comme Anki), image masquée ;
-  indice, exemple, images, audio, Markdown ; apparence par jeu ou par carte (couleurs, police,
-  papier, image de fond).
-- **Étude** : révision espacée FSRS (limites du jour contournables, plan d'examen, cartes suspendues), fiches,
-  apprendre, écrire, épeler, test, association, gravité.
-- **Création assistée** : collage de listes (Quizlet, tableur), génération par IA à partir d'un sujet,
-  de notes ou d'un PDF, avec une clé d'API ou par simple copier-coller avec ChatGPT, Claude, Gemini… (fichiers joints
-  directement dans l'assistant si besoin).
-- **Organisation** : dossiers, étiquettes, navigateur de cartes avec langage de recherche
-  (`tag:verbe is:due -set:anglais`), drapeaux, doublons, statistiques détaillées.
-- **Échanges** : import / export Anki `.apkg` (image masquée comprise), CSV / TSV, texte Quizlet,
-  Markdown, archive `.flashcard.zip` (import en copie renommée ou en mise à jour) ; partage d'un jeu ; impression et PDF de fiches à découper.
-- **Synchronisation** (bêta) : sauvegarde automatique et synchronisation entre ordinateur, téléphone et tablette
-  via votre propre Dropbox (un compte gratuit de 2 Go suffit largement), sans compte ni serveur.
-- **Confort** : 11 thèmes clairs et sombres, polices de lecture adaptées à la dyslexie (OpenDyslexic,
-  Atkinson Hyperlegible, Lexend, Andika), français et anglais, mobile, installable (PWA).
-- **Prise en main** : à la première ouverture, un jeu « Visite guidée » montre chaque type de carte.
+- **Cards**: term / definition, cloze deletion (`{{c1::Paris}}`, as in Anki), image occlusion;
+  hint, example, images, audio, Markdown; per-set or per-card look (colours, font, paper, background
+  image).
+- **Study**: FSRS spaced repetition (daily limits you can bypass, exam plan, suspended cards), flashcards,
+  learn, write, spell, test, match, gravity.
+- **Assisted creation**: paste lists (Quizlet, spreadsheet), AI generation from a topic, notes or a PDF,
+  with an API key or by simple copy and paste with ChatGPT, Claude, Gemini… (files can also be attached
+  directly in the assistant).
+- **Organisation**: folders, tags, card browser with a search language (`tag:verb is:due -set:english`),
+  flags, duplicates, detailed statistics.
+- **Exchange**: Anki `.apkg` import / export (image occlusion included), CSV / TSV, Quizlet text,
+  Markdown, `.flashcard.zip` archive (imported as a renamed copy or as an update); set sharing; printing
+  and PDF of cut-out cards.
+- **Sync** (beta): automatic backup and sync between computer, phone and tablet through your
+  own Dropbox (a free 2 GB account is more than enough), with no account and no server.
+- **Comfort**: 11 light and dark themes, dyslexia-friendly reading fonts (OpenDyslexic, Atkinson
+  Hyperlegible, Lexend, Andika), French and English, mobile, installable (PWA).
+- **Getting started**: on first launch, a “Guided tour” set shows every card type.
 
-## Vos données
+## Your data
 
-Tout reste dans le navigateur (ou, sur Chrome / Edge de bureau, dans un dossier de votre choix). Aucun
-pisteur, aucune mesure d'audience. Rien ne sort sauf à votre demande : synchronisation avec votre stockage
-en ligne, génération par IA, import d'un fichier par lien.
+Everything stays in the browser (or, on desktop Chrome / Edge, in a folder of your choice). No trackers,
+no analytics. Nothing leaves your device unless you ask: sync with your online storage, AI generation,
+importing a file from a link.
 
-## Lancer
+## Run
 
 ```bash
 npm install
 npm run build && npm run serve   # http://localhost:8080
 ```
 
-`dist/` est un site statique, hébergeable tel quel (HTTPS requis pour l'installation et l'accès à un
-dossier). Un workflow GitHub Pages est fourni.
+`dist/` is a static site that can be hosted as is (HTTPS is required for installation and folder
+access). A GitHub Pages workflow is included.
 
 ## Documentation
 
-- [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md) : architecture, commandes, tests, conventions, pistes.
-- [docs/SYNC.md](docs/SYNC.md) : synchronisation, sauvegarde et partage sans serveur (services comparés).
-- [docs/STATS.md](docs/STATS.md) : comment sont calculées les statistiques, et ce que la synchronisation en garde.
-- [docs/IA.md](docs/IA.md) : création de cartes par IA (avec ou sans clé), consignes envoyées, confidentialité.
-- [docs/SPEC.md](docs/SPEC.md) : format des fichiers (pour lire ou écrire une bibliothèque depuis un autre outil).
+The technical documentation is in French.
+
+- [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md): architecture, commands, tests, conventions, ideas.
+- [docs/SYNC.md](docs/SYNC.md): serverless sync, backup and sharing (services compared).
+- [docs/STATS.md](docs/STATS.md): how statistics are computed, and what sync keeps of them.
+- [docs/IA.md](docs/IA.md): AI card creation (with or without a key), prompts sent, privacy.
+- [docs/SPEC.md](docs/SPEC.md): file format (to read or write a library from another tool).
 
 ## Licence
 
-[GNU AGPL-3.0](LICENSE) ou ultérieure : vous pouvez utiliser, modifier et redistribuer Flashcard,
-à condition de publier sous la même licence le code de toute version
-modifiée, même proposée seulement en ligne.
+[GNU AGPL-3.0](LICENSE) or later: you may use, modify and redistribute Flashcard,
+provided that you publish the code of any modified version under the same licence, even
+if it is only offered online.
