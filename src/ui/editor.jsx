@@ -133,7 +133,17 @@ export function Editor({ setId, focusCardId = null }) {
           <Icon name="back" />
           <span>{t('editor.finish')}</span>
         </a>
-        <h1>{t('common.editSet')}</h1>
+        <h1>
+          {t('common.editSet')}
+          {set.inactive && (
+            <>
+              {' '}
+              <span class="badge inactive">
+                <Icon name="pause" size={12} /> {t('common.inactive')}
+              </span>
+            </>
+          )}
+        </h1>
         <span class={'save-state ' + status} role="status">
           {status === 'saving' ? t('editor.saving') : status === 'error' ? t('editor.saveFailed') : t('editor.saved')}
         </span>
@@ -215,6 +225,14 @@ export function Editor({ setId, focusCardId = null }) {
             label={t('editor.tabColor')}
           />
         </div>
+        <label class="check">
+          <input
+            type="checkbox"
+            checked={!!set.inactive}
+            onChange={(e) => mutateSet({ inactive: e.currentTarget.checked })}
+          />
+          <span>{t('editor.inactiveSet')}</span>
+        </label>
         <AppearanceSection
           level="set"
           style={set.style}

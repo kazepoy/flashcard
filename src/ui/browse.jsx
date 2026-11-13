@@ -391,7 +391,7 @@ function Row({ row, active, checked, onCheck, onOpen }) {
   const flag = FLAGS.find((f) => f.n === row.flag);
   return (
     <tr
-      class={(active ? 'active' : '') + (row.suspended ? ' suspended' : '')}
+      class={(active ? 'active' : '') + (row.suspended ? ' suspended' : '') + (row.inactive ? ' inactive' : '')}
       data-key={row.key}
       style={flag ? { '--flag': flag.hex } : undefined}
       // toute la ligne ouvre la carte (le bouton du terme reste la cible du clavier), sauf la case à cocher
@@ -419,9 +419,12 @@ function Row({ row, active, checked, onCheck, onOpen }) {
       </td>
       <td class="c-set">
         <span class="clip">{row.set.title}</span>
+        {row.inactive && <span class="badge inactive">{t('common.inactive')}</span>}
       </td>
-      <td class={'c-due' + (s.isDue ? ' due' : '')}>
-        {s.state === 'new' ? (
+      <td class={'c-due' + (!row.inactive && s.isDue ? ' due' : '')}>
+        {row.inactive ? (
+          <span class="muted">{t('common.inactive')}</span>
+        ) : s.state === 'new' ? (
           <span class="muted">{t('srs.state.new')}</span>
         ) : s.isDue ? (
           t('common.due')
@@ -618,6 +621,7 @@ function SearchHelp() {
     ['is:due  is:new  is:learn  is:review', 'browse.syntax.state'],
     ['is:starred  is:flagged  flag:1', 'browse.syntax.flags'],
     ['is:suspended', 'browse.syntax.suspended'],
+    ['is:inactive', 'browse.syntax.inactive'],
     ['is:cloze  is:occlusion  is:dupe', 'browse.syntax.type'],
     ['has:image  has:audio  has:hint', 'browse.syntax.has'],
     ['added:7  rated:1', 'browse.syntax.dates'],

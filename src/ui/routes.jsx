@@ -44,6 +44,21 @@ function StudyPage({ setId, mode, variant }) {
       </Empty>
     );
   }
+  if (data.set.inactive && mode !== 'flashcards') {
+    return (
+      <Empty title={t('set.inactiveTitle')}>
+        <p>{t('study.inactiveBlocked')}</p>
+        <div class="actions center">
+          <a class="btn primary" href={href(`set/${data.set.id}`)}>
+            {t('study.backSet')}
+          </a>
+          <a class="btn" href={href(`set/${data.set.id}/study/flashcards`)}>
+            {t('mode.flashcards')}
+          </a>
+        </div>
+      </Empty>
+    );
+  }
   return (
     <Mode
       key={mode + setId + (variant || '')}

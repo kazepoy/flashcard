@@ -41,6 +41,14 @@ export function activeProgress(set, progress) {
   };
 }
 
+/** Jeux retenus pour les statistiques : un jeu choisi, ou la bibliothèque hors jeux inactifs. */
+export function scopeStatsEntries(entries, setId = null) {
+  const list = entries || [];
+  if (setId) return { scoped: list.filter((x) => x.set.id === setId), inactiveSets: 0 };
+  const scoped = list.filter((x) => !x.set.inactive);
+  return { scoped, inactiveSets: list.length - scoped.length };
+}
+
 const startOfDay = (d) => {
   const x = new Date(d);
   x.setHours(0, 0, 0, 0);

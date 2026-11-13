@@ -63,6 +63,7 @@ export function buildRows(libs) {
         starred: !!progress.starred[card.id],
         flag: flagOf(progress, card.id),
         suspended: !!progress.suspended?.[card.id]?.s,
+        inactive: !!set.inactive,
         added: ulidTime(card.id),
         // texte affiché (original, sans markdown) et texte cherché (normalisé)
         display: {
@@ -206,7 +207,9 @@ function matchToken(row, tok, ctx) {
         case 'review':
           return sum().state === 'review';
         case 'due':
-          return sum().isDue;
+          return !row.inactive && sum().isDue;
+        case 'inactive':
+          return row.inactive;
         case 'starred':
           return row.starred;
         case 'flagged':

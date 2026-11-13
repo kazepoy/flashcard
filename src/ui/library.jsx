@@ -33,8 +33,12 @@ export function LibraryPage() {
       sets.map(async (s) => {
         const [full, p] = await Promise.all([lib.loadSet(s.id), lib.loadProgress(s.id)]);
         const items = expandSet(full, 'term');
-        const c = todayQueue(items, p, settings).counts;
-        return { ...s, due: c.learning + c.review + c.new, archive: archiveSuggestion(full, items, p) };
+        const c = full.inactive ? null : todayQueue(items, p, settings).counts;
+        return {
+          ...s,
+          due: c ? c.learning + c.review + c.new : 0,
+          archive: full.inactive ? null : archiveSuggestion(full, items, p),
+        };
       }),
     );
     return { rows, errors };
@@ -54,7 +58,8 @@ export function LibraryPage() {
     }
     return [...m.entries()].sort((a, b) => (a[0] === '' ? -1 : b[0] === '' ? 1 : a[0].localeCompare(b[0])));
   }, [filtered]);
-  const totalDue = rows.reduce((n, r) => n + r.due, 0);
+  const activeRows = rows.filter((r) => !r.inactive);
+  const totalDue = activeRows.reduce((n, r) => n + r.due, 0);
   const toArchive = rows.filter((r) => r.archive);
   // Un seul bandeau à la fois, par priorité : découvrir les exemples (premier lancement), protéger les données
   // d'un effacement par le navigateur (installer l'application), les mettre à l'abri (synchronisation,
@@ -81,7 +86,7 @@ export function LibraryPage() {
       </button>
     </div>
   ) : null;
-  const firstDue = rows.find((r) => r.due > 0);
+  const firstDue = activeRows.find((r) => r.due > 0);
 
   const create = async () => {
     const s = newSet({ title: t('library.newSet'), language: { ...settings.language }, cards: [newCard()] });
@@ -108,7 +113,7 @@ export function LibraryPage() {
       </header>
 
       {/* à faire aujourd'hui, à part des boutons de création */}
-      {rows.length > 0 && (
+      {activeRows.length > 0 && (
         <section class={'lib-today' + (firstDue ? ' due' : '')} aria-label={t('library.today')}>
           <p>
             <Icon name={firstDue ? 'chart' : 'check'} />{' '}
@@ -174,10 +179,19 @@ export function LibraryPage() {
             )}
             <ul class="set-list">
               {list.map((r) => (
-                <li key={r.id} style={r.color ? { '--tab': r.color } : undefined}>
+                <li
+                  key={r.id}
+                  class={r.inactive ? 'inactive' : undefined}
+                  style={r.color ? { '--tab': r.color } : undefined}
+                >
                   <a class="set-row" href={href(`set/${r.id}`)}>
                     <span class="tab" aria-hidden="true" />
                     <span class="title">{r.title}</span>
+                    {r.inactive && (
+                      <span class="badge inactive">
+                        <Icon name="pause" size={12} /> {t('common.inactive')}
+                      </span>
+                    )}
                     <span class="muted count">{tn('common.nCards', r.count)}</span>
                     {r.tags.length > 0 && <span class="muted tags">{r.tags.join(', ')}</span>}
                     {r.due > 0 && (

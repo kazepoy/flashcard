@@ -782,6 +782,25 @@ summary {
   text-overflow: ellipsis;
   font-size: 0.85rem;
 }
+.set-list li.inactive .set-row {
+  color: var(--muted);
+  background: var(--surface-2);
+}
+.set-list li.inactive .set-row:hover {
+  background: var(--surface);
+  color: var(--ink);
+}
+.set-list li.inactive .tab {
+  opacity: 0.45;
+  background: repeating-linear-gradient(135deg, var(--tab, var(--line-strong)) 0 4px, transparent 4px 8px);
+}
+.set-list li.inactive .title {
+  font-weight: 500;
+}
+.set-list li.inactive .badge.inactive {
+  margin-right: 0;
+  flex-shrink: 0;
+}
 
 /* ------------------------------------------------------------------ page d'un jeu */
 .set-head {
@@ -792,6 +811,10 @@ summary {
   padding: 0.2rem 0 0.2rem 1rem;
   border-left: 0.5rem solid var(--tab, var(--ink));
   margin-bottom: 1.2rem;
+}
+.set-head.inactive {
+  border-left-style: dashed;
+  border-left-color: var(--line-strong);
 }
 .set-title h1 {
   margin-bottom: 0.2rem;
@@ -826,6 +849,11 @@ summary {
   border-radius: 8px;
   padding: 1rem 1.25rem;
   margin-bottom: 1.4rem;
+}
+.today.inactive {
+  border-left-style: dashed;
+  border-left-color: var(--line-strong);
+  background: var(--surface-2);
 }
 .today .big {
   font: 700 1.35rem var(--font-card);
@@ -3543,8 +3571,19 @@ details.search-help table {
   vertical-align: middle;
 }
 .card-list li.suspended .cell,
-.btable tr.suspended .clip {
+.btable tr.suspended .clip,
+.btable tr.inactive .clip,
+.btable tr.inactive .c-set {
   opacity: 0.55;
+}
+.badge.inactive {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  background: var(--surface);
+  color: var(--muted);
+  border-style: dashed;
+  border-color: var(--line-strong);
 }
 .card-tools {
   display: flex;

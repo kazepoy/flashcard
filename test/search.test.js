@@ -237,3 +237,22 @@ test("suspension : exclue de la file du jour et de l'étude, recherche is:suspen
   setSuspended(other, cards[1].id, false, new Date('2026-10-31T10:00:00Z'));
   for (const m of [mergeProgress(p, other), mergeProgress(other, p)]) assert.equal(isSuspended(m, cards[1].id), false);
 });
+
+test('jeu inactif : is:inactive le trouve, is:due l’exclut', () => {
+  const f = fixture();
+  f.es.inactive = true;
+  const rows = buildRows([
+    {
+      set: f.es,
+      progress: (() => {
+        const p = newProgress(f.es.id);
+        p.items[f.mesa.id] = { srs: { due: new Date(+NOW - DAY).toISOString(), state: SrsState.Review, reps: 1 } };
+        return p;
+      })(),
+    },
+    { set: f.geo, progress: newProgress(f.geo.id) },
+  ]);
+  assert.equal(search(rows, 'is:inactive', { now: NOW }).length, 3);
+  assert.equal(search(rows, '-is:inactive', { now: NOW }).length, 2);
+  assert.equal(search(rows, 'is:due', { now: NOW }).length, 0);
+});

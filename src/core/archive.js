@@ -25,6 +25,7 @@ export function lastStudied(progress) {
  * @returns {{reason: 'idle' | 'never' | 'done', last: string | null} | null}
  */
 export function archiveSuggestion(set, items, progress, now = new Date()) {
+  if (set?.inactive) return null;
   const last = lastStudied(progress);
   if (!last) {
     const created = Date.parse(set.created);

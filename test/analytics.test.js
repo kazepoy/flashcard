@@ -186,3 +186,31 @@ test('statistiques : cartes supprimées et suspendues hors de l’état actuel e
   const f = futureDue([a.progress], 400, NOW);
   assert.equal(f.overdue + f.perDay.reduce((x, y) => x + y, 0), 1, 'une seule révision à venir');
 });
+
+test('statistiques et archivage : un jeu inactif est exclu de la vue globale et de l’archivage', async () => {
+  const { scopeStatsEntries } = await import('../src/core/analytics.js');
+  const { archiveSuggestion } = await import('../src/core/archive.js');
+  const { newSet, newCard } = await import('../src/core/format.js');
+  const active = newSet({ title: 'Actif', cards: [newCard({ term: 'a', definition: 'b' })] });
+  const inactive = newSet({
+    title: 'En construction',
+    inactive: true,
+    created: '2025-01-01T00:00:00.000Z',
+    cards: [newCard({ term: 'c', definition: 'd' })],
+  });
+  const entries = [
+    { set: active, progress: newProgress(active.id), log: [] },
+    { set: inactive, progress: newProgress(inactive.id), log: [] },
+  ];
+  const globalScope = scopeStatsEntries(entries);
+  assert.deepEqual(
+    globalScope.scoped.map((e) => e.set.id),
+    [active.id],
+  );
+  assert.equal(globalScope.inactiveSets, 1);
+  assert.deepEqual(
+    scopeStatsEntries(entries, inactive.id).scoped.map((e) => e.set.id),
+    [inactive.id],
+  );
+  assert.equal(archiveSuggestion(inactive, [], newProgress(inactive.id), NOW), null);
+});

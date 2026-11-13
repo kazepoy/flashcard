@@ -45,7 +45,7 @@ const usableCards = (set, progress, mode) =>
 
 export function SetPage({ setId }) {
   const { lib, settings, toast, refresh, sync, kind, folderName } = useApp();
-  const { loading, set, progress, error, update } = useSetData(setId);
+  const { loading, set, progress, error, update, saveSet } = useSetData(setId);
   const [exportOpen, setExportOpen] = useState(false);
   const [shareOpen, setShareOpen] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
@@ -105,16 +105,37 @@ export function SetPage({ setId }) {
     });
   const star = (cardId) => update((p) => toggleStar(p, cardId));
   const suspend = (cardId) => update((p) => setSuspended(p, cardId, !isSuspended(p, cardId)));
+  const toggleInactive = async () => {
+    try {
+      await saveSet({ inactive: !set.inactive });
+      refresh();
+    } catch (e) {
+      toast(errorText(e), 'bad');
+    }
+  };
 
   return (
     <article class="setpage">
-      <header class="set-head" style={set.color ? { '--tab': set.color } : undefined}>
+      <header
+        class={'set-head' + (set.inactive ? ' inactive' : '')}
+        style={set.color ? { '--tab': set.color } : undefined}
+      >
         <div class="set-title">
           <p class="crumbs">
             <a href={href('')}>{t('common.library')}</a>
             {set.folder ? ` / ${set.folder.replaceAll('/', ' / ')}` : ''}
           </p>
-          <h1>{set.title}</h1>
+          <h1>
+            {set.title}
+            {set.inactive && (
+              <>
+                {' '}
+                <span class="badge inactive">
+                  <Icon name="pause" size={12} /> {t('common.inactive')}
+                </span>
+              </>
+            )}
+          </h1>
           {set.description && <p class="desc">{set.description}</p>}
           <p class="meta">
             {tn('common.nCards', set.cards.length)}
@@ -134,6 +155,9 @@ export function SetPage({ setId }) {
           <a class="btn" href={href(`set/${set.id}/print`)}>
             <Icon name="print" /> {t('set.print')}
           </a>
+          <button class={'btn' + (set.inactive ? ' on' : '')} aria-pressed={set.inactive} onClick={toggleInactive}>
+            <Icon name={set.inactive ? 'play' : 'pause'} /> {set.inactive ? t('set.reactivate') : t('set.deactivate')}
+          </button>
           <button class="btn" onClick={archive}>
             <Icon name="archive" /> {t('set.archive')}
           </button>
@@ -163,35 +187,49 @@ export function SetPage({ setId }) {
         </Empty>
       ) : (
         <>
-          <section class="today" aria-label={t('stats.period.today')}>
-            <div class="today-main">
-              <p class="big">{due > 0 ? tn('set.cardsToday', due) : t('set.allCaughtToday')}</p>
-              <p class="muted">
-                {due > 0 || !more || more.newLeft + more.reviewsLeft === 0
-                  ? t('set.newLearningReview', {
-                      a: queue.counts.new,
-                      b: queue.counts.learning,
-                      c: queue.counts.review,
-                    })
-                  : t('set.dailyLimitReachedNew', { a: more.newLeft, c: more.reviewsLeft })}
-              </p>
-            </div>
-            {due > 0 ? (
-              <a class="btn primary" href={href(`set/${set.id}/study/review`)}>
-                {t('set.review')}
-              </a>
-            ) : more && defaultBoost(more) ? (
-              <a class="btn" href={href(`set/${set.id}/study/review/more`)}>
-                {t('set.studyAnyway')}
-              </a>
-            ) : null}
-          </section>
+          {set.inactive ? (
+            <section class="today inactive" role="note" aria-label={t('common.inactive')}>
+              <div class="today-main">
+                <p class="big">{t('set.inactiveTitle')}</p>
+                <p class="muted">{t('set.inactiveHint')}</p>
+              </div>
+              <button class="btn primary" onClick={toggleInactive}>
+                <Icon name="play" /> {t('set.reactivate')}
+              </button>
+            </section>
+          ) : (
+            <section class="today" aria-label={t('stats.period.today')}>
+              <div class="today-main">
+                <p class="big">{due > 0 ? tn('set.cardsToday', due) : t('set.allCaughtToday')}</p>
+                <p class="muted">
+                  {due > 0 || !more || more.newLeft + more.reviewsLeft === 0
+                    ? t('set.newLearningReview', {
+                        a: queue.counts.new,
+                        b: queue.counts.learning,
+                        c: queue.counts.review,
+                      })
+                    : t('set.dailyLimitReachedNew', { a: more.newLeft, c: more.reviewsLeft })}
+                </p>
+              </div>
+              {due > 0 ? (
+                <a class="btn primary" href={href(`set/${set.id}/study/review`)}>
+                  {t('set.review')}
+                </a>
+              ) : more && defaultBoost(more) ? (
+                <a class="btn" href={href(`set/${set.id}/study/review/more`)}>
+                  {t('set.studyAnyway')}
+                </a>
+              ) : null}
+            </section>
+          )}
 
           <section aria-labelledby="modes-h">
             <h2 id="modes-h">{t('set.study')}</h2>
+            {set.inactive && <p class="muted small">{t('set.inactiveModesHint')}</p>}
             <ul class="modes">
               {MODES.filter((m) => !m.primary).map((m) => {
                 const n = usableCards(set, progress, m);
+                const paused = set.inactive && m.id !== 'flashcards';
                 const total = usableCards(set, progress, MODES[1]); // toutes les cartes non suspendues
                 const count = (
                   <small class="mode-count">
@@ -204,14 +242,14 @@ export function SetPage({ setId }) {
                 );
                 return (
                   <li key={m.id}>
-                    {n ? (
+                    {n && !paused ? (
                       <a class="mode" href={href(`set/${set.id}/study/${m.id}`)}>
                         <strong>{t(m.label)}</strong>
                         <span>{t(m.desc)}</span>
                         {count}
                       </a>
                     ) : (
-                      // aucune carte utilisable : mode grisé, pas de lien vers un écran vide
+                      // aucune carte utilisable ou jeu inactif : mode grisé, pas de lien vers une séance
                       <div class="mode disabled" aria-disabled="true">
                         <strong>{t(m.label)}</strong>
                         <span>{t(m.desc)}</span>
@@ -234,6 +272,7 @@ export function SetPage({ setId }) {
                   {t('set.detailedStatistics')}
                 </a>
               </div>
+              {set.inactive && <p class="muted small">{t('stats.inactiveSetNotice')}</p>}
               <dl class="kv">
                 <div>
                   <dt>{t('set.memoryScore')}</dt>
@@ -255,26 +294,32 @@ export function SetPage({ setId }) {
                 </div>
               </dl>
               <h3>{t('set.upcomingReviews14Days')}</h3>
-              <Forecast data={stats.forecast} />
+              <Forecast data={set.inactive ? Array.from({ length: 14 }, () => 0) : stats.forecast} />
               <h3>{t('set.activity')}</h3>
               <Heatmap data={stats.heat} />
             </div>
             <div class="panel">
               <h2>{t('set.exam')}</h2>
-              <label class="field">
-                <span>{t('set.examDate')}</span>
-                <input
-                  type="date"
-                  value={progress.exam?.date || ''}
-                  min={new Date().toISOString().slice(0, 10)}
-                  onChange={(e) => setExam(e.currentTarget.value)}
-                />
-              </label>
-              {plan && !plan.passed && (
-                <p>{t('set.daysNeverSeenItems', { d: plan.daysLeft, u: plan.unlearned, p: plan.perDay })}</p>
+              {set.inactive ? (
+                <p class="muted">{t('set.examPausedInactive')}</p>
+              ) : (
+                <>
+                  <label class="field">
+                    <span>{t('set.examDate')}</span>
+                    <input
+                      type="date"
+                      value={progress.exam?.date || ''}
+                      min={new Date().toISOString().slice(0, 10)}
+                      onChange={(e) => setExam(e.currentTarget.value)}
+                    />
+                  </label>
+                  {plan && !plan.passed && (
+                    <p>{t('set.daysNeverSeenItems', { d: plan.daysLeft, u: plan.unlearned, p: plan.perDay })}</p>
+                  )}
+                  {plan?.passed && <p class="muted">{t('set.datePassed')}</p>}
+                  {!plan && <p class="muted">{t('set.setDateSpacedRepetition')}</p>}
+                </>
               )}
-              {plan?.passed && <p class="muted">{t('set.datePassed')}</p>}
-              {!plan && <p class="muted">{t('set.setDateSpacedRepetition')}</p>}
             </div>
           </section>
 

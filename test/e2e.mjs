@@ -471,6 +471,52 @@ try {
     await shot('16d-statistiques');
   });
 
+  await step('jeu inactif : visuel, exclu des révisions et des stats, Fiches en lecture seule', async () => {
+    await page.goto(base);
+    await page.getByRole('button', { name: 'Nouveau jeu' }).click();
+    await page.getByLabel('Titre').fill('Brouillon — grammaire');
+    await page.getByLabel(/Jeu inactif/).check();
+    await page.locator('.ed-card textarea').first().fill('être');
+    await page.locator('.ed-card textarea').nth(1).fill('to be');
+    await page.waitForFunction(() => document.querySelector('.save-state')?.textContent.includes('Enregistré'));
+    const draftUrl = page.url().replace('/edit', '');
+    await page.goto(draftUrl);
+    await page.locator('.set-head.inactive .badge.inactive').waitFor();
+    await page.locator('.today.inactive').waitFor();
+    assert.equal(await page.locator('.modes .mode.disabled').count(), 6);
+    // Fiches reste disponible pour consulter sans enregistrer d'activité
+    await page.locator('.modes a.mode', { hasText: 'Fiches' }).click();
+    await page.locator('.flip').waitFor();
+    await page.keyboard.press(' ');
+    await page.getByRole('button', { name: /Je sais/ }).click();
+    await page.getByRole('heading', { name: /Tout est su/i }).waitFor();
+    // La révision espacée est bloquée tant que le jeu est inactif
+    await page.goto(draftUrl + '/study/review');
+    await page.getByRole('heading', { name: 'Jeu inactif' }).waitFor();
+    // Bibliothèque : ligne distinguée visuellement et aucune carte à revoir comptée
+    await page.goto(base);
+    const row = page.locator('.set-list li.inactive', { hasText: 'Brouillon — grammaire' });
+    await row.waitFor();
+    await row.locator('.badge.inactive').waitFor();
+    assert.equal(await row.locator('.pill.due').count(), 0);
+    // Stats globales : mention du jeu inactif exclu
+    await page.goto(base + '#/stats');
+    await page.getByText(/1 jeu inactif n'est pas compté/).waitFor();
+    // Navigateur : trouvé par is:inactive, exclu de is:due
+    await page.goto(base + '#/browse/' + encodeURIComponent('is:inactive'));
+    await page.waitForFunction(() => document.querySelectorAll('.btable tbody tr.inactive').length === 1);
+    await page.getByRole('searchbox').fill('is:due');
+    await page.waitForFunction(() => decodeURIComponent(location.hash).endsWith('is:due'));
+    assert.equal(await page.locator('.btable tbody tr.inactive').count(), 0);
+    // Réactivation et nettoyage
+    await page.goto(draftUrl);
+    await page.locator('.today.inactive').getByRole('button', { name: 'Réactiver' }).click();
+    await page.locator('.today:not(.inactive)').waitFor();
+    await page.getByRole('button', { name: 'Supprimer' }).click();
+    await page.getByRole('dialog').getByRole('button', { name: 'Supprimer définitivement' }).click();
+    await page.waitForFunction(() => !location.hash.startsWith('#/set/'));
+  });
+
   await step('réglages', async () => {
     await page.goto(base + '#/settings');
     await page.getByRole('heading', { name: 'Réglages' }).waitFor();

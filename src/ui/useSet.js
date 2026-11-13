@@ -12,6 +12,7 @@ import { errorText, t } from './i18n.js';
 export function useSetData(setId) {
   const { lib, toast } = useApp();
   const [state, setState] = useState({ loading: true, set: null, error: null, progress: null });
+  const setRef = useRef(null);
   const progress = useRef(null); // dernière version, pour l'enregistrement et les mises à jour en rafale
   const logBuf = useRef([]);
   const timer = useRef(null);
@@ -45,6 +46,17 @@ export function useSetData(setId) {
     logBuf.current.push(line);
   }, []);
 
+  const saveSet = useCallback(
+    async (patch) => {
+      if (!setRef.current) return;
+      const next = { ...setRef.current, ...patch };
+      setRef.current = next;
+      setState((s) => ({ ...s, set: next }));
+      await lib.saveSet(next);
+    },
+    [lib],
+  );
+
   // la synchronisation a modifié ce jeu ou sa progression : on recharge et on fusionne, sans rien écraser
   useEffect(
     () =>
@@ -54,7 +66,10 @@ export function useSetData(setId) {
           setState((s) => ({ ...s, progress: progress.current }));
         } else if (path === `sets/${setId}.json`) {
           const set = await lib.loadSet(setId);
-          if (set) setState((s) => ({ ...s, set }));
+          if (set) {
+            setRef.current = set;
+            setState((s) => ({ ...s, set }));
+          }
         }
       }),
     [lib, setId],
@@ -66,6 +81,7 @@ export function useSetData(setId) {
       try {
         const [set, p] = await Promise.all([lib.loadSet(setId), lib.loadProgress(setId)]);
         if (!live) return;
+        setRef.current = set;
         progress.current = p;
         setState({ loading: false, set, progress: p, error: set ? null : new Error(t('common.setNotFound')) });
       } catch (error) {
@@ -83,7 +99,7 @@ export function useSetData(setId) {
     };
   }, [lib, setId, flush]);
 
-  return { ...state, update, log };
+  return { ...state, update, log, saveSet };
 }
 
 /** Items d'étude mémoïsés selon le sens et le filtre « étoilées » ; cartes suspendues exclues. */

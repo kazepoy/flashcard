@@ -503,3 +503,14 @@ test('Library.moveCards : déplace les cartes avec progression, étoile, drapeau
     [c2.id],
   );
 });
+
+test('jeu inactif : conservé dans Library et synchronisé par mergeSets', async () => {
+  const lib = await mkLib();
+  const s = newSet({ title: 'Brouillon', inactive: true, cards: [newCard({ term: 'x', definition: 'y' })] });
+  await lib.saveSet(s);
+  assert.equal((await lib.loadSet(s.id)).inactive, true);
+  assert.equal((await lib.listSets()).sets[0].inactive, true);
+  const reactivated = { ...s, inactive: false, updated: '2099-01-01T00:00:00.000Z' };
+  assert.equal(mergeSets(s, reactivated).inactive, false);
+  assert.equal(mergeSets(reactivated, s).inactive, false);
+});

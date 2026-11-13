@@ -37,8 +37,10 @@ export function Flashcards({ set, progress, update, log }) {
 
   const mark = (known) => {
     if (!item) return;
-    update((p) => recordAnswer(p, item.id, known));
-    log({ t: new Date().toISOString(), item: item.id, mode: 'flashcards', rating: known ? 3 : 1 });
+    if (!set.inactive) {
+      update((p) => recordAnswer(p, item.id, known));
+      log({ t: new Date().toISOString(), item: item.id, mode: 'flashcards', rating: known ? 3 : 1 });
+    }
 
     if (known) setRightCount((n) => n + 1);
     else setWrong((w) => [...w, item.id]);

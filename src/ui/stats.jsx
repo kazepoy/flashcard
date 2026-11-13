@@ -11,6 +11,7 @@ import {
   itemCounts,
   retrievabilityHistogram,
   reviewsPerDay,
+  scopeStatsEntries,
   streak,
   trueRetention,
   KINDS,
@@ -52,7 +53,7 @@ export function StatsPage({ setId = null }) {
     return out;
   }, [lib, version]);
 
-  const scoped = useMemo(() => (data || []).filter((x) => !setId || x.set.id === setId), [data, setId]);
+  const { scoped, inactiveSets } = useMemo(() => scopeStatsEntries(data, setId), [data, setId]);
   const [now] = useState(() => new Date()); // instant de référence de la page
   const stats = useMemo(() => {
     if (!scoped.length) return null;
@@ -104,9 +105,10 @@ export function StatsPage({ setId = null }) {
     );
   if (!stats)
     return (
-      <Empty title={t('common.setNotFound')}>
-        <a class="btn" href={href('stats')}>
-          {t('stats.wholeLibrary')}
+      <Empty title={setId ? t('common.setNotFound') : t('stats.noStatistics')}>
+        {inactiveSets > 0 && <p>{tn('stats.inactiveSetsNotCounted', inactiveSets)}</p>}
+        <a class="btn" href={href(setId ? 'stats' : '')}>
+          {setId ? t('stats.wholeLibrary') : t('common.backLibrary')}
         </a>
       </Empty>
     );
@@ -140,12 +142,19 @@ export function StatsPage({ setId = null }) {
             <option value="">{t('stats.wholeLibrary')}</option>
             {data.map((x) => (
               <option key={x.set.id} value={x.set.id}>
-                {x.set.title}
+                {x.set.inactive ? `${x.set.title} (${t('common.inactive').toLowerCase()})` : x.set.title}
               </option>
             ))}
           </select>
         </label>
       </header>
+
+      {scope?.inactive && (
+        <p class="notice small inactive-note" role="note">
+          {t('stats.inactiveSetNotice')}
+        </p>
+      )}
+      {!scope && inactiveSets > 0 && <p class="muted small">{tn('stats.inactiveSetsNotCounted', inactiveSets)}</p>}
 
       <section class="kpis" aria-label={t('stats.period.today')}>
         <Tile

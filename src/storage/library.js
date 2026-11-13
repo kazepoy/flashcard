@@ -201,6 +201,7 @@ export class Library {
           tags: s.tags,
           language: s.language,
           color: s.color,
+          inactive: s.inactive,
           styled: Object.keys(s.style).length > 0, // apparence propre au jeu (remplace celle des réglages)
         });
       } catch (e) {

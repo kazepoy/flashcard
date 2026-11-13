@@ -122,6 +122,7 @@ export default {
   'browse.syntax.field': 'Dans le terme / la définition seulement (aussi hint:, example:)',
   'browse.syntax.flags': 'Étoilée, avec drapeau, drapeau n° 1 (rouge) … 7 ; flag:0 = sans',
   'browse.syntax.has': 'Cartes avec image, audio, indice',
+  'browse.syntax.inactive': "Cartes d'un jeu inactif (exclues de la révision et des stats)",
   'browse.syntax.or': "L'un ou l'autre",
   'browse.syntax.phrase': 'Expression exacte',
   'browse.syntax.props': "Oubliées plus de 3 fois ; intervalle d'au moins 30 jours",
@@ -164,6 +165,7 @@ export default {
   'common.edit': 'Modifier',
   'common.editSet': 'Modifier le jeu',
   'common.flipCard': 'Retourner la fiche',
+  'common.inactive': 'Inactif',
   'common.library': 'Bibliothèque',
   'common.listen': 'Écouter',
   'common.loading': 'Chargement…',
@@ -223,6 +225,8 @@ export default {
   'editor.hintExampleImagesAudio': 'Indice, exemple, images, audio',
   'editor.image': 'Image',
   'editor.imageMask': 'Image à masquer',
+  'editor.inactiveSet':
+    'Jeu inactif (en construction ou à consulter : exclu de la révision espacée et des statistiques)',
   'editor.makeBlank': 'Créer un trou',
   'editor.moveDown': 'Descendre',
   'editor.moveUp': 'Monter',
@@ -614,6 +618,7 @@ export default {
   'set.datePassed': 'Cette date est passée.',
   'set.daysNeverSeenItems':
     'Il reste {d} jours et {u} éléments jamais vus : introduisez-en {p} par jour pour être prêt à temps.',
+  'set.deactivate': 'Rendre inactif',
   'set.delete': 'Supprimer',
   'set.deleteArchiveInstead':
     "Vous ne l'étudiez plus ? Archivez-le plutôt : il quitte la bibliothèque, sa progression est gardée, et vous pourrez le restaurer depuis Réglages › Sauvegarde et restauration.",
@@ -630,11 +635,16 @@ export default {
   'set.downloadFile': 'Télécharger le fichier',
   'set.exam': 'Examen',
   'set.examDate': "Date de l'examen",
+  'set.examPausedInactive': "La planification d'examen est en pause tant que le jeu est inactif.",
   'set.export': 'Exporter',
   'set.exportTitle': 'Exporter « {title} »',
   'set.fileDownloadedSendAny': 'Fichier téléchargé : envoyez-le par le moyen de votre choix.',
   'set.flashcardSetOpenFlashcard':
     'Jeu de cartes Flashcard « {title} » : ouvrez Flashcard, puis Importer et choisissez ce fichier.',
+  'set.inactiveHint':
+    'Exclu de la révision espacée et des statistiques globales (pratique pendant la rédaction ou pour simplement consulter les fiches).',
+  'set.inactiveModesHint': 'Seul le mode Fiches reste ouvert pour parcourir les cartes sans modifier vos statistiques.',
+  'set.inactiveTitle': 'Jeu inactif',
   'set.includeMyProgressFlashcard': "Inclure ma progression dans l'archive Flashcard",
   'set.includeMyProgressMy': 'Inclure ma progression (pour mes autres appareils)',
   'set.masks': { one: '{n} masque', other: '{n} masques' },
@@ -646,6 +656,7 @@ export default {
   'set.newLearningReview': '{a} nouvelles · {b} en apprentissage · {c} à réviser',
   'set.print': 'Imprimer',
   'set.quizletText': 'Texte Quizlet',
+  'set.reactivate': 'Réactiver',
   'set.readableEditableHandObsidian': 'Lisible et modifiable à la main, compatible Obsidian.',
   'set.review': 'Réviser',
   'set.sameThingTabs': 'Même chose avec des tabulations.',
@@ -816,6 +827,12 @@ export default {
     "Réponses données en révision espacée, par jour (ou par semaine sur un an), classées selon l'état de la carte au moment de la réponse.",
   'stats.help.young': 'À consolider : connues, mais encore fragiles ; prochaine révision dans moins de 21 jours.',
   'stats.hourRange': '{h} h – {h2} h',
+  'stats.inactiveSetNotice':
+    "Ce jeu est inactif : il n'est pas inclus dans les statistiques de toute la bibliothèque ni dans les révisions du jour.",
+  'stats.inactiveSetsNotCounted': {
+    one: "{n} jeu inactif n'est pas compté dans les statistiques de la bibliothèque.",
+    other: '{n} jeux inactifs ne sont pas comptés dans les statistiques de la bibliothèque.',
+  },
   'stats.includingOverdue': 'dont {n} en retard',
   'stats.intervalsDays': 'Intervalles (jours)',
   'stats.learning': 'En apprentissage',
@@ -895,6 +912,8 @@ export default {
   'study.iKnow': 'Je sais',
   'study.iWasRight': "J'avais raison",
   'study.iWasWrong': "Non, j'avais faux",
+  'study.inactiveBlocked':
+    "Ce jeu est inactif : réactivez-le pour l'étudier dans ce mode, ou parcourez-le en mode Fiches.",
   'study.itemsLearned': { one: '{n} élément appris.', other: '{n} éléments appris.' },
   'study.knowAll': 'Tout est su',
   'study.level': 'Niveau {n}',
