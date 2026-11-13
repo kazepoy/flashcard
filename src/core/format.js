@@ -82,7 +82,7 @@ export function newProgress(setId) {
 export const DEFAULT_SETTINGS = {
   format: 'flashcard.settings',
   version: FORMAT_VERSION,
-  lang: 'fr',
+  lang: 'en',
   theme: 'auto',
   readingFont: 'default', // police de l'interface et des cartes (voir ui/themes.js)
   language: { term: null, definition: null }, // langues proposées aux nouveaux jeux

@@ -1,29 +1,21 @@
 // Internationalisation : clés identifiantes « espace.nom » et un dictionnaire par langue (locales/*.js).
 // Une valeur est un texte, ou { one, other } pour un pluriel (catégories CLDR via Intl.PluralRules).
 // Variables : {nom}, remplacées par t(clé, { nom }) ; tn(clé, n) fournit {n}.
-// Le français (référence et repli) est dans le script principal ; les autres langues sont chargées à la demande.
+// Les deux langues (français et anglais) sont intégrées au script principal et disponibles hors ligne d'emblée.
 import fr from './locales/fr.js';
+import en from './locales/en.js';
 
 const SOURCE = 'fr'; // langue de référence : repli si une clé manque dans une traduction
-const DICTS = { fr };
-const LOADERS = { en: () => import('./locales/en.js') };
+const DEFAULT = 'en';
+const DICTS = { fr, en };
 
 let lang = SOURCE;
 const listeners = new Set();
 const plurals = {};
 
-/** Change la langue de l'interface, en chargeant son dictionnaire si besoin (hors ligne et jamais chargé : français). */
+/** Change la langue de l'interface (anglais par défaut si l'identifiant est inconnu). */
 export async function setLang(l) {
-  let next = l in LOADERS ? l : SOURCE;
-  if (!DICTS[next]) {
-    try {
-      DICTS[next] = (await LOADERS[next]()).default;
-    } catch (e) {
-      console.warn(`Langue « ${next} » indisponible`, e);
-      next = SOURCE;
-    }
-  }
-  lang = next;
+  lang = l in DICTS ? l : DEFAULT;
   if (typeof document !== 'undefined') document.documentElement.lang = lang;
   listeners.forEach((f) => f(lang));
 }

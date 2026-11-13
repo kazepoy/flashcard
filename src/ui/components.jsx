@@ -47,6 +47,7 @@ const P = {
   external: 'M14 4h6v6M20 4l-9 9M18 14v5a1 1 0 01-1 1H5a1 1 0 01-1-1V7a1 1 0 011-1h5',
   print: 'M7 9V4h10v5M7 17H4.5v-6.5h15V17H17M7 14h10v6H7z',
   share: 'M12 4v11M8 8l4-4 4 4M6 11H5v9h14v-9h-1',
+  globe: 'M12 21a9 9 0 100-18 9 9 0 000 18zM3.6 9h16.8M3.6 15h16.8M12 3a13 13 0 010 18M12 3a13 13 0 000 18',
 };
 
 export function Icon({ name, size = 18, fill = false, label }) {

@@ -55,8 +55,10 @@ await cp('node_modules/pdfjs-dist/build/pdf.worker.min.mjs', join(out, 'pdf.work
 // Jeux d'exemple importés à la première ouverture (examples/<langue>/index.json + archives)
 await cp('examples', join(out, 'examples'), { recursive: true, filter: (f) => !f.endsWith('.md') });
 
-/** Fichiers mis en cache à leur première utilisation seulement (voir finish). */
-const ON_DEMAND = /^(fonts\/|examples\/|pdf\.worker|sql-wasm|chunks\/(pdf|sql-wasm|en|fr)[.-])/;
+/** Fichiers mis en cache à leur première utilisation seulement (voir finish). Les deux langues et les deux
+ * visites guidées (examples/{en,fr}/index.json + archives) sont préchargées dès le premier lancement. */
+const ON_DEMAND =
+  /^(fonts\/|examples\/(?!(?:en|fr)\/(?:index\.json|(?:guided-tour|visite-guidee)\.flashcard\.zip)$)|pdf\.worker|sql-wasm|chunks\/(pdf|sql-wasm)[.-])/;
 
 async function finish() {
   // CSS : esbuild le produit à côté de main.js (main.css) lorsqu'il est importé ; sinon on copie la feuille.

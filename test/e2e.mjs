@@ -14,7 +14,7 @@ const { chromium } = (() => {
 })();
 const shots = process.argv[2];
 if (shots) await mkdir(shots, { recursive: true });
-const PORT = 8099;
+const PORT = Number(process.env.PORT || 18099);
 const base = `http://localhost:${PORT}/`;
 
 const server = spawn('node', ['scripts/serve.mjs'], { env: { ...process.env, PORT: String(PORT) }, stdio: 'ignore' });
@@ -449,6 +449,7 @@ try {
     await page.locator('.set-row', { hasText: 'Meubles' }).click();
     await page.getByRole('button', { name: 'Supprimer' }).click();
     await page.getByRole('dialog').getByRole('button', { name: 'Supprimer définitivement' }).click();
+    await page.waitForFunction(() => !location.hash.startsWith('#/set/'));
     await page.goto(base + '#/browse/flag:1%20or%20is:dupe');
     await page.locator('.row-open').first().click();
     await page
@@ -860,9 +861,12 @@ try {
     const p = await fresh.newPage();
     await p.goto(base);
     await p.getByText('Visite guidée : découvrir Flashcard', { exact: true }).waitFor();
-    // un seul bandeau : d'abord les jeux d'exemple, puis, une fois l'annonce fermée, le rappel de sauvegarde
-    assert.equal(await p.locator('.examples-notice').count(), 1);
+    // un seul bandeau : d'abord l'invite de langue, puis les jeux d'exemple, puis le rappel de sauvegarde
+    assert.equal(await p.locator('.lang-notice').count(), 1);
+    assert.equal(await p.locator('.examples-notice').count(), 0);
     assert.equal(await p.locator('.backup-notice').count(), 0);
+    await p.locator('.lang-notice').getByRole('button', { name: 'Masquer ce message' }).click();
+    assert.equal(await p.locator('.examples-notice').count(), 1);
     await p.locator('.examples-notice').getByRole('button', { name: 'Masquer ce message' }).click();
     assert.match(await p.locator('.backup-notice').innerText(), /Configurez la synchronisation Dropbox/);
     assert.equal(await p.locator('.set-row').count(), 1);
@@ -903,8 +907,9 @@ try {
     const p = await fresh.newPage();
     await p.goto(base);
     await p.getByText('Visite guidée : découvrir Flashcard', { exact: true }).waitFor();
-    // seule la visite guidée est importée d'office ; l'annonce propose les autres
+    // seule la visite guidée est importée d'office ; l'annonce propose les autres (après l'invite de langue)
     assert.equal(await p.locator('.set-row').count(), 1);
+    await p.locator('.lang-notice').getByRole('button', { name: 'Masquer ce message' }).click();
     await p.locator('.examples-notice').getByRole('button', { name: "Voir les jeux d'exemple" }).click();
     const dlg = p.getByRole('dialog');
     await dlg.locator('.example-card').first().waitFor();
@@ -947,16 +952,21 @@ try {
     await fresh.close();
   });
 
-  await step('anglais : navigateur en anglais, interface et exemples en anglais', async () => {
-    const fresh = await browser.newContext({ locale: 'en-US' });
+  await step("anglais par défaut : autre navigateur en anglais, bascule depuis l'invite", async () => {
+    const fresh = await browser.newContext({ locale: 'de-DE' });
     const p = await fresh.newPage();
     await p.goto(base);
     await p.getByText('Guided tour: discover Flashcard', { exact: true }).waitFor();
     await p.getByRole('heading', { name: 'Library' }).waitFor();
     assert.equal(await p.evaluate(() => document.documentElement.lang), 'en');
+    // l'invite propose de passer en français et remplace la visite guidée vierge
+    await p.locator('.lang-notice').getByRole('button', { name: 'Passer en français' }).click();
+    await p.getByRole('heading', { name: 'Bibliothèque' }).waitFor();
+    await p.getByText('Visite guidée : découvrir Flashcard', { exact: true }).waitFor();
+    assert.equal(await p.evaluate(() => document.documentElement.lang), 'fr');
     await p.goto(base + '#/settings/study');
-    await p.getByRole('heading', { name: 'Appearance', exact: true }).waitFor();
-    assert.match(await p.locator('body').innerText(), /Target retention: \d+%/);
+    await p.getByRole('heading', { name: 'Apparence', exact: true }).waitFor();
+    assert.match(await p.locator('body').innerText(), /Rétention visée : \d+ %/);
     await fresh.close();
   });
 

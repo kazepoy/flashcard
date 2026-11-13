@@ -262,9 +262,9 @@ test('Library.resolveConflicts : fusionne les copies « en conflit » iCloud/Syn
   assert.equal(await lib.resolveConflicts(), 0);
 });
 
-test('firstRun : exemples dans la langue du navigateur, une seule fois, rien si la bibliothèque a des jeux', async () => {
+test('firstRun : exemples dans la langue du navigateur (anglais par défaut), changement de visite guidée', async () => {
   const { readFile } = await import('node:fs/promises');
-  const { firstRun, browserLang } = await import('../src/ui/first-run.js');
+  const { firstRun, switchFirstRunTour, browserLang } = await import('../src/ui/first-run.js');
   const fetchImpl = async (url) => {
     try {
       const b = await readFile(new URL('../examples/' + url.replace('./examples/', ''), import.meta.url));
@@ -280,16 +280,34 @@ test('firstRun : exemples dans la langue du navigateur, une seule fois, rien si 
   };
   assert.equal(browserLang({ language: 'fr-CA' }), 'fr');
   assert.equal(browserLang({ language: 'de-DE' }), 'en');
+  assert.equal(browserLang({}), 'en');
+  assert.equal(browserLang(null), 'en');
 
   const lib = await mkLib();
   assert.equal(await firstRun(lib, { lang: 'fr', fetchImpl }), true);
-  const { sets } = await lib.listSets();
+  let { sets } = await lib.listSets();
   assert.equal(sets.length, 1);
+  assert.match(sets[0].title, /^Visite guidée/);
   assert.deepEqual(
     [lib.settings.lang, lib.settings.language, lib.settings.initialized],
     ['fr', { term: 'fr', definition: 'fr' }, true],
   );
   assert.equal(await firstRun(lib, { lang: 'fr', fetchImpl }), false, 'déjà fait');
+
+  // changement de langue au premier lancement : remplace la visite guidée tant qu'elle n'est pas étudiée
+  assert.equal(await switchFirstRunTour(lib, 'fr', 'en', { fetchImpl }), true);
+  ({ sets } = await lib.listSets());
+  assert.equal(sets.length, 1);
+  assert.match(sets[0].title, /^Guided tour/);
+
+  // déjà étudiée : ne la supprime pas
+  const p = await lib.loadProgress(sets[0].id);
+  p.items['x'] = { reps: 1 };
+  await lib.saveProgress(p);
+  assert.equal(await switchFirstRunTour(lib, 'en', 'fr', { fetchImpl }), false);
+  ({ sets } = await lib.listSets());
+  assert.equal(sets.length, 1);
+  assert.match(sets[0].title, /^Guided tour/);
 
   const busy = await mkLib();
   await busy.saveSet(newSet({ title: 'À moi', cards: [newCard({ term: 'a', definition: 'b' })] }));

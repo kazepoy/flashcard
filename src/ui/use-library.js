@@ -5,6 +5,7 @@ import { SHARED_PATH } from '../storage/library.js';
 import { openLibrary } from './boot.js';
 import { firstRun } from './first-run.js';
 import { getLang, setLang } from './i18n.js';
+import { langNoticeSeen } from './lang-notice.jsx';
 
 export function useLibrary() {
   const [lib, setLib] = useState(null);
@@ -70,7 +71,10 @@ export function useLibrary() {
   const saveSettings = useCallback(
     async (next) => {
       setSettings(next);
-      if (next.lang !== getLang()) await setLang(next.lang);
+      if (next.lang !== getLang()) {
+        langNoticeSeen();
+        await setLang(next.lang);
+      }
       await lib.saveSettings(next);
     },
     [lib],

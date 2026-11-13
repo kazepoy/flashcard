@@ -9,6 +9,7 @@ import { errorText, t, tn } from './i18n.js';
 import { AiDialog } from './ai-dialog.jsx';
 import { ImportDialog } from './import-dialog.jsx';
 import { ExamplesNotice, examplesNoticeShown } from './examples.jsx';
+import { LangNotice, langNoticeShown } from './lang-notice.jsx';
 import { BackupNotice, backupNoticeShown } from './backup-notice.jsx';
 import { InstallNotice, installNoticeShown, useStorageRisk } from './install-notice.jsx';
 import { ArchiveSuggestDialog } from './archive-suggest.jsx';
@@ -60,7 +61,9 @@ export function LibraryPage() {
   // sauvegarde), alléger la bibliothèque. Le suivant n'apparaît qu'une fois le précédent vu ou masqué.
   const again = () => rerender((n) => n + 1);
   const risk = useStorageRisk();
-  const banner = examplesNoticeShown() ? (
+  const banner = langNoticeShown() ? (
+    <LangNotice onHide={again} />
+  ) : examplesNoticeShown() ? (
     <ExamplesNotice onOpen={() => (again(), setDialog('examples'))} onHide={again} />
   ) : risk === undefined ? null : installNoticeShown(risk) ? ( // risque pas encore connu : rien, sans clignoter
     <InstallNotice risk={risk} sync={sync} onHide={again} />

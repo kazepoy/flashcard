@@ -409,6 +409,8 @@ export default {
   'lang.la': 'Latin',
   'lang.nl': 'Néerlandais',
   'lang.none': 'Non précisée',
+  'lang.notice': 'Interface en français.',
+  'lang.noticeSwitch': 'Switch to English',
   'lang.pt': 'Portugais',
   'lang.ru': 'Russe',
   'lang.zh': 'Chinois',

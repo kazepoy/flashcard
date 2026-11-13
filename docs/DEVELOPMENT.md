@@ -36,11 +36,12 @@ et les données sont des fichiers au format décrit dans [SPEC.md](SPEC.md).
   (`Library.onExternalChange`) et fusionne sa progression en mémoire.
 - **Séance de révision** (`core/srs.js`, `SrsSession`) : jamais deux fois de suite la même carte s'il en
   reste une autre ; compte des cartes vues et terminées (barre de progression en deux tons).
-- **Hors ligne** : le service worker précharge ce qui sert à chaque lancement (`build.mjs` : `ON_DEMAND` liste le
-  reste) ; lecteur PDF, moteur Anki, polices de lecture, jeux d'exemple et autre langue sont mis en cache à leur
-  première utilisation, dans un cache qui survit aux mises à jour.
-- **Langues** : le français (référence et repli) est dans le script principal, les autres langues sont chargées à
-  la demande (`setLang` est asynchrone).
+- **Hors ligne** : le service worker précharge ce qui sert à chaque lancement ainsi que les deux langues et
+  leurs visites guidées (`build.mjs` : `ON_DEMAND` liste le reste) ; lecteur PDF, moteur Anki, polices de
+  lecture et autres jeux d'exemple sont mis en cache à leur première utilisation, dans un cache qui survit aux
+  mises à jour.
+- **Langues** : le français et l'anglais sont intégrés au script principal (`i18n.js`) ; `firstRun` suit la
+  langue du navigateur (anglais par défaut) et un bandeau discret permet d'en changer au premier lancement.
 - **Mises à jour** : le service worker active la nouvelle version, la page propose « Recharger » ; la page
   Aide affiche la version et la date du build.
 - **Une règle métier, un endroit.** Par exemple la file du jour (limites, examen, « étudier plus ») :

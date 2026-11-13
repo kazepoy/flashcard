@@ -3276,6 +3276,7 @@ details.search-help table {
 }
 
 /* ------------------------------------------------------------------ bibliothèque : jeux d'exemple, archivage proposé */
+.lang-notice,
 .examples-notice,
 .archive-suggest {
   display: flex;
@@ -3283,6 +3284,7 @@ details.search-help table {
   align-items: center;
   gap: 0.5rem 0.8rem;
 }
+.lang-notice > span,
 .examples-notice > span,
 .archive-suggest > span {
   flex: 1 1 18rem;
